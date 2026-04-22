@@ -1,0 +1,53 @@
+{
+  "_comment": "LeftPad ショートカット定義ファイル",
+  "_note": "キー名は pyautogui の hotkey() に渡す文字列。複数キーは配列で指定する。",
+  "_ref_pyautogui": "https://pyautogui.readthedocs.io/en/latest/keyboard.html#keyboard-keys",
+
+  "===  操作  ===": "---",
+  "undo":           ["ctrl", "z"],
+  "redo":           ["ctrl", "y"],
+  "save":           ["ctrl", "s"],
+  "deselect":       ["ctrl", "d"],
+
+  "===  ツール  ===": "---",
+  "brush":          ["b"],
+  "eraser":         ["e"],
+  "fill":           ["g"],
+  "eyedrop":        ["i"],
+  "select_rect":    ["m"],
+  "move":           ["v"],
+  "pen":            ["p"],
+  "text":           ["t"],
+  "lasso":          ["l"],
+
+  "===  カラー  ===": "---",
+  "swap_color":     ["x"],
+  "reset_color":    ["d"],
+
+  "===  ブラシサイズ  ===": "---",
+  "brush_size_up":  ["]"],
+  "brush_size_down":["["],
+
+  "===  ズーム  ===": "---",
+  "zoom_in":        ["ctrl", "+"],
+  "zoom_out":       ["ctrl", "-"],
+  "zoom_fit":       ["ctrl", "0"],
+  "zoom_100":       ["ctrl", "1"],
+
+  "===  キャンバス回転  ===": "---",
+  "rotate_cw":      ["ctrl", "alt", "right"],
+  "rotate_ccw":     ["ctrl", "alt", "left"],
+  "rotate_reset":   ["ctrl", "alt", "0"],
+  "flip_h":         ["ctrl", "shift", "h"],
+
+  "===  表示  ===": "---",
+  "fullscreen":     ["tab"],
+
+  "===  レイヤー  ===": "---",
+  "layer_new":      ["ctrl", "shift", "n"],
+  "layer_delete":   ["delete"],
+  "layer_merge":    ["ctrl", "e"],
+  "layer_duplicate":["ctrl", "j"],
+  "layer_up":       ["ctrl", "]"],
+  "layer_down":     ["ctrl", "["]
+}

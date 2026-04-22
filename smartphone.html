@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <title>LeftPad</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg:        #0d0e11;
+      --surface:   #16181e;
+      --border:    #2a2d36;
+      --accent:    #e8ff47;
+      --accent2:   #47c4ff;
+      --danger:    #ff5c5c;
+      --text:      #e4e6ee;
+      --muted:     #5a5f72;
+      --btn-bg:    #1e2128;
+      --btn-hover: #272b36;
+      --radius:    12px;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Space Mono', monospace;
+      min-height: 100dvh;
+      overflow-x: hidden;
+    }
+
+    /* ── ヘッダー ── */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 16px 10px;
+      border-bottom: 1px solid var(--border);
+    }
+    .logo {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 28px;
+      letter-spacing: 3px;
+      color: var(--accent);
+      line-height: 1;
+    }
+    .status-dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      background: var(--muted);
+      transition: background .3s, box-shadow .3s;
+    }
+    .status-dot.connected   { background: #4dff91; box-shadow: 0 0 8px #4dff9180; }
+    .status-dot.error       { background: var(--danger); box-shadow: 0 0 8px #ff5c5c80; }
+
+    /* ── 接続パネル ── */
+    #connect-panel {
+      padding: 14px 16px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    #ip-input {
+      flex: 1;
+      background: var(--btn-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-family: 'Space Mono', monospace;
+      font-size: 13px;
+      padding: 9px 12px;
+      outline: none;
+    }
+    #ip-input:focus { border-color: var(--accent2); }
+    #connect-btn {
+      background: var(--accent);
+      color: #0d0e11;
+      border: none;
+      border-radius: 8px;
+      font-family: 'Space Mono', monospace;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 9px 16px;
+      cursor: pointer;
+      transition: opacity .15s;
+      white-space: nowrap;
+    }
+    #connect-btn:active { opacity: .7; }
+
+    /* ── フラッシュ通知 ── */
+    #flash {
+      position: fixed; top: 12px; left: 50%; transform: translateX(-50%);
+      background: #1e2128ee; border: 1px solid var(--border);
+      color: var(--text); font-size: 12px;
+      padding: 7px 18px; border-radius: 20px;
+      opacity: 0; pointer-events: none;
+      transition: opacity .2s;
+      z-index: 100;
+      backdrop-filter: blur(8px);
+      white-space: nowrap;
+    }
+
+    /* ── メインレイアウト ── */
+    main {
+      padding: 14px 12px 80px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    /* ── セクションラベル ── */
+    .section-label {
+      font-size: 9px;
+      letter-spacing: 2.5px;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    /* ── ボタングリッド ── */
+    .btn-grid {
+      display: grid;
+      gap: 8px;
+    }
+    .col-2 { grid-template-columns: repeat(2, 1fr); }
+    .col-3 { grid-template-columns: repeat(3, 1fr); }
+    .col-4 { grid-template-columns: repeat(4, 1fr); }
+
+    /* ── 基本ボタン ── */
+    .pad-btn {
+      position: relative;
+      background: var(--btn-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text);
+      font-family: 'Space Mono', monospace;
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: .5px;
+      padding: 0;
+      cursor: pointer;
+      min-height: 64px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      overflow: hidden;
+      transition: border-color .1s, background .1s;
+      user-select: none;
+    }
+    .pad-btn .icon { font-size: 22px; line-height: 1; }
+    .pad-btn .label { font-size: 9px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; }
+
+    /* カラーバリエーション */
+    .pad-btn.accent  { border-color: var(--accent);  color: var(--accent);  }
+    .pad-btn.accent2 { border-color: var(--accent2); color: var(--accent2); }
+    .pad-btn.danger  { border-color: var(--danger);  color: var(--danger);  }
+
+    /* タップリップル */
+    .pad-btn::after {
+      content: '';
+      position: absolute; inset: 0;
+      background: white;
+      opacity: 0;
+      border-radius: inherit;
+      transition: opacity .1s;
+    }
+    .pad-btn:active::after { opacity: .08; }
+    .pad-btn.accent:active  { background: #e8ff4715; }
+    .pad-btn.accent2:active { background: #47c4ff15; }
+    .pad-btn.danger:active  { background: #ff5c5c15; }
+
+    /* フラッシュアニメ */
+    @keyframes flash-btn {
+      0%   { box-shadow: 0 0 0 0 var(--accent); }
+      50%  { box-shadow: 0 0 0 6px #e8ff4730; }
+      100% { box-shadow: 0 0 0 0 transparent; }
+    }
+    .pad-btn.fired { animation: flash-btn .25s ease-out; }
+
+    /* 大きいボタン */
+    .pad-btn.tall { min-height: 88px; }
+
+    /* ── スライダーセクション ── */
+    .slider-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .slider-label { font-size: 10px; color: var(--muted); width: 56px; white-space: nowrap; }
+    input[type=range] {
+      flex: 1;
+      accent-color: var(--accent2);
+      height: 4px;
+    }
+    .slider-val { font-size: 11px; width: 32px; text-align: right; color: var(--accent2); }
+
+    /* ── カスタムタブ ── */
+    .tabs {
+      display: flex;
+      gap: 4px;
+      border-bottom: 1px solid var(--border);
+      padding: 0 0 0 2px;
+    }
+    .tab {
+      font-size: 10px;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      padding: 8px 14px;
+      border: none;
+      background: none;
+      color: var(--muted);
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+      font-family: 'Space Mono', monospace;
+      transition: color .15s, border-color .15s;
+    }
+    .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* ── 区切り線 ── */
+    .divider {
+      height: 1px;
+      background: var(--border);
+      margin: 4px 0;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <span class="logo">LeftPad</span>
+  <div id="status-dot" class="status-dot"></div>
+</header>
+
+<div id="connect-panel">
+  <input id="ip-input" type="text" placeholder="192.168.x.x:8765" autocomplete="off" />
+  <button id="connect-btn" onclick="toggleConnect()">接続</button>
+</div>
+
+<div id="flash"></div>
+
+<!-- タブ -->
+<div class="tabs" style="margin: 0 12px; margin-top: 14px;">
+  <button class="tab active" onclick="switchTab('draw')">描画</button>
+  <button class="tab" onclick="switchTab('view')">表示</button>
+  <button class="tab" onclick="switchTab('layer')">レイヤー</button>
+  <button class="tab" onclick="switchTab('custom')">カスタム</button>
+</div>
+
+<main>
+
+  <!-- ===== TAB: 描画 ===== -->
+  <div id="tab-draw" class="tab-panel active">
+
+    <div class="section-label">操作</div>
+    <div class="btn-grid col-2">
+      <button class="pad-btn accent tall" onclick="send('undo')">
+        <span class="icon">↩</span><span class="label">Undo</span>
+      </button>
+      <button class="pad-btn accent2 tall" onclick="send('redo')">
+        <span class="icon">↪</span><span class="label">Redo</span>
+      </button>
+    </div>
+
+    <div class="divider"></div>
+    <div class="section-label">ツール</div>
+    <div class="btn-grid col-3">
+      <button class="pad-btn" onclick="send('brush')">
+        <span class="icon">🖌️</span><span class="label">ブラシ</span>
+      </button>
+      <button class="pad-btn" onclick="send('eraser')">
+        <span class="icon">🧹</span><span class="label">消しゴム</span>
+      </button>
+      <button class="pad-btn" onclick="send('fill')">
+        <span class="icon">🪣</span><span class="label">塗りつぶし</span>
+      </button>
+      <button class="pad-btn" onclick="send('eyedrop')">
+        <span class="icon">💉</span><span class="label">スポイト</span>
+      </button>
+      <button class="pad-btn" onclick="send('select_rect')">
+        <span class="icon">⬛</span><span class="label">矩形選択</span>
+      </button>
+      <button class="pad-btn" onclick="send('move')">
+        <span class="icon">✥</span><span class="label">移動</span>
+      </button>
+    </div>
+
+    <div class="divider"></div>
+    <div class="section-label">カラー</div>
+    <div class="btn-grid col-2">
+      <button class="pad-btn" onclick="send('swap_color')">
+        <span class="icon">🔄</span><span class="label">前後景切替</span>
+      </button>
+      <button class="pad-btn" onclick="send('reset_color')">
+        <span class="icon">⬛⬜</span><span class="label">白黒リセット</span>
+      </button>
+    </div>
+
+    <div class="divider"></div>
+    <div class="section-label">ブラシサイズ</div>
+    <div class="slider-row">
+      <span class="slider-label">サイズ</span>
+      <input type="range" id="brush-size" min="1" max="10" value="5"
+             oninput="document.getElementById('bsize-val').textContent=this.value" />
+      <span class="slider-val" id="bsize-val">5</span>
+    </div>
+    <div class="btn-grid col-2" style="margin-top:8px">
+      <button class="pad-btn" onclick="send('brush_size_up')">
+        <span class="icon">＋</span><span class="label">サイズ＋</span>
+      </button>
+      <button class="pad-btn" onclick="send('brush_size_down')">
+        <span class="icon">－</span><span class="label">サイズ－</span>
+      </button>
+    </div>
+
+  </div>
+
+  <!-- ===== TAB: 表示 ===== -->
+  <div id="tab-view" class="tab-panel">
+
+    <div class="section-label">ズーム</div>
+    <div class="btn-grid col-3">
+      <button class="pad-btn accent2 tall" onclick="send('zoom_in')">
+        <span class="icon">🔍＋</span><span class="label">拡大</span>
+      </button>
+      <button class="pad-btn tall" onclick="send('zoom_fit')">
+        <span class="icon">⊡</span><span class="label">全体表示</span>
+      </button>
+      <button class="pad-btn accent2 tall" onclick="send('zoom_out')">
+        <span class="icon">🔍－</span><span class="label">縮小</span>
+      </button>
+    </div>
+
+    <div class="divider"></div>
+    <div class="section-label">キャンバス回転</div>
+    <div class="btn-grid col-3">
+      <button class="pad-btn" onclick="send('rotate_ccw')">
+        <span class="icon">↺</span><span class="label">左回転</span>
+      </button>
+      <button class="pad-btn" onclick="send('rotate_reset')">
+        <span class="icon">⊕</span><span class="label">リセット</span>
+      </button>
+      <button class="pad-btn" onclick="send('rotate_cw')">
+        <span class="icon">↻</span><span class="label">右回転</span>
+      </button>
+    </div>
+
+    <div class="divider"></div>
+    <div class="section-label">表示設定</div>
+    <div class="btn-grid col-2">
+      <button class="pad-btn" onclick="send('flip_h')">
+        <span class="icon">↔</span><span class="label">左右反転</span>
+      </button>
+      <button class="pad-btn" onclick="send('fullscreen')">
+        <span class="icon">⛶</span><span class="label">全画面</span>
+      </button>
+    </div>
+
+  </div>
+
+  <!-- ===== TAB: レイヤー ===== -->
+  <div id="tab-layer" class="tab-panel">
+
+    <div class="section-label">レイヤー操作</div>
+    <div class="btn-grid col-2">
+      <button class="pad-btn accent2" onclick="send('layer_new')">
+        <span class="icon">➕</span><span class="label">新規</span>
+      </button>
+      <button class="pad-btn danger" onclick="send('layer_delete')">
+        <span class="icon">🗑</span><span class="label">削除</span>
+      </button>
+      <button class="pad-btn" onclick="send('layer_up')">
+        <span class="icon">⬆</span><span class="label">上へ</span>
+      </button>
+      <button class="pad-btn" onclick="send('layer_down')">
+        <span class="icon">⬇</span><span class="label">下へ</span>
+      </button>
+      <button class="pad-btn" onclick="send('layer_merge')">
+        <span class="icon">⤵</span><span class="label">結合</span>
+      </button>
+      <button class="pad-btn" onclick="send('layer_duplicate')">
+        <span class="icon">⧉</span><span class="label">複製</span>
+      </button>
+    </div>
+
+    <div class="divider"></div>
+    <div class="section-label">不透明度</div>
+    <div class="slider-row">
+      <span class="slider-label">不透明度</span>
+      <input type="range" id="opacity" min="0" max="100" value="100"
+             oninput="document.getElementById('opacity-val').textContent=this.value+'%'" />
+      <span class="slider-val" id="opacity-val">100%</span>
+    </div>
+
+  </div>
+
+  <!-- ===== TAB: カスタム ===== -->
+  <div id="tab-custom" class="tab-panel">
+    <div class="section-label">カスタムボタン（最大6個）</div>
+    <div id="custom-grid" class="btn-grid col-3"></div>
+    <div style="margin-top:16px; display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+      <input id="custom-label" type="text" placeholder="ラベル"
+        style="flex:1; min-width:80px; background:var(--btn-bg); border:1px solid var(--border);
+               border-radius:8px; color:var(--text); font-family:inherit; font-size:12px;
+               padding:8px 10px; outline:none;" />
+      <input id="custom-cmd" type="text" placeholder="コマンドキー (例: ctrl+s)"
+        style="flex:2; min-width:120px; background:var(--btn-bg); border:1px solid var(--border);
+               border-radius:8px; color:var(--text); font-family:inherit; font-size:12px;
+               padding:8px 10px; outline:none;" />
+      <button onclick="addCustomBtn()"
+        style="background:var(--accent2); color:#0d0e11; border:none; border-radius:8px;
+               font-family:inherit; font-size:12px; font-weight:700; padding:9px 14px; cursor:pointer;">
+        追加
+      </button>
+    </div>
+    <p style="font-size:10px; color:var(--muted); margin-top:10px; line-height:1.7;">
+      コマンドはサーバー側の shortcuts.json に定義されているキー名、<br>
+      または直接 <code style="color:var(--accent2)">ctrl+s</code> のような形式で入力。
+    </p>
+  </div>
+
+</main>
+
+<script>
+// ── WebSocket ──────────────────────────────────────────────
+let ws = null;
+let reconnectTimer = null;
+const dot    = document.getElementById('status-dot');
+const ipInput = document.getElementById('ip-input');
+const connBtn = document.getElementById('connect-btn');
+
+function toggleConnect() {
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    ws.close();
+    return;
+  }
+  connect();
+}
+
+function connect() {
+  const addr = ipInput.value.trim() || '192.168.0.0:8765';
+  const url  = 'ws://' + addr;
+  dot.className = 'status-dot';
+  try {
+    ws = new WebSocket(url);
+  } catch(e) { showFlash('❌ 接続エラー'); return; }
+
+  ws.onopen = () => {
+    dot.className = 'status-dot connected';
+    connBtn.textContent = '切断';
+    showFlash('✅ 接続しました');
+    localStorage.setItem('leftpad_ip', addr);
+  };
+  ws.onclose = () => {
+    dot.className = 'status-dot';
+    connBtn.textContent = '接続';
+    showFlash('⚡ 切断されました');
+  };
+  ws.onerror = () => {
+    dot.className = 'status-dot error';
+    showFlash('❌ 接続できません');
+  };
+  ws.onmessage = (e) => {
+    // サーバーからの応答（オプション）
+    console.log('server:', e.data);
+  };
+}
+
+// ── コマンド送信 ───────────────────────────────────────────
+function send(cmd) {
+  if (!ws || ws.readyState !== WebSocket.OPEN) {
+    showFlash('⚠ 未接続');
+    return;
+  }
+  ws.send(JSON.stringify({ cmd }));
+  flashBtn(event.currentTarget);
+}
+
+function flashBtn(btn) {
+  if (!btn) return;
+  btn.classList.remove('fired');
+  void btn.offsetWidth;
+  btn.classList.add('fired');
+}
+
+// ── フラッシュ通知 ─────────────────────────────────────────
+let flashTimer = null;
+function showFlash(msg) {
+  const el = document.getElementById('flash');
+  el.textContent = msg;
+  el.style.opacity = 1;
+  clearTimeout(flashTimer);
+  flashTimer = setTimeout(() => { el.style.opacity = 0; }, 1800);
+}
+
+// ── タブ切替 ───────────────────────────────────────────────
+function switchTab(name) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  event.currentTarget.classList.add('active');
+}
+
+// ── カスタムボタン ─────────────────────────────────────────
+let customBtns = JSON.parse(localStorage.getItem('leftpad_custom') || '[]');
+
+function renderCustomBtns() {
+  const grid = document.getElementById('custom-grid');
+  grid.innerHTML = '';
+  customBtns.forEach((b, i) => {
+    const el = document.createElement('button');
+    el.className = 'pad-btn accent2';
+    el.innerHTML = `<span class="label">${b.label}</span>`;
+    el.onclick = (e) => {
+      if (!ws || ws.readyState !== WebSocket.OPEN) { showFlash('⚠ 未接続'); return; }
+      ws.send(JSON.stringify({ cmd: b.cmd, raw: true }));
+      flashBtn(el);
+    };
+    el.oncontextmenu = (e) => {
+      e.preventDefault();
+      customBtns.splice(i, 1);
+      saveCustom();
+      renderCustomBtns();
+    };
+    grid.appendChild(el);
+  });
+}
+
+function addCustomBtn() {
+  const label = document.getElementById('custom-label').value.trim();
+  const cmd   = document.getElementById('custom-cmd').value.trim();
+  if (!label || !cmd) { showFlash('⚠ ラベルとコマンドを入力'); return; }
+  if (customBtns.length >= 6) { showFlash('⚠ 上限6個まで'); return; }
+  customBtns.push({ label, cmd });
+  saveCustom();
+  renderCustomBtns();
+  document.getElementById('custom-label').value = '';
+  document.getElementById('custom-cmd').value   = '';
+  showFlash('✅ ボタン追加');
+}
+function saveCustom() { localStorage.setItem('leftpad_custom', JSON.stringify(customBtns)); }
+
+// ── 初期化 ────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  const saved = localStorage.getItem('leftpad_ip');
+
+  if (saved) {
+    // 過去に接続したアドレスを復元
+    ipInput.value = saved;
+  } else if (window.location.hostname && window.location.hostname !== 'localhost') {
+    // QRコードでアクセスした場合、同じPCのIPを自動入力（HTTPと同じホスト、ポートだけ8765に）
+    ipInput.value = window.location.hostname + ':8765';
+  }
+
+  renderCustomBtns();
+
+  // アドレスが埋まっていれば自動接続
+  if (ipInput.value && ipInput.value !== '192.168.0.0:8765') {
+    setTimeout(connect, 500); // ページ描画後に接続
+  }
+});
+</script>
+</body>
+</html>
