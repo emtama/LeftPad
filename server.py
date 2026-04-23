@@ -601,6 +601,21 @@ class ShortcutEditorWindow(tk.Toplevel):
             ent = tk.Entry(row, textvariable=var, bg=self.BG, fg=self.ACCENT2,
                            font=("Courier New", 9), relief="flat")
             ent.pack(side="left", fill="x", expand=True, padx=(4, 0))
+            rec_btn = tk.Button(
+                row, text="キーを記録",
+                bg=self.BORDER, fg=self.TEXT, relief="flat",
+                font=("Courier New", 8), cursor="hand2",
+                command=lambda g=key: self._start_capture(("gesture", g)),
+            )
+            rec_btn.pack(side="left", padx=(6, 4))
+            del_btn = tk.Button(
+                row, text="削除",
+                bg=self.DANGER, fg=self.BG, relief="flat",
+                font=("Courier New", 8), cursor="hand2",
+                command=lambda g=key: self._delete_gesture(g),
+            )
+            del_btn.pack(side="left", padx=(0, 2))
+            self._capture_buttons[("gesture", key)] = rec_btn
             self._gesture_entries[key] = var
 
     def _build_add_shortcut_panel(self, parent):
@@ -680,6 +695,8 @@ class ShortcutEditorWindow(tk.Toplevel):
         ttype, tkey = self._capture_target
         if ttype == "shortcut" and tkey in self._entries:
             self._entries[tkey].set(joined)
+        elif ttype == "gesture" and tkey in self._gesture_entries:
+            self._gesture_entries[tkey].set(joined)
         elif ttype == "new_shortcut":
             self._new_shortcut_keys_var.set(joined)
 
@@ -729,6 +746,17 @@ class ShortcutEditorWindow(tk.Toplevel):
             row.destroy()
         self._entries.pop(cmd, None)
         self._deleted_shortcuts.add(cmd)
+
+    def _delete_gesture(self, gesture_key):
+        if gesture_key not in self._gesture_entries:
+            return
+        if not messagebox.askyesno(
+            "LeftPad",
+            f"ジェスチャー「{self.GESTURE_LABELS.get(gesture_key, gesture_key)}」の割り当てを削除しますか？",
+            parent=self
+        ):
+            return
+        self._gesture_entries[gesture_key].set("")
 
     def _save(self):
         changed = 0
