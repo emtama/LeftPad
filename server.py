@@ -13,7 +13,7 @@ LeftPad Server  ─  PC側サーバー
 
 セキュリティ:
   起動ごとにランダムトークンを生成。QRコードに埋め込まれており、
-  QR経由でアクセスしたクライアントのみWebSocket接続を許可する。
+  WebSocket接続直後の認証メッセージで検証する。
 """
 
 import asyncio
@@ -27,7 +27,6 @@ import threading
 import tkinter as tk
 import tkinter.messagebox as messagebox
 from http.server import HTTPServer, SimpleHTTPRequestHandler
-from urllib.parse import parse_qs, urlparse
 
 import pyautogui
 import qrcode
@@ -42,7 +41,65 @@ WS_PORT        = 8765
 HTTP_PORT      = 8080
 BASE_DIR       = os.path.dirname(os.path.abspath(__file__))
 SHORTCUTS_FILE = os.path.join(BASE_DIR, "shortcuts.json")
+GESTURES_FILE  = os.path.join(BASE_DIR, "gestures.json")
 ACCESS_TOKEN   = secrets.token_urlsafe(16)   # 起動ごとに再生成
+
+DEFAULT_GESTURES = {
+    "swipe_up": "zoom_in",
+    "swipe_down": "zoom_out",
+    "swipe_left": "undo",
+    "swipe_right": "redo",
+    "long_press": "eyedrop",
+    "hold_screen": "eyedrop",
+    "pinch_in": "zoom_out",
+    "pinch_out": "zoom_in",
+    "double_tap": "fullscreen",
+    "two_finger_tap": "undo",
+    "two_finger_swipe_up": "zoom_in",
+    "two_finger_swipe_down": "zoom_out",
+    "two_finger_swipe_left": "undo",
+    "two_finger_swipe_right": "redo",
+    "three_finger_tap": "fullscreen",
+    "three_finger_swipe_up": "layer_up",
+    "three_finger_swipe_down": "layer_down",
+    "three_finger_swipe_left": "rotate_ccw",
+    "three_finger_swipe_right": "rotate_cw",
+}
+
+COMMAND_ALIASES = {
+    "undo": "元に戻す",
+    "redo": "やり直し",
+    "save": "保存",
+    "deselect": "選択解除",
+    "brush": "ブラシ",
+    "eraser": "消しゴム",
+    "fill": "塗りつぶし",
+    "eyedrop": "スポイト",
+    "select_rect": "矩形選択",
+    "move": "移動",
+    "pen": "ペン",
+    "text": "テキスト",
+    "lasso": "なげなわ",
+    "swap_color": "前後景切替",
+    "reset_color": "白黒リセット",
+    "brush_size_up": "ブラシサイズアップ",
+    "brush_size_down": "ブラシサイズダウン",
+    "zoom_in": "拡大",
+    "zoom_out": "縮小",
+    "zoom_fit": "全体表示",
+    "zoom_100": "100%表示",
+    "rotate_cw": "右回転",
+    "rotate_ccw": "左回転",
+    "rotate_reset": "回転リセット",
+    "flip_h": "左右反転",
+    "fullscreen": "全画面",
+    "layer_new": "レイヤー新規",
+    "layer_delete": "レイヤー削除",
+    "layer_merge": "レイヤー結合",
+    "layer_duplicate": "レイヤー複製",
+    "layer_up": "レイヤー上",
+    "layer_down": "レイヤー下",
+}
 
 # ══════════════════════════════════════════════
 #  ログ設定
@@ -102,6 +159,32 @@ def get_real_shortcuts(shortcuts: dict) -> dict:
     return {k: v for k, v in shortcuts.items()
             if isinstance(v, list) and not k.startswith("_")}
 
+def load_gestures() -> dict:
+    if not os.path.exists(GESTURES_FILE):
+        save_gestures(DEFAULT_GESTURES.copy())
+        return DEFAULT_GESTURES.copy()
+    try:
+        with open(GESTURES_FILE, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        if not isinstance(data, dict):
+            raise ValueError("gestures.json must be object")
+        merged = DEFAULT_GESTURES.copy()
+        merged.update({k: str(v) for k, v in data.items()})
+        return merged
+    except Exception as e:
+        log.error(f"gestures.json の読み込みに失敗: {e}")
+        return DEFAULT_GESTURES.copy()
+
+def save_gestures(data: dict) -> bool:
+    try:
+        with open(GESTURES_FILE, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+        log.info("gestures.json を保存した")
+        return True
+    except Exception as e:
+        log.error(f"gestures.json の保存に失敗: {e}")
+        return False
+
 # ══════════════════════════════════════════════
 #  キー入力
 # ══════════════════════════════════════════════
@@ -115,29 +198,50 @@ def execute_keys(keys: list[str]) -> None:
 def parse_raw_cmd(cmd_str: str) -> list[str]:
     return [k.strip().lower() for k in cmd_str.split("+")]
 
+def resolve_command_name(cmd: str) -> str:
+    if cmd in COMMAND_ALIASES:
+        return COMMAND_ALIASES[cmd]
+    return cmd
+
 # ══════════════════════════════════════════════
 #  WebSocket ハンドラ
 # ══════════════════════════════════════════════
 async def ws_handler(websocket):
     client = websocket.remote_address
 
-    # ── トークン検証 ──────────────────────────────
+    # ── 認証メッセージ検証（接続直後） ─────────────
     try:
-        raw_path = websocket.path          # websockets >= 10
-    except AttributeError:
-        raw_path = getattr(websocket, 'request_uri', "/")
-
-    params = parse_qs(urlparse(raw_path).query)
-    token  = params.get("token", [""])[0]
-
-    if token != ACCESS_TOKEN:
-        log.warning(f"不正アクセス拒否: {client[0]} (token不一致)")
+        raw = await asyncio.wait_for(websocket.recv(), timeout=8)
+        data = json.loads(raw)
+    except asyncio.TimeoutError:
+        log.warning(f"認証タイムアウト: {client[0]}")
         await websocket.close(4001, "Unauthorized")
         return
+    except json.JSONDecodeError:
+        log.warning(f"認証失敗(JSON不正): {client[0]}")
+        await websocket.close(4001, "Unauthorized")
+        return
+    except websockets.exceptions.ConnectionClosed:
+        return
+
+    if data.get("type") != "auth":
+        log.warning(f"認証失敗(type不正): {client[0]}")
+        await websocket.close(4001, "Unauthorized")
+        return
+
+    token = data.get("token", "")
+    if token != ACCESS_TOKEN:
+        log.warning(f"不正アクセス拒否: {client[0]} (token不一致)")
+        await websocket.send(json.dumps({"type": "auth", "ok": False}))
+        await websocket.close(4001, "Unauthorized")
+        return
+
+    await websocket.send(json.dumps({"type": "auth", "ok": True}))
 
     log.info(f"WS 接続: {client[0]}:{client[1]}")
     connected_clients.add(websocket)
     shortcuts = load_shortcuts()
+    gestures = load_gestures()
 
     try:
         async for message in websocket:
@@ -155,9 +259,13 @@ async def ws_handler(websocket):
                 await websocket.send(json.dumps({"type": "shortcuts", "data": real}))
                 continue
 
+            if msg_type == "get_gestures":
+                await websocket.send(json.dumps({"type": "gestures", "data": gestures}))
+                continue
+
             # ── ショートカットを更新・保存 ────────────
             if msg_type == "update_shortcut":
-                cmd  = data.get("cmd", "").strip()
+                cmd  = resolve_command_name(data.get("cmd", "").strip())
                 keys = data.get("keys")
                 if not cmd or not isinstance(keys, list) or not keys:
                     await websocket.send(json.dumps({"type": "shortcut_updated", "ok": False}))
@@ -167,6 +275,19 @@ async def ws_handler(websocket):
                 log.info(f"ショートカット更新: {cmd} → {'+'.join(keys)}")
                 await websocket.send(json.dumps({
                     "type": "shortcut_updated", "ok": ok, "cmd": cmd, "keys": keys
+                }))
+                continue
+
+            if msg_type == "update_gesture":
+                gkey = data.get("gesture", "").strip()
+                cmd = data.get("cmd", "").strip()
+                if not gkey:
+                    await websocket.send(json.dumps({"type": "gesture_updated", "ok": False}))
+                    continue
+                gestures[gkey] = cmd
+                ok = save_gestures(gestures)
+                await websocket.send(json.dumps({
+                    "type": "gesture_updated", "ok": ok, "gesture": gkey, "cmd": cmd
                 }))
                 continue
 
@@ -189,6 +310,7 @@ async def ws_handler(websocket):
                     await websocket.send(json.dumps({"ok": False, "error": str(e)}))
                 continue
 
+            cmd = resolve_command_name(cmd)
             real = get_real_shortcuts(shortcuts)
             if cmd not in real:
                 log.warning(f"未定義コマンド: {cmd!r}")
@@ -269,102 +391,69 @@ class ShortcutEditorWindow(tk.Toplevel):
     MUTED   = "#5a5f72"
     TEXT    = "#e4e6ee"
     DANGER  = "#ff5c5c"
+    MODIFIERS = {"ctrl", "shift", "alt", "meta"}
+    GESTURE_KEYS = [
+        "swipe_up", "swipe_down", "swipe_left", "swipe_right",
+        "long_press", "hold_screen", "pinch_in", "pinch_out", "double_tap",
+        "two_finger_tap", "two_finger_swipe_up", "two_finger_swipe_down",
+        "two_finger_swipe_left", "two_finger_swipe_right",
+        "three_finger_tap", "three_finger_swipe_up", "three_finger_swipe_down",
+        "three_finger_swipe_left", "three_finger_swipe_right",
+    ]
 
     def __init__(self, parent_root):
         super().__init__(parent_root)
-        self.title("LeftPad ─ ショートカット編集")
+        self.title("LeftPad ─ キー/ジェスチャー編集")
         self.configure(bg=self.BG)
         self.resizable(True, True)
-        self.minsize(480, 400)
+        self.minsize(860, 560)
 
         self._shortcuts = load_shortcuts()
-        self._entries   = {}   # cmd → StringVar
+        self._gestures  = load_gestures()
+        self._entries   = {}   # cmd → StringVar("+区切り")
+        self._gesture_entries = {}  # gesture_key -> StringVar
+        self._capture_target = None
+        self._capture_pressed: set[str] = set()
+        self._new_shortcut_keys_var = tk.StringVar(value="")
+        self._new_shortcut_cmd_var = tk.StringVar(value="")
 
         self._build()
-        self._center()
+        self._maximize()
         self.focus_force()
+        self.bind_all("<KeyPress>", self._on_key_press, add="+")
+        self.bind_all("<KeyRelease>", self._on_key_release, add="+")
 
     # ── UI ───────────────────────────────────
     def _build(self):
-        # タイトル
         tk.Label(
-            self, text="ショートカット編集",
+            self, text="キー / ジェスチャー編集",
             bg=self.BG, fg=self.ACCENT,
             font=("Courier New", 14, "bold"), pady=12,
         ).pack()
 
         tk.Label(
             self,
-            text="キーは  ctrl+z  のように  +  で区切って入力する",
+            text="割り当て変更: [キーを記録] → キーボードを押す（入力ではなく実キー記録）",
             bg=self.BG, fg=self.MUTED, font=("Courier New", 9),
         ).pack(pady=(0, 8))
 
         tk.Frame(self, bg=self.BORDER, height=1).pack(fill="x", padx=16)
 
-        # ── スクロール可能なリスト ──
         wrapper = tk.Frame(self, bg=self.BG)
         wrapper.pack(fill="both", expand=True, padx=16, pady=8)
 
-        canvas    = tk.Canvas(wrapper, bg=self.BG, highlightthickness=0)
-        scrollbar = tk.Scrollbar(wrapper, orient="vertical", command=canvas.yview,
-                                 bg=self.BORDER, troughcolor=self.SURFACE)
-        scroll_frame = tk.Frame(canvas, bg=self.BG)
+        left = tk.Frame(wrapper, bg=self.BG)
+        right = tk.Frame(wrapper, bg=self.BG)
+        left.pack(side="left", fill="both", expand=True, padx=(0, 6))
+        right.pack(side="left", fill="both", expand=True, padx=(6, 0))
 
-        scroll_frame.bind(
-            "<Configure>",
-            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
-        )
-        canvas.create_window((0, 0), window=scroll_frame, anchor="nw")
-        canvas.configure(yscrollcommand=scrollbar.set)
+        self._build_shortcuts_panel(left)
+        self._build_gestures_panel(right)
+        self._build_add_shortcut_panel()
 
-        canvas.pack(side="left", fill="both", expand=True)
-        scrollbar.pack(side="right", fill="y")
-
-        # マウスホイールスクロール
-        canvas.bind_all("<MouseWheel>",
-                        lambda e: canvas.yview_scroll(int(-1 * e.delta / 120), "units"))
-
-        # ── ヘッダー行 ──
-        hdr = tk.Frame(scroll_frame, bg=self.SURFACE, padx=4, pady=4)
-        hdr.pack(fill="x", pady=(0, 4))
-        tk.Label(hdr, text="コマンド", width=22, bg=self.SURFACE,
-                 fg=self.MUTED, font=("Courier New", 9, "bold"), anchor="w").grid(row=0, column=0, padx=(4, 8))
-        tk.Label(hdr, text="割り当てキー", width=26, bg=self.SURFACE,
-                 fg=self.MUTED, font=("Courier New", 9, "bold"), anchor="w").grid(row=0, column=1)
-
-        # ── ショートカット行 ──
-        real = get_real_shortcuts(self._shortcuts)
-        for i, (cmd, keys) in enumerate(real.items()):
-            row_bg = self.BG if i % 2 == 0 else self.SURFACE
-            row = tk.Frame(scroll_frame, bg=row_bg, pady=3)
-            row.pack(fill="x")
-
-            tk.Label(
-                row, text=cmd, width=22,
-                bg=row_bg, fg=self.TEXT,
-                font=("Courier New", 9), anchor="w",
-            ).grid(row=0, column=0, padx=(4, 8))
-
-            var = tk.StringVar(value="+".join(keys))
-            entry = tk.Entry(
-                row, textvariable=var, width=26,
-                bg=self.SURFACE, fg=self.ACCENT2,
-                font=("Courier New", 10),
-                relief="flat", bd=1,
-                insertbackground=self.ACCENT2,
-                highlightthickness=1,
-                highlightbackground=self.BORDER,
-                highlightcolor=self.ACCENT2,
-            )
-            entry.grid(row=0, column=1, padx=4)
-            self._entries[cmd] = var
-
-        # ── フッター ──
         tk.Frame(self, bg=self.BORDER, height=1).pack(fill="x", padx=16)
-
         footer = tk.Frame(self, bg=self.BG, pady=12)
         footer.pack()
-
         tk.Button(
             footer, text="  保存  ",
             bg=self.ACCENT, fg=self.BG,
@@ -374,7 +463,6 @@ class ShortcutEditorWindow(tk.Toplevel):
             activebackground="#c8e030",
             command=self._save,
         ).pack(side="left", padx=8)
-
         tk.Button(
             footer, text="キャンセル",
             bg=self.BORDER, fg=self.TEXT,
@@ -383,6 +471,132 @@ class ShortcutEditorWindow(tk.Toplevel):
             cursor="hand2",
             command=self.destroy,
         ).pack(side="left", padx=8)
+
+    def _build_shortcuts_panel(self, parent):
+        tk.Label(parent, text="ショートカットキー", bg=self.BG, fg=self.ACCENT2,
+                 font=("Courier New", 11, "bold")).pack(anchor="w")
+        box = tk.Frame(parent, bg=self.SURFACE, padx=8, pady=8)
+        box.pack(fill="both", expand=True, pady=(6, 0))
+        hdr = tk.Frame(box, bg=self.SURFACE)
+        hdr.pack(fill="x", pady=(0, 4))
+        tk.Label(hdr, text="コマンド", width=22, bg=self.SURFACE,
+                 fg=self.MUTED, font=("Courier New", 9, "bold"), anchor="w").grid(row=0, column=0, padx=(4, 8))
+        tk.Label(hdr, text="割り当てキー", width=22, bg=self.SURFACE,
+                 fg=self.MUTED, font=("Courier New", 9, "bold"), anchor="w").grid(row=0, column=1)
+
+        real = get_real_shortcuts(self._shortcuts)
+        for i, (cmd, keys) in enumerate(real.items()):
+            row_bg = self.SURFACE if i % 2 == 0 else self.BG
+            row = tk.Frame(box, bg=row_bg, pady=3)
+            row.pack(fill="x")
+            tk.Label(
+                row, text=cmd, width=22,
+                bg=row_bg, fg=self.TEXT,
+                font=("Courier New", 9), anchor="w",
+            ).grid(row=0, column=0, padx=(4, 8))
+            var = tk.StringVar(value="+".join(keys))
+            tk.Label(
+                row, textvariable=var, width=22,
+                bg=self.SURFACE, fg=self.ACCENT2,
+                font=("Courier New", 10), anchor="w",
+            ).grid(row=0, column=1, padx=4)
+            tk.Button(
+                row, text="キーを記録",
+                bg=self.BORDER, fg=self.TEXT, relief="flat",
+                font=("Courier New", 8), cursor="hand2",
+                command=lambda c=cmd: self._start_capture(("shortcut", c)),
+            ).grid(row=0, column=2, padx=4)
+            self._entries[cmd] = var
+
+    def _build_gestures_panel(self, parent):
+        tk.Label(parent, text="ジェスチャー割り当て", bg=self.BG, fg=self.ACCENT2,
+                 font=("Courier New", 11, "bold")).pack(anchor="w")
+        box = tk.Frame(parent, bg=self.SURFACE, padx=8, pady=8)
+        box.pack(fill="both", expand=True, pady=(6, 0))
+        for key in self.GESTURE_KEYS:
+            row = tk.Frame(box, bg=self.SURFACE, pady=2)
+            row.pack(fill="x")
+            tk.Label(row, text=key, width=24, anchor="w", bg=self.SURFACE, fg=self.TEXT,
+                     font=("Courier New", 9)).pack(side="left")
+            var = tk.StringVar(value=self._gestures.get(key, ""))
+            ent = tk.Entry(row, textvariable=var, bg=self.BG, fg=self.ACCENT2,
+                           font=("Courier New", 9), relief="flat")
+            ent.pack(side="left", fill="x", expand=True, padx=(4, 0))
+            self._gesture_entries[key] = var
+
+    def _build_add_shortcut_panel(self):
+        panel = tk.Frame(self, bg=self.SURFACE, padx=10, pady=8)
+        panel.pack(fill="x", padx=16, pady=(0, 8))
+        tk.Label(panel, text="ショートカット追加", bg=self.SURFACE, fg=self.ACCENT2,
+                 font=("Courier New", 10, "bold")).pack(side="left", padx=(0, 10))
+        tk.Entry(panel, textvariable=self._new_shortcut_cmd_var, width=24, bg=self.BG, fg=self.TEXT,
+                 font=("Courier New", 10), relief="flat").pack(side="left")
+        tk.Label(panel, textvariable=self._new_shortcut_keys_var, width=22, anchor="w",
+                 bg=self.BG, fg=self.ACCENT2, font=("Courier New", 10)).pack(side="left", padx=6)
+        tk.Button(panel, text="キーを記録", bg=self.BORDER, fg=self.TEXT, relief="flat",
+                  command=lambda: self._start_capture(("new_shortcut", ""))).pack(side="left", padx=4)
+        tk.Button(panel, text="追加", bg=self.ACCENT2, fg=self.BG, relief="flat",
+                  command=self._add_shortcut).pack(side="left", padx=4)
+
+    def _start_capture(self, target):
+        self._capture_target = target
+        self._capture_pressed.clear()
+        messagebox.showinfo("LeftPad", "割り当てたいキーを押す", parent=self)
+
+    @staticmethod
+    def _normalize_key(keysym: str) -> str:
+        k = keysym.lower()
+        mapping = {
+            "control_l": "ctrl", "control_r": "ctrl",
+            "shift_l": "shift", "shift_r": "shift",
+            "alt_l": "alt", "alt_r": "alt",
+            "meta_l": "meta", "meta_r": "meta",
+            "return": "enter", "escape": "esc", "prior": "pageup", "next": "pagedown",
+            "backspace": "backspace", "space": "space",
+        }
+        return mapping.get(k, k)
+
+    def _on_key_press(self, event):
+        if not self._capture_target:
+            return
+        self._capture_pressed.add(self._normalize_key(event.keysym))
+
+    def _on_key_release(self, event):
+        if not self._capture_target:
+            return
+        key = self._normalize_key(event.keysym)
+        keys = set(self._capture_pressed)
+        if key:
+            keys.add(key)
+        if not keys:
+            return
+        modifiers = [k for k in ("ctrl", "shift", "alt", "meta") if k in keys]
+        non_mods = sorted([k for k in keys if k not in self.MODIFIERS])
+        combo = modifiers + (non_mods if non_mods else [key] if key in self.MODIFIERS else [])
+        combo = [k for i, k in enumerate(combo) if k and k not in combo[:i]]
+        joined = "+".join(combo)
+        ttype, tkey = self._capture_target
+        if ttype == "shortcut" and tkey in self._entries:
+            self._entries[tkey].set(joined)
+        elif ttype == "new_shortcut":
+            self._new_shortcut_keys_var.set(joined)
+        self._capture_target = None
+        self._capture_pressed.clear()
+
+    def _add_shortcut(self):
+        cmd = self._new_shortcut_cmd_var.get().strip()
+        keys = self._new_shortcut_keys_var.get().strip()
+        if not cmd or not keys:
+            messagebox.showwarning("LeftPad", "コマンド名とキーを設定する", parent=self)
+            return
+        if cmd in self._entries:
+            messagebox.showwarning("LeftPad", "既に存在するコマンド", parent=self)
+            return
+        self._entries[cmd] = tk.StringVar(value=keys)
+        self._shortcuts[cmd] = [k.strip() for k in keys.split("+") if k.strip()]
+        self._new_shortcut_cmd_var.set("")
+        self._new_shortcut_keys_var.set("")
+        messagebox.showinfo("LeftPad", "追加した。保存を押して確定する", parent=self)
 
     def _save(self):
         changed = 0
@@ -395,22 +609,34 @@ class ShortcutEditorWindow(tk.Toplevel):
                 self._shortcuts[cmd] = new_keys
                 changed += 1
 
-        if changed == 0:
+        gesture_changed = 0
+        for gkey, var in self._gesture_entries.items():
+            val = var.get().strip()
+            if self._gestures.get(gkey, "") != val:
+                self._gestures[gkey] = val
+                gesture_changed += 1
+
+        if changed == 0 and gesture_changed == 0:
             messagebox.showinfo("LeftPad", "変更なし", parent=self)
             return
 
-        if save_shortcuts(self._shortcuts):
-            messagebox.showinfo("LeftPad", f"{changed} 件のショートカットを保存した", parent=self)
+        ok_shortcuts = save_shortcuts(self._shortcuts)
+        ok_gestures = save_gestures(self._gestures)
+        if ok_shortcuts and ok_gestures:
+            messagebox.showinfo("LeftPad", f"ショートカット {changed} 件 / ジェスチャー {gesture_changed} 件を保存", parent=self)
             self.destroy()
         else:
             messagebox.showerror("LeftPad", "保存に失敗した", parent=self)
 
-    def _center(self):
+    def _maximize(self):
         self.update_idletasks()
-        w, h = 520, 560
-        x = (self.winfo_screenwidth()  - w) // 2
-        y = (self.winfo_screenheight() - h) // 2
-        self.geometry(f"{w}x{h}+{x}+{y}")
+        try:
+            self.state("zoomed")
+        except tk.TclError:
+            try:
+                self.attributes("-zoomed", True)
+            except tk.TclError:
+                self.geometry(f"{self.winfo_screenwidth()}x{self.winfo_screenheight()}+0+0")
 
 # ══════════════════════════════════════════════
 #  QRコードウィンドウ（メインGUI）
@@ -576,7 +802,7 @@ class QRWindow:
 def main():
     ip       = get_local_ip()
     http_url = f"http://{ip}:{HTTP_PORT}/smartphone.html?token={ACCESS_TOKEN}"
-    ws_url   = f"ws://{ip}:{WS_PORT}?token={ACCESS_TOKEN}"
+    ws_url   = f"ws://{ip}:{WS_PORT}"
 
     print("=" * 56)
     print("  LeftPad Server  起動中...")
