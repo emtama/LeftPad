@@ -2,4 +2,3 @@ websockets
 pyautogui
 qrcode[pil] 
 Pillow
-secrets
