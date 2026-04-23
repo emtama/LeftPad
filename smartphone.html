@@ -23,17 +23,19 @@
     #feedback.show { opacity:1; transform:translate(-50%,-50%) scale(1); }
     .touch-indicator {
       position: absolute;
-      width: 34px; height: 34px; margin-left: -17px; margin-top: -17px;
-      border-radius: 999px; border: 2px solid var(--accent2);
-      background: #47c4ff33;
+      width: 44px; height: 44px; margin-left: -22px; margin-top: -22px;
+      border-radius: 999px; border: 3px solid #7fdcff;
+      background: #47c4ff55;
       pointer-events: none;
-      transform: scale(0.9);
-      transition: transform .08s, opacity .12s;
+      box-shadow: 0 0 0 2px #0d0e11aa, 0 0 12px #47c4ff99;
+      transform: scale(0.85);
+      transition: transform .16s, opacity .22s;
       opacity: 1;
+      z-index: 5;
     }
     .touch-indicator.up {
       opacity: 0;
-      transform: scale(1.25);
+      transform: scale(1.35);
     }
 
     .panel { background:var(--surface); border:1px solid var(--border); padding:10px; }
@@ -132,7 +134,7 @@ function updateTouchIndicators(touchList){
   for(const [id, el] of touchIndicators.entries()){
     if(!activeIds.has(id)){
       el.classList.add('up');
-      setTimeout(()=>el.remove(), 140);
+      setTimeout(()=>el.remove(), 280);
       touchIndicators.delete(id);
     }
   }
