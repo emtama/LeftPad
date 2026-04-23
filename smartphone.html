@@ -99,6 +99,8 @@ function connect(){
 const canvas = document.getElementById('gesture-canvas');
 let gesture = null, longPressTimer=null;
 const touchIndicators = new Map();
+let lastTapAt = 0;
+let lastTapPos = null;
 
 function updateTouchIndicators(touchList){
   const activeIds = new Set();
@@ -173,8 +175,22 @@ canvas.addEventListener('touchend', (e)=>{
 
   let key='';
   if(gesture.count===1){
-    if(adx<25 && ady<25 && dt<240) key='double_tap';
-    else key = adx>ady ? (dx>0?'swipe_right':'swipe_left') : (dy>0?'swipe_down':'swipe_up');
+    if(adx<25 && ady<25 && dt<240){
+      const now = Date.now();
+      const nearPrev = lastTapPos && Math.hypot(gesture.last.x - lastTapPos.x, gesture.last.y - lastTapPos.y) < 36;
+      if((now - lastTapAt) < 320 && nearPrev){
+        key='double_tap';
+        lastTapAt = 0;
+        lastTapPos = null;
+      } else {
+        lastTapAt = now;
+        lastTapPos = {x: gesture.last.x, y: gesture.last.y};
+      }
+    } else {
+      key = adx>ady ? (dx>0?'swipe_right':'swipe_left') : (dy>0?'swipe_down':'swipe_up');
+      lastTapAt = 0;
+      lastTapPos = null;
+    }
   } else if(gesture.count===2 && gesture.maxTouches===2){
     if(maxMove<28 && dt<320) key='two_finger_tap';
     else key = adx>ady ? (dx>0?'two_finger_swipe_right':'two_finger_swipe_left') : (dy>0?'two_finger_swipe_down':'two_finger_swipe_up');

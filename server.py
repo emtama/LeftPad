@@ -838,7 +838,8 @@ class QRWindow:
         self.root = tk.Tk()
         self.root.title("LeftPad Server")
         self.root.configure(bg=self.BG)
-        self.root.resizable(False, False)
+        self.root.resizable(True, True)
+        self._shortcut_editor = None
         self.log_queue: "queue.Queue[str]" = queue.Queue()
         self._log_handler = UILogHandler(self.log_queue)
         self._log_handler.setFormatter(
@@ -849,6 +850,8 @@ class QRWindow:
         self._build_ui()
         self._start_status_update()
         self._start_log_update()
+        self._maximize()
+        self._open_shortcut_editor()
 
     def _build_ui(self):
         root = self.root
@@ -956,31 +959,12 @@ class QRWindow:
         self.log_text.pack(side="left", fill="both", expand=True)
         log_scroll.pack(side="right", fill="y")
 
-        # ショートカット編集ボタン
-        tk.Button(
-            root, text="ショートカット編集",
-            bg=self.SURFACE, fg=self.TEXT,
-            font=("Courier New", 10),
-            relief="flat", padx=14, pady=8,
-            cursor="hand2",
-            activebackground=self.BORDER,
-            command=self._open_shortcut_editor,
-        ).pack(pady=12)
-
         # フッター
         tk.Label(
             root, text="ウィンドウを閉じるとサーバーが停止する",
             bg=self.BG, fg=self.BORDER,
             font=("Courier New", 7), pady=6,
         ).pack()
-
-        # 中央配置
-        root.update_idletasks()
-        w = root.winfo_reqwidth()
-        h = root.winfo_reqheight()
-        x = (root.winfo_screenwidth()  - w) // 2
-        y = (root.winfo_screenheight() - h) // 2
-        root.geometry(f"{w}x{h}+{x}+{y}")
 
         root.protocol("WM_DELETE_WINDOW", self._on_close)
 
@@ -1014,7 +998,21 @@ class QRWindow:
         self.root.clipboard_append(text)
 
     def _open_shortcut_editor(self):
-        ShortcutEditorWindow(self.root)
+        if self._shortcut_editor and self._shortcut_editor.winfo_exists():
+            self._shortcut_editor.lift()
+            self._shortcut_editor.focus_force()
+            return
+        self._shortcut_editor = ShortcutEditorWindow(self.root)
+
+    def _maximize(self):
+        self.root.update_idletasks()
+        try:
+            self.root.state("zoomed")
+        except tk.TclError:
+            try:
+                self.root.attributes("-zoomed", True)
+            except tk.TclError:
+                self.root.geometry(f"{self.root.winfo_screenwidth()}x{self.root.winfo_screenheight()}+0+0")
 
     def _toggle_vibration(self):
         APP_SETTINGS["vibration_enabled"] = bool(self.vibration_var.get())
@@ -1048,6 +1046,8 @@ class QRWindow:
     def _on_close(self):
         log.info("ウィンドウを閉じた。サーバーを停止する")
         log.removeHandler(self._log_handler)
+        if self._shortcut_editor and self._shortcut_editor.winfo_exists():
+            self._shortcut_editor.destroy()
         self.root.destroy()
         os._exit(0)
 
