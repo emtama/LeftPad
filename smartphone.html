@@ -9,21 +9,18 @@
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
   <style>
     :root {
-      --bg:        #0d0e11;
-      --surface:   #16181e;
-      --border:    #2a2d36;
-      --accent:    #e8ff47;
-      --accent2:   #47c4ff;
-      --danger:    #ff5c5c;
-      --text:      #e4e6ee;
-      --muted:     #5a5f72;
-      --btn-bg:    #1e2128;
-      --btn-hover: #272b36;
-      --radius:    12px;
+      --bg:      #0d0e11;
+      --surface: #16181e;
+      --border:  #2a2d36;
+      --accent:  #e8ff47;
+      --accent2: #47c4ff;
+      --danger:  #ff5c5c;
+      --text:    #e4e6ee;
+      --muted:   #5a5f72;
+      --btn-bg:  #1e2128;
+      --radius:  12px;
     }
-
-    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-
+    * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
     body {
       background: var(--bg);
       color: var(--text);
@@ -32,151 +29,115 @@
       overflow-x: hidden;
     }
 
-    /* ── ヘッダー ── */
+    /* ── Header ── */
     header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
+      display: flex; align-items: center; justify-content: space-between;
       padding: 14px 16px 10px;
       border-bottom: 1px solid var(--border);
     }
     .logo {
       font-family: 'Bebas Neue', sans-serif;
-      font-size: 28px;
-      letter-spacing: 3px;
-      color: var(--accent);
-      line-height: 1;
+      font-size: 28px; letter-spacing: 3px;
+      color: var(--accent); line-height: 1;
     }
     .status-dot {
-      width: 10px; height: 10px;
-      border-radius: 50%;
-      background: var(--muted);
-      transition: background .3s, box-shadow .3s;
+      width: 10px; height: 10px; border-radius: 50%;
+      background: var(--muted); transition: background .3s, box-shadow .3s;
     }
-    .status-dot.connected   { background: #4dff91; box-shadow: 0 0 8px #4dff9180; }
-    .status-dot.error       { background: var(--danger); box-shadow: 0 0 8px #ff5c5c80; }
+    .status-dot.connected { background:#4dff91; box-shadow:0 0 8px #4dff9180; }
+    .status-dot.error     { background:var(--danger); box-shadow:0 0 8px #ff5c5c80; }
 
-    /* ── 接続パネル ── */
+    /* ── Connect panel ── */
     #connect-panel {
-      padding: 14px 16px;
+      padding: 12px 16px;
       background: var(--surface);
       border-bottom: 1px solid var(--border);
-      display: flex;
-      gap: 8px;
-      align-items: center;
+      display: flex; gap: 8px; align-items: center;
     }
     #ip-input {
       flex: 1;
-      background: var(--btn-bg);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      color: var(--text);
-      font-family: 'Space Mono', monospace;
-      font-size: 13px;
-      padding: 9px 12px;
-      outline: none;
+      background: var(--btn-bg); border: 1px solid var(--border);
+      border-radius: 8px; color: var(--text);
+      font-family: 'Space Mono', monospace; font-size: 12px;
+      padding: 8px 10px; outline: none;
     }
     #ip-input:focus { border-color: var(--accent2); }
     #connect-btn {
-      background: var(--accent);
-      color: #0d0e11;
-      border: none;
-      border-radius: 8px;
-      font-family: 'Space Mono', monospace;
-      font-size: 12px;
-      font-weight: 700;
-      padding: 9px 16px;
-      cursor: pointer;
-      transition: opacity .15s;
-      white-space: nowrap;
+      background: var(--accent); color: #0d0e11;
+      border: none; border-radius: 8px;
+      font-family: 'Space Mono', monospace; font-size: 11px; font-weight: 700;
+      padding: 8px 14px; cursor: pointer; white-space: nowrap;
     }
     #connect-btn:active { opacity: .7; }
 
-    /* ── フラッシュ通知 ── */
+    /* ── Flash notification ── */
     #flash {
       position: fixed; top: 12px; left: 50%; transform: translateX(-50%);
       background: #1e2128ee; border: 1px solid var(--border);
       color: var(--text); font-size: 12px;
       padding: 7px 18px; border-radius: 20px;
       opacity: 0; pointer-events: none;
-      transition: opacity .2s;
-      z-index: 100;
-      backdrop-filter: blur(8px);
-      white-space: nowrap;
+      transition: opacity .2s; z-index: 100;
+      backdrop-filter: blur(8px); white-space: nowrap;
     }
 
-    /* ── メインレイアウト ── */
-    main {
-      padding: 14px 12px 80px;
-      display: flex;
-      flex-direction: column;
-      gap: 18px;
+    /* ── Tabs ── */
+    .tabs {
+      display: flex; gap: 0;
+      border-bottom: 1px solid var(--border);
+      overflow-x: auto; scrollbar-width: none;
     }
+    .tabs::-webkit-scrollbar { display: none; }
+    .tab {
+      font-size: 9px; letter-spacing: 1.5px; text-transform: uppercase;
+      padding: 9px 13px;
+      border: none; background: none; color: var(--muted); cursor: pointer;
+      border-bottom: 2px solid transparent; margin-bottom: -1px;
+      font-family: 'Space Mono', monospace;
+      transition: color .15s, border-color .15s;
+      white-space: nowrap; flex-shrink: 0;
+    }
+    .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
 
-    /* ── セクションラベル ── */
+    /* ── Main layout ── */
+    main { padding: 14px 12px 80px; display: flex; flex-direction: column; gap: 18px; }
+
+    /* ── Section label ── */
     .section-label {
-      font-size: 9px;
-      letter-spacing: 2.5px;
-      color: var(--muted);
-      text-transform: uppercase;
-      margin-bottom: 8px;
+      font-size: 9px; letter-spacing: 2.5px;
+      color: var(--muted); text-transform: uppercase; margin-bottom: 8px;
     }
 
-    /* ── ボタングリッド ── */
-    .btn-grid {
-      display: grid;
-      gap: 8px;
-    }
+    /* ── Button grid ── */
+    .btn-grid { display: grid; gap: 8px; }
     .col-2 { grid-template-columns: repeat(2, 1fr); }
     .col-3 { grid-template-columns: repeat(3, 1fr); }
-    .col-4 { grid-template-columns: repeat(4, 1fr); }
+    .divider { height: 1px; background: var(--border); margin: 4px 0; }
 
-    /* ── 基本ボタン ── */
+    /* ── Pad button ── */
     .pad-btn {
       position: relative;
-      background: var(--btn-bg);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      color: var(--text);
-      font-family: 'Space Mono', monospace;
-      font-size: 16px;
-      font-weight: 700;
-      letter-spacing: .5px;
-      padding: 0;
-      cursor: pointer;
+      background: var(--btn-bg); border: 1px solid var(--border);
+      border-radius: var(--radius); color: var(--text);
+      font-family: 'Space Mono', monospace; font-size: 11px; font-weight: 700;
+      padding: 0; cursor: pointer;
       min-height: 64px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 5px;
-      overflow: hidden;
-      transition: border-color .1s, background .1s;
-      user-select: none;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 5px; overflow: hidden; user-select: none;
     }
-    .pad-btn .icon { font-size: 22px; line-height: 1; }
+    .pad-btn .icon  { font-size: 22px; line-height: 1; }
     .pad-btn .label { font-size: 9px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; }
-
-    /* カラーバリエーション */
-    .pad-btn.accent  { border-color: var(--accent);  color: var(--accent);  }
+    .pad-btn.accent  { border-color: var(--accent);  color: var(--accent); }
     .pad-btn.accent2 { border-color: var(--accent2); color: var(--accent2); }
-    .pad-btn.danger  { border-color: var(--danger);  color: var(--danger);  }
-
-    /* タップリップル */
-    .pad-btn::after {
-      content: '';
-      position: absolute; inset: 0;
-      background: white;
-      opacity: 0;
-      border-radius: inherit;
-      transition: opacity .1s;
-    }
+    .pad-btn.danger  { border-color: var(--danger);  color: var(--danger); }
+    .pad-btn::after  { content:''; position:absolute; inset:0; background:white; opacity:0; border-radius:inherit; transition:opacity .1s; }
     .pad-btn:active::after { opacity: .08; }
     .pad-btn.accent:active  { background: #e8ff4715; }
     .pad-btn.accent2:active { background: #47c4ff15; }
     .pad-btn.danger:active  { background: #ff5c5c15; }
-
-    /* フラッシュアニメ */
+    .pad-btn.tall { min-height: 88px; }
     @keyframes flash-btn {
       0%   { box-shadow: 0 0 0 0 var(--accent); }
       50%  { box-shadow: 0 0 0 6px #e8ff4730; }
@@ -184,54 +145,148 @@
     }
     .pad-btn.fired { animation: flash-btn .25s ease-out; }
 
-    /* 大きいボタン */
-    .pad-btn.tall { min-height: 88px; }
-
-    /* ── スライダーセクション ── */
-    .slider-row {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
+    /* ── Slider ── */
+    .slider-row { display: flex; align-items: center; gap: 12px; }
     .slider-label { font-size: 10px; color: var(--muted); width: 56px; white-space: nowrap; }
-    input[type=range] {
-      flex: 1;
-      accent-color: var(--accent2);
-      height: 4px;
-    }
+    input[type=range] { flex: 1; accent-color: var(--accent2); height: 4px; }
     .slider-val { font-size: 11px; width: 32px; text-align: right; color: var(--accent2); }
 
-    /* ── カスタムタブ ── */
-    .tabs {
-      display: flex;
-      gap: 4px;
+    /* ══════════════════════════════════════════
+       ジェスチャーモード
+    ══════════════════════════════════════════ */
+    #gesture-canvas {
+      position: relative;
+      margin: 0 -12px;
+      height: calc(100dvh - 160px);
+      min-height: 320px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 0;
+      overflow: hidden;
+      touch-action: none;
+      user-select: none;
+    }
+
+    /* 方向ヒント */
+    .g-hint {
+      position: absolute;
+      font-size: 9px; letter-spacing: 2px; text-transform: uppercase;
+      color: var(--muted); pointer-events: none;
+    }
+    .g-hint.top    { top: 14px;  left: 50%; transform: translateX(-50%); }
+    .g-hint.bottom { bottom: 14px; left: 50%; transform: translateX(-50%); }
+    .g-hint.left   { left: 14px;  top: 50%;  transform: translateY(-50%); writing-mode: vertical-rl; }
+    .g-hint.right  { right: 14px; top: 50%;  transform: translateY(-50%); writing-mode: vertical-rl; }
+
+    /* 中央表示 */
+    .g-center {
+      position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center; pointer-events: none;
+    }
+    .g-center .g-icon  { font-size: 48px; opacity: .18; }
+    .g-center .g-label {
+      display: block; margin-top: 8px;
+      font-size: 10px; letter-spacing: 2px;
+      color: var(--muted); text-transform: uppercase;
+    }
+
+    /* ジェスチャー発火フィードバック */
+    #gesture-feedback {
+      position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%, -50%) scale(0);
+      background: var(--accent); color: #0d0e11;
+      font-size: 13px; font-weight: 700; letter-spacing: 1px;
+      padding: 10px 22px; border-radius: 24px;
+      pointer-events: none; opacity: 0;
+      transition: transform .12s, opacity .12s;
+      white-space: nowrap;
+    }
+    #gesture-feedback.show {
+      transform: translate(-50%, -50%) scale(1);
+      opacity: 1;
+    }
+
+    /* ジェスチャー方向矢印アニメ */
+    #gesture-arrow {
+      position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 56px; opacity: 0;
+      pointer-events: none;
+      transition: opacity .08s;
+      color: var(--accent2);
+    }
+    #gesture-arrow.show { opacity: .6; }
+
+    /* ジェスチャー設定テーブル */
+    .gesture-map-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 11px;
+    }
+    .gesture-map-table th {
+      text-align: left; padding: 6px 8px;
+      color: var(--muted); font-size: 9px; letter-spacing: 1.5px;
       border-bottom: 1px solid var(--border);
-      padding: 0 0 0 2px;
     }
-    .tab {
-      font-size: 10px;
-      letter-spacing: 1.5px;
-      text-transform: uppercase;
-      padding: 8px 14px;
-      border: none;
-      background: none;
-      color: var(--muted);
-      cursor: pointer;
-      border-bottom: 2px solid transparent;
-      margin-bottom: -1px;
+    .gesture-map-table td {
+      padding: 8px 8px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+    .gesture-map-table tr:last-child td { border-bottom: none; }
+    .g-cmd-input {
+      background: var(--btn-bg); border: 1px solid var(--border);
+      border-radius: 6px; color: var(--accent2);
+      font-family: 'Space Mono', monospace; font-size: 11px;
+      padding: 5px 8px; outline: none; width: 100%;
+    }
+    .g-cmd-input:focus { border-color: var(--accent2); }
+
+    /* ══════════════════════════════════════════
+       設定タブ（ショートカット一覧）
+    ══════════════════════════════════════════ */
+    #shortcuts-list {
+      display: flex; flex-direction: column; gap: 4px;
+    }
+    .sc-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr auto;
+      gap: 6px; align-items: center;
+      padding: 8px 10px;
+      background: var(--btn-bg); border-radius: 8px;
+      border: 1px solid var(--border);
+    }
+    .sc-row.editing { border-color: var(--accent2); }
+    .sc-cmd  { font-size: 10px; color: var(--text); }
+    .sc-keys {
+      font-size: 10px; color: var(--accent2);
+      background: var(--surface); border-radius: 4px;
+      padding: 3px 7px;
+    }
+    .sc-keys.input-mode {
+      background: var(--bg); border: 1px solid var(--accent2);
+      outline: none; font-family: 'Space Mono', monospace;
+      color: var(--accent2); width: 100%;
+    }
+    .sc-edit-btn {
+      background: none; border: 1px solid var(--border);
+      border-radius: 6px; color: var(--muted);
+      font-size: 9px; padding: 4px 8px; cursor: pointer;
       font-family: 'Space Mono', monospace;
-      transition: color .15s, border-color .15s;
     }
-    .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+    .sc-edit-btn:active { border-color: var(--accent2); color: var(--accent2); }
+    .sc-save-btn {
+      background: var(--accent2); border: none;
+      border-radius: 6px; color: #0d0e11;
+      font-size: 9px; padding: 4px 8px; cursor: pointer;
+      font-family: 'Space Mono', monospace; font-weight: 700;
+    }
 
-    .tab-panel { display: none; }
-    .tab-panel.active { display: block; }
-
-    /* ── 区切り線 ── */
-    .divider {
-      height: 1px;
-      background: var(--border);
-      margin: 4px 0;
+    /* ローディング */
+    .loading-msg {
+      text-align: center; color: var(--muted);
+      font-size: 11px; padding: 32px 0;
     }
   </style>
 </head>
@@ -243,25 +298,26 @@
 </header>
 
 <div id="connect-panel">
-  <input id="ip-input" type="text" placeholder="192.168.x.x:8765" autocomplete="off" />
+  <input id="ip-input" type="text" placeholder="接続先 IP:8765" autocomplete="off" />
   <button id="connect-btn" onclick="toggleConnect()">接続</button>
 </div>
 
 <div id="flash"></div>
 
-<!-- タブ -->
-<div class="tabs" style="margin: 0 12px; margin-top: 14px;">
-  <button class="tab active" onclick="switchTab('draw')">描画</button>
-  <button class="tab" onclick="switchTab('view')">表示</button>
-  <button class="tab" onclick="switchTab('layer')">レイヤー</button>
-  <button class="tab" onclick="switchTab('custom')">カスタム</button>
+<!-- Tabs -->
+<div class="tabs" style="padding-left:12px;">
+  <button class="tab active"  onclick="switchTab('draw',   this)">描画</button>
+  <button class="tab"         onclick="switchTab('view',   this)">表示</button>
+  <button class="tab"         onclick="switchTab('layer',  this)">レイヤー</button>
+  <button class="tab"         onclick="switchTab('gesture',this)">ジェスチャー</button>
+  <button class="tab"         onclick="switchTab('custom', this)">カスタム</button>
+  <button class="tab"         onclick="switchTab('settings',this)">設定</button>
 </div>
 
 <main>
 
-  <!-- ===== TAB: 描画 ===== -->
+  <!-- ===== 描画タブ ===== -->
   <div id="tab-draw" class="tab-panel active">
-
     <div class="section-label">操作</div>
     <div class="btn-grid col-2">
       <button class="pad-btn accent tall" onclick="send('undo')">
@@ -275,136 +331,113 @@
     <div class="divider"></div>
     <div class="section-label">ツール</div>
     <div class="btn-grid col-3">
-      <button class="pad-btn" onclick="send('brush')">
-        <span class="icon">🖌️</span><span class="label">ブラシ</span>
-      </button>
-      <button class="pad-btn" onclick="send('eraser')">
-        <span class="icon">🧹</span><span class="label">消しゴム</span>
-      </button>
-      <button class="pad-btn" onclick="send('fill')">
-        <span class="icon">🪣</span><span class="label">塗りつぶし</span>
-      </button>
-      <button class="pad-btn" onclick="send('eyedrop')">
-        <span class="icon">💉</span><span class="label">スポイト</span>
-      </button>
-      <button class="pad-btn" onclick="send('select_rect')">
-        <span class="icon">⬛</span><span class="label">矩形選択</span>
-      </button>
-      <button class="pad-btn" onclick="send('move')">
-        <span class="icon">✥</span><span class="label">移動</span>
-      </button>
+      <button class="pad-btn" onclick="send('brush')">   <span class="icon">🖌️</span><span class="label">ブラシ</span></button>
+      <button class="pad-btn" onclick="send('eraser')">  <span class="icon">🧹</span><span class="label">消しゴム</span></button>
+      <button class="pad-btn" onclick="send('fill')">    <span class="icon">🪣</span><span class="label">塗りつぶし</span></button>
+      <button class="pad-btn" onclick="send('eyedrop')"> <span class="icon">💉</span><span class="label">スポイト</span></button>
+      <button class="pad-btn" onclick="send('select_rect')"><span class="icon">⬛</span><span class="label">矩形選択</span></button>
+      <button class="pad-btn" onclick="send('move')">    <span class="icon">✥</span><span class="label">移動</span></button>
     </div>
 
     <div class="divider"></div>
     <div class="section-label">カラー</div>
     <div class="btn-grid col-2">
-      <button class="pad-btn" onclick="send('swap_color')">
-        <span class="icon">🔄</span><span class="label">前後景切替</span>
-      </button>
-      <button class="pad-btn" onclick="send('reset_color')">
-        <span class="icon">⬛⬜</span><span class="label">白黒リセット</span>
-      </button>
+      <button class="pad-btn" onclick="send('swap_color')">  <span class="icon">🔄</span><span class="label">前後景切替</span></button>
+      <button class="pad-btn" onclick="send('reset_color')"> <span class="icon">⬛⬜</span><span class="label">白黒リセット</span></button>
     </div>
 
     <div class="divider"></div>
     <div class="section-label">ブラシサイズ</div>
     <div class="slider-row">
       <span class="slider-label">サイズ</span>
-      <input type="range" id="brush-size" min="1" max="10" value="5"
-             oninput="document.getElementById('bsize-val').textContent=this.value" />
+      <input type="range" min="1" max="10" value="5" oninput="document.getElementById('bsize-val').textContent=this.value" />
       <span class="slider-val" id="bsize-val">5</span>
     </div>
     <div class="btn-grid col-2" style="margin-top:8px">
-      <button class="pad-btn" onclick="send('brush_size_up')">
-        <span class="icon">＋</span><span class="label">サイズ＋</span>
-      </button>
-      <button class="pad-btn" onclick="send('brush_size_down')">
-        <span class="icon">－</span><span class="label">サイズ－</span>
-      </button>
+      <button class="pad-btn" onclick="send('brush_size_up')">  <span class="icon">＋</span><span class="label">サイズ＋</span></button>
+      <button class="pad-btn" onclick="send('brush_size_down')"><span class="icon">－</span><span class="label">サイズ－</span></button>
     </div>
-
   </div>
 
-  <!-- ===== TAB: 表示 ===== -->
+  <!-- ===== 表示タブ ===== -->
   <div id="tab-view" class="tab-panel">
-
     <div class="section-label">ズーム</div>
     <div class="btn-grid col-3">
-      <button class="pad-btn accent2 tall" onclick="send('zoom_in')">
-        <span class="icon">🔍＋</span><span class="label">拡大</span>
-      </button>
-      <button class="pad-btn tall" onclick="send('zoom_fit')">
-        <span class="icon">⊡</span><span class="label">全体表示</span>
-      </button>
-      <button class="pad-btn accent2 tall" onclick="send('zoom_out')">
-        <span class="icon">🔍－</span><span class="label">縮小</span>
-      </button>
+      <button class="pad-btn accent2 tall" onclick="send('zoom_in')"> <span class="icon">🔍＋</span><span class="label">拡大</span></button>
+      <button class="pad-btn tall"         onclick="send('zoom_fit')"><span class="icon">⊡</span><span class="label">全体表示</span></button>
+      <button class="pad-btn accent2 tall" onclick="send('zoom_out')"><span class="icon">🔍－</span><span class="label">縮小</span></button>
     </div>
 
     <div class="divider"></div>
     <div class="section-label">キャンバス回転</div>
     <div class="btn-grid col-3">
-      <button class="pad-btn" onclick="send('rotate_ccw')">
-        <span class="icon">↺</span><span class="label">左回転</span>
-      </button>
-      <button class="pad-btn" onclick="send('rotate_reset')">
-        <span class="icon">⊕</span><span class="label">リセット</span>
-      </button>
-      <button class="pad-btn" onclick="send('rotate_cw')">
-        <span class="icon">↻</span><span class="label">右回転</span>
-      </button>
+      <button class="pad-btn" onclick="send('rotate_ccw')">  <span class="icon">↺</span><span class="label">左回転</span></button>
+      <button class="pad-btn" onclick="send('rotate_reset')"><span class="icon">⊕</span><span class="label">リセット</span></button>
+      <button class="pad-btn" onclick="send('rotate_cw')">   <span class="icon">↻</span><span class="label">右回転</span></button>
     </div>
 
     <div class="divider"></div>
     <div class="section-label">表示設定</div>
     <div class="btn-grid col-2">
-      <button class="pad-btn" onclick="send('flip_h')">
-        <span class="icon">↔</span><span class="label">左右反転</span>
-      </button>
-      <button class="pad-btn" onclick="send('fullscreen')">
-        <span class="icon">⛶</span><span class="label">全画面</span>
-      </button>
+      <button class="pad-btn" onclick="send('flip_h')">     <span class="icon">↔</span><span class="label">左右反転</span></button>
+      <button class="pad-btn" onclick="send('fullscreen')"> <span class="icon">⛶</span><span class="label">全画面</span></button>
     </div>
-
   </div>
 
-  <!-- ===== TAB: レイヤー ===== -->
+  <!-- ===== レイヤータブ ===== -->
   <div id="tab-layer" class="tab-panel">
-
     <div class="section-label">レイヤー操作</div>
     <div class="btn-grid col-2">
-      <button class="pad-btn accent2" onclick="send('layer_new')">
-        <span class="icon">➕</span><span class="label">新規</span>
-      </button>
-      <button class="pad-btn danger" onclick="send('layer_delete')">
-        <span class="icon">🗑</span><span class="label">削除</span>
-      </button>
-      <button class="pad-btn" onclick="send('layer_up')">
-        <span class="icon">⬆</span><span class="label">上へ</span>
-      </button>
-      <button class="pad-btn" onclick="send('layer_down')">
-        <span class="icon">⬇</span><span class="label">下へ</span>
-      </button>
-      <button class="pad-btn" onclick="send('layer_merge')">
-        <span class="icon">⤵</span><span class="label">結合</span>
-      </button>
-      <button class="pad-btn" onclick="send('layer_duplicate')">
-        <span class="icon">⧉</span><span class="label">複製</span>
-      </button>
+      <button class="pad-btn accent2" onclick="send('layer_new')">      <span class="icon">➕</span><span class="label">新規</span></button>
+      <button class="pad-btn danger"  onclick="send('layer_delete')">   <span class="icon">🗑</span><span class="label">削除</span></button>
+      <button class="pad-btn"         onclick="send('layer_up')">       <span class="icon">⬆</span><span class="label">上へ</span></button>
+      <button class="pad-btn"         onclick="send('layer_down')">     <span class="icon">⬇</span><span class="label">下へ</span></button>
+      <button class="pad-btn"         onclick="send('layer_merge')">    <span class="icon">⤵</span><span class="label">結合</span></button>
+      <button class="pad-btn"         onclick="send('layer_duplicate')"><span class="icon">⧉</span><span class="label">複製</span></button>
     </div>
 
     <div class="divider"></div>
     <div class="section-label">不透明度</div>
     <div class="slider-row">
       <span class="slider-label">不透明度</span>
-      <input type="range" id="opacity" min="0" max="100" value="100"
-             oninput="document.getElementById('opacity-val').textContent=this.value+'%'" />
+      <input type="range" min="0" max="100" value="100" oninput="document.getElementById('opacity-val').textContent=this.value+'%'" />
       <span class="slider-val" id="opacity-val">100%</span>
     </div>
-
   </div>
 
-  <!-- ===== TAB: カスタム ===== -->
+  <!-- ===== ジェスチャータブ ===== -->
+  <div id="tab-gesture" class="tab-panel">
+
+    <!-- ジェスチャーキャンバス -->
+    <div id="gesture-canvas">
+      <div class="g-hint top"    id="hint-up"></div>
+      <div class="g-hint bottom" id="hint-down"></div>
+      <div class="g-hint left"   id="hint-left"></div>
+      <div class="g-hint right"  id="hint-right"></div>
+      <div class="g-center">
+        <div class="g-icon">✋</div>
+        <span class="g-label">スワイプ / タップ / ピンチ</span>
+      </div>
+      <div id="gesture-arrow"></div>
+      <div id="gesture-feedback"></div>
+    </div>
+
+    <div style="margin-top:14px;">
+      <div class="section-label">ジェスチャー割り当て</div>
+      <table class="gesture-map-table">
+        <thead>
+          <tr><th>ジェスチャー</th><th>コマンド</th></tr>
+        </thead>
+        <tbody id="gesture-map-body"></tbody>
+      </table>
+      <p style="font-size:9px; color:var(--muted); margin-top:8px; line-height:1.7;">
+        コマンドは shortcuts.json のキー名、または <code style="color:var(--accent2)">ctrl+z</code> 形式で入力。<br>
+        空欄にすると無効になる。
+      </p>
+    </div>
+  </div>
+
+  <!-- ===== カスタムタブ ===== -->
   <div id="tab-custom" class="tab-panel">
     <div class="section-label">カスタムボタン（最大6個）</div>
     <div id="custom-grid" class="btn-grid col-3"></div>
@@ -413,7 +446,7 @@
         style="flex:1; min-width:80px; background:var(--btn-bg); border:1px solid var(--border);
                border-radius:8px; color:var(--text); font-family:inherit; font-size:12px;
                padding:8px 10px; outline:none;" />
-      <input id="custom-cmd" type="text" placeholder="コマンドキー (例: ctrl+s)"
+      <input id="custom-cmd" type="text" placeholder="例: ctrl+s"
         style="flex:2; min-width:120px; background:var(--btn-bg); border:1px solid var(--border);
                border-radius:8px; color:var(--text); font-family:inherit; font-size:12px;
                padding:8px 10px; outline:none;" />
@@ -424,94 +457,146 @@
       </button>
     </div>
     <p style="font-size:10px; color:var(--muted); margin-top:10px; line-height:1.7;">
-      コマンドはサーバー側の shortcuts.json に定義されているキー名、<br>
-      または直接 <code style="color:var(--accent2)">ctrl+s</code> のような形式で入力。
+      長押しでボタンを削除できる。
+    </p>
+  </div>
+
+  <!-- ===== 設定タブ（ショートカット確認・編集）===== -->
+  <div id="tab-settings" class="tab-panel">
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+      <div class="section-label" style="margin-bottom:0">ショートカット一覧</div>
+      <button onclick="loadShortcuts()"
+        style="background:var(--surface); border:1px solid var(--border); border-radius:6px;
+               color:var(--muted); font-family:inherit; font-size:9px; padding:5px 10px; cursor:pointer;">
+        再読み込み
+      </button>
+    </div>
+    <div id="shortcuts-list">
+      <div class="loading-msg">接続後に読み込まれる</div>
+    </div>
+    <p style="font-size:9px; color:var(--muted); margin-top:12px; line-height:1.7;">
+      鉛筆アイコンをタップして編集。<br>
+      キーは <code style="color:var(--accent2)">ctrl+z</code> のように入力し ✓ で保存する。
     </p>
   </div>
 
 </main>
 
 <script>
-// ── WebSocket ──────────────────────────────────────────────
+// ══════════════════════════════════════════════
+//  URLパラメータからトークンを取得
+// ══════════════════════════════════════════════
+const URL_PARAMS = new URLSearchParams(window.location.search);
+const TOKEN = URL_PARAMS.get('token') || '';
+
+// ══════════════════════════════════════════════
+//  WebSocket
+// ══════════════════════════════════════════════
 let ws = null;
-let reconnectTimer = null;
-const dot    = document.getElementById('status-dot');
+const dot     = document.getElementById('status-dot');
 const ipInput = document.getElementById('ip-input');
 const connBtn = document.getElementById('connect-btn');
 
 function toggleConnect() {
-  if (ws && ws.readyState === WebSocket.OPEN) {
-    ws.close();
-    return;
-  }
+  if (ws && ws.readyState === WebSocket.OPEN) { ws.close(); return; }
   connect();
 }
 
 function connect() {
-  const addr = ipInput.value.trim() || '192.168.0.0:8765';
-  const url  = 'ws://' + addr;
+  const host = ipInput.value.trim();
+  if (!host) { showFlash('⚠ IPアドレスを入力'); return; }
+  // トークンをクエリパラメータとして付与
+  const url = `ws://${host}${TOKEN ? '?token=' + TOKEN : ''}`;
   dot.className = 'status-dot';
-  try {
-    ws = new WebSocket(url);
-  } catch(e) { showFlash('❌ 接続エラー'); return; }
+  try { ws = new WebSocket(url); }
+  catch(e) { showFlash('❌ 接続エラー'); return; }
 
   ws.onopen = () => {
     dot.className = 'status-dot connected';
     connBtn.textContent = '切断';
     showFlash('✅ 接続しました');
-    localStorage.setItem('leftpad_ip', addr);
+    localStorage.setItem('leftpad_ip', host);
+    // 設定タブを開いていたら自動でショートカットを読み込む
+    if (document.getElementById('tab-settings').classList.contains('active')) {
+      loadShortcuts();
+    }
   };
-  ws.onclose = () => {
+  ws.onclose = (e) => {
     dot.className = 'status-dot';
     connBtn.textContent = '接続';
-    showFlash('⚡ 切断されました');
+    if (e.code === 4001) {
+      showFlash('🔒 認証失敗：QRから再アクセス');
+    } else {
+      showFlash('⚡ 切断されました');
+    }
   };
   ws.onerror = () => {
     dot.className = 'status-dot error';
     showFlash('❌ 接続できません');
   };
   ws.onmessage = (e) => {
-    // サーバーからの応答（オプション）
-    console.log('server:', e.data);
+    try {
+      const data = JSON.parse(e.data);
+      if (data.type === 'shortcuts') {
+        renderShortcuts(data.data);
+      } else if (data.type === 'shortcut_updated') {
+        if (data.ok) showFlash(`✅ ${data.cmd} を更新`);
+        else         showFlash('❌ 更新失敗');
+      }
+    } catch(_) {}
   };
 }
 
-// ── コマンド送信 ───────────────────────────────────────────
+// ══════════════════════════════════════════════
+//  コマンド送信
+// ══════════════════════════════════════════════
 function send(cmd) {
-  if (!ws || ws.readyState !== WebSocket.OPEN) {
-    showFlash('⚠ 未接続');
-    return;
-  }
+  if (!ws || ws.readyState !== WebSocket.OPEN) { showFlash('⚠ 未接続'); return; }
   ws.send(JSON.stringify({ cmd }));
-  flashBtn(event.currentTarget);
+  if (event && event.currentTarget) flashBtn(event.currentTarget);
+}
+function sendRaw(cmdStr) {
+  if (!ws || ws.readyState !== WebSocket.OPEN) { showFlash('⚠ 未接続'); return; }
+  ws.send(JSON.stringify({ cmd: cmdStr, raw: true }));
+}
+function sendByValue(cmdOrRaw) {
+  if (!cmdOrRaw) return;
+  if (cmdOrRaw.includes('+') || cmdOrRaw.length === 1) sendRaw(cmdOrRaw);
+  else send(cmdOrRaw);
 }
 
 function flashBtn(btn) {
-  if (!btn) return;
   btn.classList.remove('fired');
   void btn.offsetWidth;
   btn.classList.add('fired');
 }
 
-// ── フラッシュ通知 ─────────────────────────────────────────
+// ══════════════════════════════════════════════
+//  フラッシュ通知
+// ══════════════════════════════════════════════
 let flashTimer = null;
 function showFlash(msg) {
   const el = document.getElementById('flash');
-  el.textContent = msg;
-  el.style.opacity = 1;
+  el.textContent = msg; el.style.opacity = 1;
   clearTimeout(flashTimer);
   flashTimer = setTimeout(() => { el.style.opacity = 0; }, 1800);
 }
 
-// ── タブ切替 ───────────────────────────────────────────────
-function switchTab(name) {
+// ══════════════════════════════════════════════
+//  タブ切替
+// ══════════════════════════════════════════════
+function switchTab(name, tabEl) {
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.getElementById('tab-' + name).classList.add('active');
-  event.currentTarget.classList.add('active');
+  if (tabEl) tabEl.classList.add('active');
+  // 設定タブに切り替えたとき接続済みなら自動ロード
+  if (name === 'settings' && ws && ws.readyState === WebSocket.OPEN) loadShortcuts();
 }
 
-// ── カスタムボタン ─────────────────────────────────────────
+// ══════════════════════════════════════════════
+//  カスタムボタン
+// ══════════════════════════════════════════════
 let customBtns = JSON.parse(localStorage.getItem('leftpad_custom') || '[]');
 
 function renderCustomBtns() {
@@ -521,7 +606,7 @@ function renderCustomBtns() {
     const el = document.createElement('button');
     el.className = 'pad-btn accent2';
     el.innerHTML = `<span class="label">${b.label}</span>`;
-    el.onclick = (e) => {
+    el.onclick = () => {
       if (!ws || ws.readyState !== WebSocket.OPEN) { showFlash('⚠ 未接続'); return; }
       ws.send(JSON.stringify({ cmd: b.cmd, raw: true }));
       flashBtn(el);
@@ -529,44 +614,338 @@ function renderCustomBtns() {
     el.oncontextmenu = (e) => {
       e.preventDefault();
       customBtns.splice(i, 1);
-      saveCustom();
-      renderCustomBtns();
+      saveCustom(); renderCustomBtns();
     };
     grid.appendChild(el);
   });
 }
-
 function addCustomBtn() {
   const label = document.getElementById('custom-label').value.trim();
   const cmd   = document.getElementById('custom-cmd').value.trim();
   if (!label || !cmd) { showFlash('⚠ ラベルとコマンドを入力'); return; }
   if (customBtns.length >= 6) { showFlash('⚠ 上限6個まで'); return; }
   customBtns.push({ label, cmd });
-  saveCustom();
-  renderCustomBtns();
+  saveCustom(); renderCustomBtns();
   document.getElementById('custom-label').value = '';
   document.getElementById('custom-cmd').value   = '';
   showFlash('✅ ボタン追加');
 }
 function saveCustom() { localStorage.setItem('leftpad_custom', JSON.stringify(customBtns)); }
 
-// ── 初期化 ────────────────────────────────────────────────
-window.addEventListener('DOMContentLoaded', () => {
-  const saved = localStorage.getItem('leftpad_ip');
+// ══════════════════════════════════════════════
+//  設定タブ：ショートカット一覧
+// ══════════════════════════════════════════════
+function loadShortcuts() {
+  if (!ws || ws.readyState !== WebSocket.OPEN) { showFlash('⚠ 未接続'); return; }
+  document.getElementById('shortcuts-list').innerHTML = '<div class="loading-msg">読み込み中…</div>';
+  ws.send(JSON.stringify({ type: 'get_shortcuts' }));
+}
 
+function renderShortcuts(data) {
+  const list = document.getElementById('shortcuts-list');
+  list.innerHTML = '';
+
+  Object.entries(data).forEach(([cmd, keys]) => {
+    const row = document.createElement('div');
+    row.className = 'sc-row';
+    row.dataset.cmd = cmd;
+
+    const cmdEl  = document.createElement('div');
+    cmdEl.className = 'sc-cmd';
+    cmdEl.textContent = cmd;
+
+    const keysEl = document.createElement('div');
+    keysEl.className = 'sc-keys';
+    keysEl.textContent = Array.isArray(keys) ? keys.join('+') : keys;
+    keysEl.dataset.original = keysEl.textContent;
+
+    const editBtn = document.createElement('button');
+    editBtn.className = 'sc-edit-btn';
+    editBtn.textContent = '✏';
+    editBtn.onclick = () => startEditShortcut(row, keysEl, editBtn, cmd);
+
+    row.appendChild(cmdEl);
+    row.appendChild(keysEl);
+    row.appendChild(editBtn);
+    list.appendChild(row);
+  });
+
+  if (list.children.length === 0) {
+    list.innerHTML = '<div class="loading-msg">ショートカットが見つからない</div>';
+  }
+}
+
+function startEditShortcut(row, keysEl, editBtn, cmd) {
+  // 既に編集中なら無視
+  if (row.classList.contains('editing')) return;
+  row.classList.add('editing');
+
+  const input = document.createElement('input');
+  input.className = 'sc-keys input-mode';
+  input.type = 'text';
+  input.value = keysEl.dataset.original;
+  keysEl.replaceWith(input);
+  input.focus();
+  input.select();
+
+  const saveBtn = document.createElement('button');
+  saveBtn.className = 'sc-save-btn';
+  saveBtn.textContent = '✓';
+  editBtn.replaceWith(saveBtn);
+
+  const commit = () => {
+    const val = input.value.trim();
+    if (val) {
+      const newKeys = val.split('+').map(k => k.trim().toLowerCase()).filter(Boolean);
+      ws.send(JSON.stringify({ type: 'update_shortcut', cmd, keys: newKeys }));
+      input.dataset.original = val;
+      // UIを更新
+      const newKeysEl = document.createElement('div');
+      newKeysEl.className = 'sc-keys';
+      newKeysEl.textContent = val;
+      newKeysEl.dataset.original = val;
+      input.replaceWith(newKeysEl);
+      const newEditBtn = document.createElement('button');
+      newEditBtn.className = 'sc-edit-btn';
+      newEditBtn.textContent = '✏';
+      newEditBtn.onclick = () => startEditShortcut(row, newKeysEl, newEditBtn, cmd);
+      saveBtn.replaceWith(newEditBtn);
+    } else {
+      // キャンセル
+      const newKeysEl = document.createElement('div');
+      newKeysEl.className = 'sc-keys';
+      newKeysEl.textContent = input.dataset.original || '';
+      newKeysEl.dataset.original = newKeysEl.textContent;
+      input.replaceWith(newKeysEl);
+      const newEditBtn = document.createElement('button');
+      newEditBtn.className = 'sc-edit-btn';
+      newEditBtn.textContent = '✏';
+      newEditBtn.onclick = () => startEditShortcut(row, newKeysEl, newEditBtn, cmd);
+      saveBtn.replaceWith(newEditBtn);
+    }
+    row.classList.remove('editing');
+  };
+
+  saveBtn.onclick = commit;
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') commit(); });
+}
+
+// ══════════════════════════════════════════════
+//  ジェスチャーモード
+// ══════════════════════════════════════════════
+const GESTURE_KEYS = ['swipe_up','swipe_down','swipe_left','swipe_right','long_press','pinch_in','pinch_out','double_tap'];
+const GESTURE_LABELS = {
+  swipe_up:    '↑ スワイプ上',
+  swipe_down:  '↓ スワイプ下',
+  swipe_left:  '← スワイプ左',
+  swipe_right: '→ スワイプ右',
+  long_press:  '長押し',
+  pinch_in:    'ピンチイン',
+  pinch_out:   'ピンチアウト',
+  double_tap:  'ダブルタップ',
+};
+const DEFAULT_GESTURES = {
+  swipe_left:  'undo',
+  swipe_right: 'redo',
+  swipe_up:    'zoom_in',
+  swipe_down:  'zoom_out',
+  long_press:  'eyedrop',
+  pinch_in:    'zoom_out',
+  pinch_out:   'zoom_in',
+  double_tap:  'fullscreen',
+};
+
+let gestureMap = { ...DEFAULT_GESTURES, ...JSON.parse(localStorage.getItem('leftpad_gestures') || '{}') };
+
+function saveGestureMap() {
+  localStorage.setItem('leftpad_gestures', JSON.stringify(gestureMap));
+}
+
+// ジェスチャーマッピングテーブルをレンダリング
+function renderGestureTable() {
+  const tbody = document.getElementById('gesture-map-body');
+  tbody.innerHTML = '';
+  GESTURE_KEYS.forEach(key => {
+    const tr = document.createElement('tr');
+    const tdLabel = document.createElement('td');
+    tdLabel.style.color = 'var(--text)';
+    tdLabel.style.fontSize = '11px';
+    tdLabel.textContent = GESTURE_LABELS[key];
+
+    const tdInput = document.createElement('td');
+    const input = document.createElement('input');
+    input.className = 'g-cmd-input';
+    input.type  = 'text';
+    input.value = gestureMap[key] || '';
+    input.placeholder = '未割り当て';
+    input.onchange = () => {
+      gestureMap[key] = input.value.trim();
+      saveGestureMap();
+    };
+    tdInput.appendChild(input);
+
+    tr.appendChild(tdLabel);
+    tr.appendChild(tdInput);
+    tbody.appendChild(tr);
+  });
+
+  // ヒントラベルを更新
+  document.getElementById('hint-up').textContent    = gestureMap.swipe_up    || '';
+  document.getElementById('hint-down').textContent  = gestureMap.swipe_down  || '';
+  document.getElementById('hint-left').textContent  = gestureMap.swipe_left  || '';
+  document.getElementById('hint-right').textContent = gestureMap.swipe_right || '';
+}
+
+// ジェスチャー発火
+let gestureArrowTimer = null;
+function fireGesture(key) {
+  const cmd = gestureMap[key];
+  if (!cmd) return;
+
+  // ビジュアルフィードバック
+  const arrow = document.getElementById('gesture-arrow');
+  const arrowMap = { swipe_up:'↑', swipe_down:'↓', swipe_left:'←', swipe_right:'→', long_press:'●', pinch_in:'◎', pinch_out:'○', double_tap:'⊙' };
+  arrow.textContent = arrowMap[key] || '';
+  arrow.classList.add('show');
+  clearTimeout(gestureArrowTimer);
+  gestureArrowTimer = setTimeout(() => arrow.classList.remove('show'), 300);
+
+  const fb = document.getElementById('gesture-feedback');
+  fb.textContent = cmd;
+  fb.classList.add('show');
+  setTimeout(() => fb.classList.remove('show'), 600);
+
+  // コマンド送信
+  sendByValue(cmd);
+}
+
+// ── タッチイベント ──────────────────────────
+let touchStart   = null;
+let touchTime    = null;
+let longPressTimer = null;
+let lastTapTime  = 0;
+let pinchStart   = null;
+let pinchFired   = false;
+
+const SWIPE_THRESHOLD  = 40;
+const LONG_PRESS_MS    = 600;
+const DOUBLE_TAP_MS    = 300;
+const TAP_MAX_MOVE     = 12;
+const PINCH_THRESHOLD  = 0.25; // ratio change threshold
+
+function getTouchDist(t1, t2) {
+  return Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+}
+
+const canvas = document.getElementById('gesture-canvas');
+
+canvas.addEventListener('touchstart', (e) => {
+  e.preventDefault();
+  if (e.touches.length === 1) {
+    const t = e.touches[0];
+    touchStart = { x: t.clientX, y: t.clientY };
+    touchTime  = Date.now();
+    pinchStart = null;
+    pinchFired = false;
+
+    // 長押し
+    longPressTimer = setTimeout(() => {
+      fireGesture('long_press');
+      touchStart = null; // 長押し後はスワイプを無効化
+    }, LONG_PRESS_MS);
+  } else if (e.touches.length === 2) {
+    clearTimeout(longPressTimer);
+    touchStart = null;
+    pinchStart = getTouchDist(e.touches[0], e.touches[1]);
+    pinchFired = false;
+  }
+}, { passive: false });
+
+canvas.addEventListener('touchmove', (e) => {
+  e.preventDefault();
+  if (e.touches.length === 1 && touchStart) {
+    const t  = e.touches[0];
+    const dx = t.clientX - touchStart.x;
+    const dy = t.clientY - touchStart.y;
+    if (Math.abs(dx) > TAP_MAX_MOVE || Math.abs(dy) > TAP_MAX_MOVE) {
+      clearTimeout(longPressTimer);
+    }
+  } else if (e.touches.length === 2 && pinchStart !== null) {
+    const dist  = getTouchDist(e.touches[0], e.touches[1]);
+    const ratio = dist / pinchStart;
+    if (!pinchFired) {
+      if (ratio > 1 + PINCH_THRESHOLD) {
+        fireGesture('pinch_out');
+        pinchFired = true;
+        pinchStart = dist;
+      } else if (ratio < 1 - PINCH_THRESHOLD) {
+        fireGesture('pinch_in');
+        pinchFired = true;
+        pinchStart = dist;
+      }
+    } else {
+      // 連続ピンチのリセット
+      if (Math.abs(ratio - 1) < 0.05) { pinchFired = false; pinchStart = dist; }
+    }
+  }
+}, { passive: false });
+
+canvas.addEventListener('touchend', (e) => {
+  e.preventDefault();
+  clearTimeout(longPressTimer);
+
+  if (e.touches.length > 0 || !touchStart) {
+    touchStart = null; return;
+  }
+
+  const t    = e.changedTouches[0];
+  const dx   = t.clientX - touchStart.x;
+  const dy   = t.clientY - touchStart.y;
+  const dist = Math.hypot(dx, dy);
+  const dt   = Date.now() - touchTime;
+
+  if (dist < TAP_MAX_MOVE && dt < 250) {
+    // タップ判定
+    const now = Date.now();
+    if (now - lastTapTime < DOUBLE_TAP_MS) {
+      fireGesture('double_tap');
+      lastTapTime = 0;
+    } else {
+      lastTapTime = now;
+    }
+  } else if (dist > SWIPE_THRESHOLD) {
+    // スワイプ判定
+    if (Math.abs(dx) > Math.abs(dy)) {
+      fireGesture(dx > 0 ? 'swipe_right' : 'swipe_left');
+    } else {
+      fireGesture(dy > 0 ? 'swipe_down' : 'swipe_up');
+    }
+  }
+
+  touchStart = null;
+}, { passive: false });
+
+// ══════════════════════════════════════════════
+//  初期化
+// ══════════════════════════════════════════════
+window.addEventListener('DOMContentLoaded', () => {
+  // IPアドレスの自動入力
+  const saved = localStorage.getItem('leftpad_ip');
   if (saved) {
-    // 過去に接続したアドレスを復元
     ipInput.value = saved;
   } else if (window.location.hostname && window.location.hostname !== 'localhost') {
-    // QRコードでアクセスした場合、同じPCのIPを自動入力（HTTPと同じホスト、ポートだけ8765に）
     ipInput.value = window.location.hostname + ':8765';
   }
 
+  // カスタムボタン
   renderCustomBtns();
 
-  // アドレスが埋まっていれば自動接続
-  if (ipInput.value && ipInput.value !== '192.168.0.0:8765') {
-    setTimeout(connect, 500); // ページ描画後に接続
+  // ジェスチャーテーブル
+  renderGestureTable();
+
+  // 自動接続（アドレスが埋まっていれば）
+  if (ipInput.value) {
+    setTimeout(connect, 500);
   }
 });
 </script>
