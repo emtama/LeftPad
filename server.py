@@ -45,6 +45,7 @@ GESTURES_FILE  = os.path.join(BASE_DIR, "gestures.json")
 ACCESS_TOKEN   = secrets.token_urlsafe(16)   # 起動ごとに再生成
 
 DEFAULT_GESTURES = {
+<<<<<<< HEAD
     "swipe_up": "zoom_in",
     "swipe_down": "zoom_out",
     "swipe_left": "undo",
@@ -64,6 +65,27 @@ DEFAULT_GESTURES = {
     "three_finger_swipe_down": "layer_down",
     "three_finger_swipe_left": "rotate_ccw",
     "three_finger_swipe_right": "rotate_cw",
+=======
+    "swipe_up": "拡大",
+    "swipe_down": "縮小",
+    "swipe_left": "元に戻す",
+    "swipe_right": "やり直し",
+    "long_press": "スポイト",
+    "hold_screen": "スポイト",
+    "pinch_in": "縮小",
+    "pinch_out": "拡大",
+    "double_tap": "全画面",
+    "two_finger_tap": "元に戻す",
+    "two_finger_swipe_up": "拡大",
+    "two_finger_swipe_down": "縮小",
+    "two_finger_swipe_left": "元に戻す",
+    "two_finger_swipe_right": "やり直し",
+    "three_finger_tap": "全画面",
+    "three_finger_swipe_up": "レイヤー上",
+    "three_finger_swipe_down": "レイヤー下",
+    "three_finger_swipe_left": "左回転",
+    "three_finger_swipe_right": "右回転",
+>>>>>>> origin/codex/explain-the-repository
 }
 
 COMMAND_ALIASES = {
@@ -414,8 +436,19 @@ class ShortcutEditorWindow(tk.Toplevel):
         self._gesture_entries = {}  # gesture_key -> StringVar
         self._capture_target = None
         self._capture_pressed: set[str] = set()
+<<<<<<< HEAD
         self._new_shortcut_keys_var = tk.StringVar(value="")
         self._new_shortcut_cmd_var = tk.StringVar(value="")
+=======
+        self._capture_candidate: list[str] = []
+        self._capture_buttons = {}
+        self._active_capture_button = None
+        self._new_shortcut_keys_var = tk.StringVar(value="")
+        self._new_shortcut_cmd_var = tk.StringVar(value="")
+        self._body_canvas = None
+        self._body_scrollbar = None
+        self._body_inner = None
+>>>>>>> origin/codex/explain-the-repository
 
         self._build()
         self._maximize()
@@ -439,6 +472,7 @@ class ShortcutEditorWindow(tk.Toplevel):
 
         tk.Frame(self, bg=self.BORDER, height=1).pack(fill="x", padx=16)
 
+<<<<<<< HEAD
         wrapper = tk.Frame(self, bg=self.BG)
         wrapper.pack(fill="both", expand=True, padx=16, pady=8)
 
@@ -454,6 +488,27 @@ class ShortcutEditorWindow(tk.Toplevel):
         tk.Frame(self, bg=self.BORDER, height=1).pack(fill="x", padx=16)
         footer = tk.Frame(self, bg=self.BG, pady=12)
         footer.pack()
+=======
+        body = tk.Frame(self, bg=self.BG)
+        body.pack(fill="both", expand=True, padx=16, pady=8)
+        self._build_scrollable_body(body)
+
+        wrapper = tk.Frame(self._body_inner, bg=self.BG)
+        wrapper.pack(fill="both", expand=True)
+
+        left = tk.Frame(wrapper, bg=self.BG)
+        right = tk.Frame(wrapper, bg=self.BG)
+        left.pack(side="left", fill="both", expand=True, padx=(0, 6))
+        right.pack(side="left", fill="both", expand=True, padx=(6, 0))
+
+        self._build_shortcuts_panel(left)
+        self._build_gestures_panel(right)
+        self._build_add_shortcut_panel(self._body_inner)
+
+        tk.Frame(self, bg=self.BORDER, height=1).pack(fill="x", padx=16)
+        footer = tk.Frame(self, bg=self.BG, pady=12)
+        footer.pack(fill="x")
+>>>>>>> origin/codex/explain-the-repository
         tk.Button(
             footer, text="  保存  ",
             bg=self.ACCENT, fg=self.BG,
@@ -472,6 +527,40 @@ class ShortcutEditorWindow(tk.Toplevel):
             command=self.destroy,
         ).pack(side="left", padx=8)
 
+<<<<<<< HEAD
+=======
+    def _build_scrollable_body(self, parent):
+        self._body_canvas = tk.Canvas(parent, bg=self.BG, highlightthickness=0, bd=0)
+        self._body_scrollbar = tk.Scrollbar(parent, orient="vertical", command=self._body_canvas.yview)
+        self._body_canvas.configure(yscrollcommand=self._body_scrollbar.set)
+        self._body_canvas.pack(side="left", fill="both", expand=True)
+        self._body_scrollbar.pack(side="right", fill="y")
+
+        self._body_inner = tk.Frame(self._body_canvas, bg=self.BG)
+        window_id = self._body_canvas.create_window((0, 0), window=self._body_inner, anchor="nw")
+        self._body_inner.bind(
+            "<Configure>",
+            lambda e: self._body_canvas.configure(scrollregion=self._body_canvas.bbox("all"))
+        )
+        self._body_canvas.bind(
+            "<Configure>",
+            lambda e: self._body_canvas.itemconfigure(window_id, width=e.width)
+        )
+        self._body_canvas.bind_all("<MouseWheel>", self._on_mouse_wheel, add="+")
+        self._body_canvas.bind_all("<Button-4>", self._on_mouse_wheel, add="+")
+        self._body_canvas.bind_all("<Button-5>", self._on_mouse_wheel, add="+")
+
+    def _on_mouse_wheel(self, event):
+        if not self.winfo_exists():
+            return
+        if getattr(event, "num", None) == 4:
+            self._body_canvas.yview_scroll(-1, "units")
+        elif getattr(event, "num", None) == 5:
+            self._body_canvas.yview_scroll(1, "units")
+        elif getattr(event, "delta", 0) != 0:
+            self._body_canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+
+>>>>>>> origin/codex/explain-the-repository
     def _build_shortcuts_panel(self, parent):
         tk.Label(parent, text="ショートカットキー", bg=self.BG, fg=self.ACCENT2,
                  font=("Courier New", 11, "bold")).pack(anchor="w")
@@ -500,12 +589,22 @@ class ShortcutEditorWindow(tk.Toplevel):
                 bg=self.SURFACE, fg=self.ACCENT2,
                 font=("Courier New", 10), anchor="w",
             ).grid(row=0, column=1, padx=4)
+<<<<<<< HEAD
             tk.Button(
+=======
+            btn = tk.Button(
+>>>>>>> origin/codex/explain-the-repository
                 row, text="キーを記録",
                 bg=self.BORDER, fg=self.TEXT, relief="flat",
                 font=("Courier New", 8), cursor="hand2",
                 command=lambda c=cmd: self._start_capture(("shortcut", c)),
+<<<<<<< HEAD
             ).grid(row=0, column=2, padx=4)
+=======
+            )
+            btn.grid(row=0, column=2, padx=4)
+            self._capture_buttons[("shortcut", cmd)] = btn
+>>>>>>> origin/codex/explain-the-repository
             self._entries[cmd] = var
 
     def _build_gestures_panel(self, parent):
@@ -524,24 +623,54 @@ class ShortcutEditorWindow(tk.Toplevel):
             ent.pack(side="left", fill="x", expand=True, padx=(4, 0))
             self._gesture_entries[key] = var
 
+<<<<<<< HEAD
     def _build_add_shortcut_panel(self):
         panel = tk.Frame(self, bg=self.SURFACE, padx=10, pady=8)
         panel.pack(fill="x", padx=16, pady=(0, 8))
+=======
+    def _build_add_shortcut_panel(self, parent):
+        panel = tk.Frame(parent, bg=self.SURFACE, padx=10, pady=8)
+        panel.pack(fill="x", pady=(8, 0))
+>>>>>>> origin/codex/explain-the-repository
         tk.Label(panel, text="ショートカット追加", bg=self.SURFACE, fg=self.ACCENT2,
                  font=("Courier New", 10, "bold")).pack(side="left", padx=(0, 10))
         tk.Entry(panel, textvariable=self._new_shortcut_cmd_var, width=24, bg=self.BG, fg=self.TEXT,
                  font=("Courier New", 10), relief="flat").pack(side="left")
         tk.Label(panel, textvariable=self._new_shortcut_keys_var, width=22, anchor="w",
                  bg=self.BG, fg=self.ACCENT2, font=("Courier New", 10)).pack(side="left", padx=6)
+<<<<<<< HEAD
         tk.Button(panel, text="キーを記録", bg=self.BORDER, fg=self.TEXT, relief="flat",
                   command=lambda: self._start_capture(("new_shortcut", ""))).pack(side="left", padx=4)
+=======
+        btn = tk.Button(panel, text="キーを記録", bg=self.BORDER, fg=self.TEXT, relief="flat",
+                        command=lambda: self._start_capture(("new_shortcut", "")))
+        btn.pack(side="left", padx=4)
+        self._capture_buttons[("new_shortcut", "")] = btn
+>>>>>>> origin/codex/explain-the-repository
         tk.Button(panel, text="追加", bg=self.ACCENT2, fg=self.BG, relief="flat",
                   command=self._add_shortcut).pack(side="left", padx=4)
 
     def _start_capture(self, target):
+<<<<<<< HEAD
         self._capture_target = target
         self._capture_pressed.clear()
         messagebox.showinfo("LeftPad", "割り当てたいキーを押す", parent=self)
+=======
+        if self._capture_target and self._capture_target != target:
+            return
+        if self._capture_target == target:
+            self._confirm_capture()
+            return
+        self._capture_target = target
+        self._capture_pressed.clear()
+        self._capture_candidate = []
+        self._active_capture_button = self._capture_buttons.get(target)
+        for key, button in self._capture_buttons.items():
+            if key == target:
+                button.configure(text="確定", bg=self.ACCENT2, fg=self.BG, state="normal")
+            else:
+                button.configure(state="disabled", bg=self.MUTED, fg=self.BG)
+>>>>>>> origin/codex/explain-the-repository
 
     @staticmethod
     def _normalize_key(keysym: str) -> str:
@@ -560,28 +689,67 @@ class ShortcutEditorWindow(tk.Toplevel):
         if not self._capture_target:
             return
         self._capture_pressed.add(self._normalize_key(event.keysym))
+<<<<<<< HEAD
+=======
+        self._update_capture_candidate()
+>>>>>>> origin/codex/explain-the-repository
 
     def _on_key_release(self, event):
         if not self._capture_target:
             return
         key = self._normalize_key(event.keysym)
+<<<<<<< HEAD
         keys = set(self._capture_pressed)
         if key:
             keys.add(key)
+=======
+        if key in self._capture_pressed:
+            self._capture_pressed.remove(key)
+        self._update_capture_candidate(fallback_key=key)
+
+    def _update_capture_candidate(self, fallback_key=None):
+        keys = set(self._capture_pressed)
+        if not keys and fallback_key:
+            keys.add(fallback_key)
+>>>>>>> origin/codex/explain-the-repository
         if not keys:
             return
         modifiers = [k for k in ("ctrl", "shift", "alt", "meta") if k in keys]
         non_mods = sorted([k for k in keys if k not in self.MODIFIERS])
+<<<<<<< HEAD
         combo = modifiers + (non_mods if non_mods else [key] if key in self.MODIFIERS else [])
         combo = [k for i, k in enumerate(combo) if k and k not in combo[:i]]
+=======
+        combo = modifiers + (non_mods if non_mods else [fallback_key] if fallback_key in self.MODIFIERS else [])
+        combo = [k for i, k in enumerate(combo) if k and k not in combo[:i]]
+        if not combo:
+            return
+        self._capture_candidate = combo
+>>>>>>> origin/codex/explain-the-repository
         joined = "+".join(combo)
         ttype, tkey = self._capture_target
         if ttype == "shortcut" and tkey in self._entries:
             self._entries[tkey].set(joined)
         elif ttype == "new_shortcut":
             self._new_shortcut_keys_var.set(joined)
+<<<<<<< HEAD
         self._capture_target = None
         self._capture_pressed.clear()
+=======
+
+    def _confirm_capture(self):
+        if not self._capture_target:
+            return
+        if not self._capture_candidate:
+            messagebox.showwarning("LeftPad", "キーを押してから確定してください", parent=self)
+            return
+        self._capture_target = None
+        self._capture_pressed.clear()
+        self._capture_candidate = []
+        self._active_capture_button = None
+        for button in self._capture_buttons.values():
+            button.configure(text="キーを記録", state="normal", bg=self.BORDER, fg=self.TEXT)
+>>>>>>> origin/codex/explain-the-repository
 
     def _add_shortcut(self):
         cmd = self._new_shortcut_cmd_var.get().strip()
