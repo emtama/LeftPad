@@ -45,7 +45,6 @@ GESTURES_FILE  = os.path.join(BASE_DIR, "gestures.json")
 ACCESS_TOKEN   = secrets.token_urlsafe(16)   # 起動ごとに再生成
 
 DEFAULT_GESTURES = {
-<<<<<<< HEAD
     "swipe_up": "zoom_in",
     "swipe_down": "zoom_out",
     "swipe_left": "undo",
@@ -65,27 +64,6 @@ DEFAULT_GESTURES = {
     "three_finger_swipe_down": "layer_down",
     "three_finger_swipe_left": "rotate_ccw",
     "three_finger_swipe_right": "rotate_cw",
-=======
-    "swipe_up": "拡大",
-    "swipe_down": "縮小",
-    "swipe_left": "元に戻す",
-    "swipe_right": "やり直し",
-    "long_press": "スポイト",
-    "hold_screen": "スポイト",
-    "pinch_in": "縮小",
-    "pinch_out": "拡大",
-    "double_tap": "全画面",
-    "two_finger_tap": "元に戻す",
-    "two_finger_swipe_up": "拡大",
-    "two_finger_swipe_down": "縮小",
-    "two_finger_swipe_left": "元に戻す",
-    "two_finger_swipe_right": "やり直し",
-    "three_finger_tap": "全画面",
-    "three_finger_swipe_up": "レイヤー上",
-    "three_finger_swipe_down": "レイヤー下",
-    "three_finger_swipe_left": "左回転",
-    "three_finger_swipe_right": "右回転",
->>>>>>> origin/codex/explain-the-repository
 }
 
 COMMAND_ALIASES = {
