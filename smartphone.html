@@ -38,12 +38,6 @@
       transform: scale(1.35);
     }
 
-    .panel { background:var(--surface); border:1px solid var(--border); padding:10px; }
-    .panel h3 { margin:0 0 8px; color:var(--accent2); font-size:13px; }
-    table { width:100%; border-collapse:collapse; font-size:12px; }
-    td,th { border-bottom:1px solid var(--border); padding:6px; text-align:left; }
-    tr:last-child td{border-bottom:none}
-    input { width:100%; background:#1e2128; color:var(--text); border:1px solid var(--border); padding:6px; }
   </style>
 </head>
 <body>
@@ -57,11 +51,6 @@
       <span class="hint top">UP</span><span class="hint bottom">DOWN</span><span class="hint left">LEFT</span><span class="hint right">RIGHT</span>
       <div id="feedback"></div>
     </section>
-
-    <section class="panel">
-      <h3>ジェスチャー割り当て（コマンド名）</h3>
-      <table><thead><tr><th>操作</th><th>コマンド</th></tr></thead><tbody id="gesture-map-body"></tbody></table>
-    </section>
   </main>
 
 <script>
@@ -72,7 +61,6 @@ let ws = null, isAuthed = false;
 const stateEl = document.getElementById('state');
 const dotEl = document.getElementById('dot');
 const feedbackEl = document.getElementById('feedback');
-const gestureMapBody = document.getElementById('gesture-map-body');
 
 const GESTURE_LABELS = {
   swipe_up:'上スワイプ', swipe_down:'下スワイプ', swipe_left:'左スワイプ', swipe_right:'右スワイプ',
@@ -95,21 +83,9 @@ function connect(){
   ws.onmessage = (e)=>{
     let d; try{d=JSON.parse(e.data)}catch{return}
     if(d.type==='auth'){ isAuthed=!!d.ok; setConn(isAuthed, isAuthed?'接続済み':'認証失敗'); if(isAuthed) send({type:'get_gestures'}); return; }
-    if(d.type==='gestures'){ gestureMap = d.data || {}; renderMap(); }
+    if(d.type==='gestures'){ gestureMap = d.data || {}; }
   };
   ws.onclose = ()=>{ isAuthed=false; setConn(false,'未接続'); setTimeout(connect, 1500); };
-}
-
-function renderMap(){
-  gestureMapBody.innerHTML = '';
-  Object.keys(GESTURE_LABELS).forEach((k)=>{
-    const tr=document.createElement('tr');
-    const td1=document.createElement('td'); td1.textContent=GESTURE_LABELS[k];
-    const td2=document.createElement('td');
-    const input=document.createElement('input'); input.value=gestureMap[k]||'';
-    input.onchange = ()=>{ gestureMap[k]=input.value.trim(); send({type:'update_gesture', gesture:k, cmd:gestureMap[k]}); };
-    td2.appendChild(input); tr.append(td1,td2); gestureMapBody.appendChild(tr);
-  });
 }
 
 const canvas = document.getElementById('gesture-canvas');

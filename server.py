@@ -316,6 +316,16 @@ async def ws_handler(websocket):
             cmd = resolve_command_name(cmd)
             real = get_real_shortcuts(shortcuts)
             if cmd not in real:
+                if "+" in cmd:
+                    keys = parse_raw_cmd(cmd)
+                    try:
+                        execute_keys(keys)
+                        log.info(f"[gesture-raw] {cmd} → {keys}")
+                        await websocket.send(json.dumps({"ok": True, "cmd": cmd, "keys": keys}))
+                    except Exception as e:
+                        log.error(f"キー実行エラー: {e}")
+                        await websocket.send(json.dumps({"ok": False, "error": str(e)}))
+                    continue
                 log.warning(f"未定義コマンド: {cmd!r}")
                 await websocket.send(json.dumps({"ok": False, "error": f"unknown cmd: {cmd}"}))
                 continue
@@ -600,7 +610,7 @@ class ShortcutEditorWindow(tk.Toplevel):
             tk.Label(row, text=label, width=24, anchor="w", bg=self.SURFACE, fg=self.TEXT,
                      font=("Courier New", 9)).pack(side="left")
             cmd = self._gestures.get(key, "")
-            combo = "+".join(self._shortcuts.get(cmd, [])) if cmd in self._shortcuts else ""
+            combo = "+".join(self._shortcuts.get(cmd, [])) if cmd in self._shortcuts else cmd
             var = tk.StringVar(value=combo)
             ent = tk.Entry(row, textvariable=var, bg=self.BG, fg=self.ACCENT2,
                            font=("Courier New", 9), relief="flat")
@@ -804,17 +814,7 @@ class ShortcutEditorWindow(tk.Toplevel):
         gesture_changed = 0
         for gkey, var in self._gesture_entries.items():
             combo = var.get().strip().lower()
-            if not combo:
-                cmd = ""
-            else:
-                cmd = combo_to_cmd.get(combo)
-                if not cmd:
-                    messagebox.showwarning(
-                        "LeftPad",
-                        f"ジェスチャー「{self.GESTURE_LABELS.get(gkey, gkey)}」のキー[{combo}]に対応するショートカットがない",
-                        parent=self
-                    )
-                    return
+            cmd = combo_to_cmd.get(combo, combo) if combo else ""
             if self._gestures.get(gkey, "") != cmd:
                 self._gestures[gkey] = cmd
                 gesture_changed += 1
