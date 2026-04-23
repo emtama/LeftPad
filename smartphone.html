@@ -84,7 +84,8 @@ function sendCommand(cmd, gestureKey=''){
   if(!cmd) return;
   send({cmd, gesture: gestureKey});
   vibrateTap();
-  flash(cmd);
+  const gestureLabel = GESTURE_LABELS[gestureKey] || cmd;
+  flash(gestureLabel);
 }
 
 function connect(){
