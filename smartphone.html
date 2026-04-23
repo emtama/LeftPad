@@ -89,7 +89,7 @@
     }
     .tabs::-webkit-scrollbar { display: none; }
     .tab {
-      font-size: 9px; letter-spacing: 1.5px; text-transform: uppercase;
+      font-size: 12px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase;
       padding: 9px 13px;
       border: none; background: none; color: var(--muted); cursor: pointer;
       border-bottom: 2px solid transparent; margin-bottom: -1px;
@@ -128,7 +128,7 @@
       gap: 5px; overflow: hidden; user-select: none;
     }
     .pad-btn .icon  { font-size: 22px; line-height: 1; }
-    .pad-btn .label { font-size: 9px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; }
+    .pad-btn .label { font-size: 12px; font-weight: 700; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; }
     .pad-btn.accent  { border-color: var(--accent);  color: var(--accent); }
     .pad-btn.accent2 { border-color: var(--accent2); color: var(--accent2); }
     .pad-btn.danger  { border-color: var(--danger);  color: var(--danger); }
@@ -439,9 +439,21 @@
 
   <!-- ===== カスタムタブ ===== -->
   <div id="tab-custom" class="tab-panel">
-    <div class="section-label">カスタムボタン（最大6個）</div>
-    <div id="custom-grid" class="btn-grid col-3"></div>
-    <div style="margin-top:16px; display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+    <div class="section-label">ボタン位置調節モード</div>
+    <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:8px;">
+      <button id="layout-mode-btn" onclick="toggleLayoutMode()"
+        style="background:var(--surface); color:var(--text); border:1px solid var(--border); border-radius:8px;
+               font-family:inherit; font-size:12px; font-weight:700; padding:8px 12px; cursor:pointer;">
+        配置モード: OFF
+      </button>
+      <button onclick="resetCustomLayout()"
+        style="background:var(--surface); color:var(--muted); border:1px solid var(--border); border-radius:8px;
+               font-family:inherit; font-size:11px; padding:8px 12px; cursor:pointer;">
+        レイアウト初期化
+      </button>
+    </div>
+    <div id="custom-grid" style="position:relative; height:54dvh; min-height:340px; border:1px solid var(--border); border-radius:12px; background:var(--surface); overflow:hidden;"></div>
+    <div style="margin-top:10px; display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
       <input id="custom-label" type="text" placeholder="ラベル"
         style="flex:1; min-width:80px; background:var(--btn-bg); border:1px solid var(--border);
                border-radius:8px; color:var(--text); font-family:inherit; font-size:12px;
@@ -457,7 +469,7 @@
       </button>
     </div>
     <p style="font-size:10px; color:var(--muted); margin-top:10px; line-height:1.7;">
-      長押しでボタンを削除できる。
+      配置モードONでドラッグ移動。長押しで削除。
     </p>
   </div>
 
@@ -493,6 +505,7 @@ const TOKEN = URL_PARAMS.get('token') || '';
 //  WebSocket
 // ══════════════════════════════════════════════
 let ws = null;
+let isAuthed = false;
 const dot     = document.getElementById('status-dot');
 const ipInput = document.getElementById('ip-input');
 const connBtn = document.getElementById('connect-btn');
@@ -505,23 +518,23 @@ function toggleConnect() {
 function connect() {
   const host = ipInput.value.trim();
   if (!host) { showFlash('⚠ IPアドレスを入力'); return; }
-  // トークンをクエリパラメータとして付与
-  const url = `ws://${host}${TOKEN ? '?token=' + TOKEN : ''}`;
+  const url = `ws://${host}`;
   dot.className = 'status-dot';
+  isAuthed = false;
   try { ws = new WebSocket(url); }
   catch(e) { showFlash('❌ 接続エラー'); return; }
 
   ws.onopen = () => {
-    dot.className = 'status-dot connected';
-    connBtn.textContent = '切断';
-    showFlash('✅ 接続しました');
-    localStorage.setItem('leftpad_ip', host);
-    // 設定タブを開いていたら自動でショートカットを読み込む
-    if (document.getElementById('tab-settings').classList.contains('active')) {
-      loadShortcuts();
+    connBtn.textContent = '認証中...';
+    if (!TOKEN) {
+      showFlash('🔒 認証トークンなし：QRから再アクセス');
+      ws.close(4001, 'Unauthorized');
+      return;
     }
+    ws.send(JSON.stringify({ type: 'auth', token: TOKEN }));
   };
   ws.onclose = (e) => {
+    isAuthed = false;
     dot.className = 'status-dot';
     connBtn.textContent = '接続';
     if (e.code === 4001) {
@@ -537,8 +550,30 @@ function connect() {
   ws.onmessage = (e) => {
     try {
       const data = JSON.parse(e.data);
-      if (data.type === 'shortcuts') {
+      if (data.type === 'auth') {
+        if (data.ok) {
+          isAuthed = true;
+          dot.className = 'status-dot connected';
+          connBtn.textContent = '切断';
+          showFlash('✅ 接続しました');
+          localStorage.setItem('leftpad_ip', host);
+          if (document.getElementById('tab-settings').classList.contains('active')) {
+            loadShortcuts();
+          }
+          loadGestures();
+        } else {
+          isAuthed = false;
+          showFlash('🔒 認証失敗：QRから再アクセス');
+          ws.close(4001, 'Unauthorized');
+        }
+      } else if (data.type === 'shortcuts') {
         renderShortcuts(data.data);
+      } else if (data.type === 'gestures') {
+        gestureMap = { ...gestureMap, ...data.data };
+        saveGestureMap();
+        renderGestureTable();
+      } else if (data.type === 'gesture_updated') {
+        if (!data.ok) showFlash('❌ ジェスチャー更新失敗');
       } else if (data.type === 'shortcut_updated') {
         if (data.ok) showFlash(`✅ ${data.cmd} を更新`);
         else         showFlash('❌ 更新失敗');
@@ -551,12 +586,12 @@ function connect() {
 //  コマンド送信
 // ══════════════════════════════════════════════
 function send(cmd) {
-  if (!ws || ws.readyState !== WebSocket.OPEN) { showFlash('⚠ 未接続'); return; }
+  if (!ws || ws.readyState !== WebSocket.OPEN || !isAuthed) { showFlash('⚠ 未接続'); return; }
   ws.send(JSON.stringify({ cmd }));
   if (event && event.currentTarget) flashBtn(event.currentTarget);
 }
 function sendRaw(cmdStr) {
-  if (!ws || ws.readyState !== WebSocket.OPEN) { showFlash('⚠ 未接続'); return; }
+  if (!ws || ws.readyState !== WebSocket.OPEN || !isAuthed) { showFlash('⚠ 未接続'); return; }
   ws.send(JSON.stringify({ cmd: cmdStr, raw: true }));
 }
 function sendByValue(cmdOrRaw) {
@@ -591,13 +626,15 @@ function switchTab(name, tabEl) {
   document.getElementById('tab-' + name).classList.add('active');
   if (tabEl) tabEl.classList.add('active');
   // 設定タブに切り替えたとき接続済みなら自動ロード
-  if (name === 'settings' && ws && ws.readyState === WebSocket.OPEN) loadShortcuts();
+  if (name === 'settings' && ws && ws.readyState === WebSocket.OPEN && isAuthed) loadShortcuts();
 }
 
 // ══════════════════════════════════════════════
 //  カスタムボタン
 // ══════════════════════════════════════════════
 let customBtns = JSON.parse(localStorage.getItem('leftpad_custom') || '[]');
+let layoutMode = false;
+let dragState = null;
 
 function renderCustomBtns() {
   const grid = document.getElementById('custom-grid');
@@ -605,11 +642,27 @@ function renderCustomBtns() {
   customBtns.forEach((b, i) => {
     const el = document.createElement('button');
     el.className = 'pad-btn accent2';
-    el.innerHTML = `<span class="label">${b.label}</span>`;
+    el.style.position = 'absolute';
+    el.style.left = `${b.x ?? (10 + (i % 3) * 34)}%`;
+    el.style.top = `${b.y ?? (8 + Math.floor(i / 3) * 24)}%`;
+    el.style.width = `${b.w ?? 28}%`;
+    el.style.height = `${b.h ?? 20}%`;
+    el.style.minHeight = '52px';
+    el.innerHTML = `<span class="label" style="font-size:13px;">${b.label}</span>`;
     el.onclick = () => {
-      if (!ws || ws.readyState !== WebSocket.OPEN) { showFlash('⚠ 未接続'); return; }
+      if (layoutMode) return;
+      if (!ws || ws.readyState !== WebSocket.OPEN || !isAuthed) { showFlash('⚠ 未接続'); return; }
       ws.send(JSON.stringify({ cmd: b.cmd, raw: true }));
       flashBtn(el);
+    };
+    const startDrag = (x, y) => {
+      if (!layoutMode) return;
+      dragState = { i, sx: x, sy: y, ox: b.x ?? 0, oy: b.y ?? 0 };
+    };
+    el.onmousedown = (e) => startDrag(e.clientX, e.clientY);
+    el.ontouchstart = (e) => {
+      const t = e.touches[0];
+      if (t) startDrag(t.clientX, t.clientY);
     };
     el.oncontextmenu = (e) => {
       e.preventDefault();
@@ -623,8 +676,7 @@ function addCustomBtn() {
   const label = document.getElementById('custom-label').value.trim();
   const cmd   = document.getElementById('custom-cmd').value.trim();
   if (!label || !cmd) { showFlash('⚠ ラベルとコマンドを入力'); return; }
-  if (customBtns.length >= 6) { showFlash('⚠ 上限6個まで'); return; }
-  customBtns.push({ label, cmd });
+  customBtns.push({ label, cmd, x: 8, y: 8, w: 28, h: 20 });
   saveCustom(); renderCustomBtns();
   document.getElementById('custom-label').value = '';
   document.getElementById('custom-cmd').value   = '';
@@ -632,13 +684,64 @@ function addCustomBtn() {
 }
 function saveCustom() { localStorage.setItem('leftpad_custom', JSON.stringify(customBtns)); }
 
+function toggleLayoutMode() {
+  layoutMode = !layoutMode;
+  const btn = document.getElementById('layout-mode-btn');
+  btn.textContent = `配置モード: ${layoutMode ? 'ON' : 'OFF'}`;
+  btn.style.borderColor = layoutMode ? 'var(--accent2)' : 'var(--border)';
+}
+
+function resetCustomLayout() {
+  customBtns = customBtns.map((b, i) => ({
+    ...b,
+    x: 10 + (i % 3) * 30,
+    y: 8 + Math.floor(i / 3) * 24,
+    w: 28,
+    h: 20,
+  }));
+  saveCustom();
+  renderCustomBtns();
+}
+
+function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
+window.addEventListener('mousemove', (e) => {
+  if (!layoutMode || !dragState) return;
+  const grid = document.getElementById('custom-grid');
+  const rect = grid.getBoundingClientRect();
+  const dx = ((e.clientX - dragState.sx) / rect.width) * 100;
+  const dy = ((e.clientY - dragState.sy) / rect.height) * 100;
+  const b = customBtns[dragState.i];
+  b.x = clamp((dragState.ox || 0) + dx, 0, 95);
+  b.y = clamp((dragState.oy || 0) + dy, 0, 95);
+  renderCustomBtns();
+});
+window.addEventListener('touchmove', (e) => {
+  if (!layoutMode || !dragState || !e.touches[0]) return;
+  const t = e.touches[0];
+  const grid = document.getElementById('custom-grid');
+  const rect = grid.getBoundingClientRect();
+  const dx = ((t.clientX - dragState.sx) / rect.width) * 100;
+  const dy = ((t.clientY - dragState.sy) / rect.height) * 100;
+  const b = customBtns[dragState.i];
+  b.x = clamp((dragState.ox || 0) + dx, 0, 95);
+  b.y = clamp((dragState.oy || 0) + dy, 0, 95);
+  renderCustomBtns();
+}, { passive: true });
+window.addEventListener('mouseup', () => { if (dragState) { saveCustom(); dragState = null; } });
+window.addEventListener('touchend', () => { if (dragState) { saveCustom(); dragState = null; } });
+
 // ══════════════════════════════════════════════
 //  設定タブ：ショートカット一覧
 // ══════════════════════════════════════════════
 function loadShortcuts() {
-  if (!ws || ws.readyState !== WebSocket.OPEN) { showFlash('⚠ 未接続'); return; }
+  if (!ws || ws.readyState !== WebSocket.OPEN || !isAuthed) { showFlash('⚠ 未接続'); return; }
   document.getElementById('shortcuts-list').innerHTML = '<div class="loading-msg">読み込み中…</div>';
   ws.send(JSON.stringify({ type: 'get_shortcuts' }));
+}
+
+function loadGestures() {
+  if (!ws || ws.readyState !== WebSocket.OPEN || !isAuthed) return;
+  ws.send(JSON.stringify({ type: 'get_gestures' }));
 }
 
 function renderShortcuts(data) {
@@ -733,16 +836,32 @@ function startEditShortcut(row, keysEl, editBtn, cmd) {
 // ══════════════════════════════════════════════
 //  ジェスチャーモード
 // ══════════════════════════════════════════════
-const GESTURE_KEYS = ['swipe_up','swipe_down','swipe_left','swipe_right','long_press','pinch_in','pinch_out','double_tap'];
+const GESTURE_KEYS = [
+  'swipe_up','swipe_down','swipe_left','swipe_right',
+  'long_press','hold_screen','pinch_in','pinch_out','double_tap',
+  'two_finger_tap','two_finger_swipe_up','two_finger_swipe_down','two_finger_swipe_left','two_finger_swipe_right',
+  'three_finger_tap','three_finger_swipe_up','three_finger_swipe_down','three_finger_swipe_left','three_finger_swipe_right'
+];
 const GESTURE_LABELS = {
   swipe_up:    '↑ スワイプ上',
   swipe_down:  '↓ スワイプ下',
   swipe_left:  '← スワイプ左',
   swipe_right: '→ スワイプ右',
   long_press:  '長押し',
+  hold_screen: '画面ホールド',
   pinch_in:    'ピンチイン',
   pinch_out:   'ピンチアウト',
   double_tap:  'ダブルタップ',
+  two_finger_tap: '二本指タップ',
+  two_finger_swipe_up: '二本↑スワイプ',
+  two_finger_swipe_down: '二本↓スワイプ',
+  two_finger_swipe_left: '二本←スワイプ',
+  two_finger_swipe_right: '二本→スワイプ',
+  three_finger_tap: '三本指タップ',
+  three_finger_swipe_up: '三本↑スワイプ',
+  three_finger_swipe_down: '三本↓スワイプ',
+  three_finger_swipe_left: '三本←スワイプ',
+  three_finger_swipe_right: '三本→スワイプ',
 };
 const DEFAULT_GESTURES = {
   swipe_left:  'undo',
@@ -750,9 +869,20 @@ const DEFAULT_GESTURES = {
   swipe_up:    'zoom_in',
   swipe_down:  'zoom_out',
   long_press:  'eyedrop',
+  hold_screen: 'eyedrop',
   pinch_in:    'zoom_out',
   pinch_out:   'zoom_in',
   double_tap:  'fullscreen',
+  two_finger_tap: 'undo',
+  two_finger_swipe_up: 'zoom_in',
+  two_finger_swipe_down: 'zoom_out',
+  two_finger_swipe_left: 'undo',
+  two_finger_swipe_right: 'redo',
+  three_finger_tap: 'fullscreen',
+  three_finger_swipe_up: 'layer_up',
+  three_finger_swipe_down: 'layer_down',
+  three_finger_swipe_left: 'rotate_ccw',
+  three_finger_swipe_right: 'rotate_cw',
 };
 
 let gestureMap = { ...DEFAULT_GESTURES, ...JSON.parse(localStorage.getItem('leftpad_gestures') || '{}') };
@@ -781,6 +911,9 @@ function renderGestureTable() {
     input.onchange = () => {
       gestureMap[key] = input.value.trim();
       saveGestureMap();
+      if (ws && ws.readyState === WebSocket.OPEN && isAuthed) {
+        ws.send(JSON.stringify({ type: 'update_gesture', gesture: key, cmd: gestureMap[key] }));
+      }
     };
     tdInput.appendChild(input);
 
@@ -804,7 +937,12 @@ function fireGesture(key) {
 
   // ビジュアルフィードバック
   const arrow = document.getElementById('gesture-arrow');
-  const arrowMap = { swipe_up:'↑', swipe_down:'↓', swipe_left:'←', swipe_right:'→', long_press:'●', pinch_in:'◎', pinch_out:'○', double_tap:'⊙' };
+  const arrowMap = {
+    swipe_up:'↑', swipe_down:'↓', swipe_left:'←', swipe_right:'→',
+    long_press:'●', hold_screen:'●', pinch_in:'◎', pinch_out:'○', double_tap:'⊙',
+    two_finger_tap:'②', two_finger_swipe_up:'⇈', two_finger_swipe_down:'⇊', two_finger_swipe_left:'⇇', two_finger_swipe_right:'⇉',
+    three_finger_tap:'③', three_finger_swipe_up:'⤊', three_finger_swipe_down:'⤋', three_finger_swipe_left:'⤆', three_finger_swipe_right:'⤇',
+  };
   arrow.textContent = arrowMap[key] || '';
   arrow.classList.add('show');
   clearTimeout(gestureArrowTimer);
@@ -826,6 +964,7 @@ let longPressTimer = null;
 let lastTapTime  = 0;
 let pinchStart   = null;
 let pinchFired   = false;
+let multiStart   = null;
 
 const SWIPE_THRESHOLD  = 40;
 const LONG_PRESS_MS    = 600;
@@ -850,7 +989,7 @@ canvas.addEventListener('touchstart', (e) => {
 
     // 長押し
     longPressTimer = setTimeout(() => {
-      fireGesture('long_press');
+      fireGesture(gestureMap.hold_screen ? 'hold_screen' : 'long_press');
       touchStart = null; // 長押し後はスワイプを無効化
     }, LONG_PRESS_MS);
   } else if (e.touches.length === 2) {
@@ -858,6 +997,25 @@ canvas.addEventListener('touchstart', (e) => {
     touchStart = null;
     pinchStart = getTouchDist(e.touches[0], e.touches[1]);
     pinchFired = false;
+    const t1 = e.touches[0], t2 = e.touches[1];
+    multiStart = {
+      count: 2,
+      x: (t1.clientX + t2.clientX) / 2,
+      y: (t1.clientY + t2.clientY) / 2,
+      time: Date.now(),
+    };
+  } else if (e.touches.length === 3) {
+    clearTimeout(longPressTimer);
+    pinchStart = null;
+    pinchFired = false;
+    touchStart = null;
+    const [a, b, c] = e.touches;
+    multiStart = {
+      count: 3,
+      x: (a.clientX + b.clientX + c.clientX) / 3,
+      y: (a.clientY + b.clientY + c.clientY) / 3,
+      time: Date.now(),
+    };
   }
 }, { passive: false });
 
@@ -893,6 +1051,24 @@ canvas.addEventListener('touchmove', (e) => {
 canvas.addEventListener('touchend', (e) => {
   e.preventDefault();
   clearTimeout(longPressTimer);
+
+  if (e.touches.length === 0 && multiStart && e.changedTouches.length >= 1) {
+    const pts = Array.from(e.changedTouches);
+    const cx = pts.reduce((s, t) => s + t.clientX, 0) / pts.length;
+    const cy = pts.reduce((s, t) => s + t.clientY, 0) / pts.length;
+    const dx = cx - multiStart.x;
+    const dy = cy - multiStart.y;
+    const dist = Math.hypot(dx, dy);
+    const dt = Date.now() - multiStart.time;
+    const prefix = multiStart.count === 2 ? 'two_finger' : 'three_finger';
+    if (dist < TAP_MAX_MOVE * 2 && dt < 300) {
+      fireGesture(`${prefix}_tap`);
+    } else if (dist > SWIPE_THRESHOLD) {
+      if (Math.abs(dx) > Math.abs(dy)) fireGesture(`${prefix}_${dx > 0 ? 'swipe_right' : 'swipe_left'}`);
+      else fireGesture(`${prefix}_${dy > 0 ? 'swipe_down' : 'swipe_up'}`);
+    }
+    multiStart = null;
+  }
 
   if (e.touches.length > 0 || !touchStart) {
     touchStart = null; return;

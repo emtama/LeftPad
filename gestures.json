@@ -1,0 +1,21 @@
+{
+  "swipe_up": "zoom_in",
+  "swipe_down": "zoom_out",
+  "swipe_left": "undo",
+  "swipe_right": "redo",
+  "long_press": "eyedrop",
+  "hold_screen": "eyedrop",
+  "pinch_in": "zoom_out",
+  "pinch_out": "zoom_in",
+  "double_tap": "fullscreen",
+  "two_finger_tap": "undo",
+  "two_finger_swipe_up": "zoom_in",
+  "two_finger_swipe_down": "zoom_out",
+  "two_finger_swipe_left": "undo",
+  "two_finger_swipe_right": "redo",
+  "three_finger_tap": "fullscreen",
+  "three_finger_swipe_up": "layer_up",
+  "three_finger_swipe_down": "layer_down",
+  "three_finger_swipe_left": "rotate_ccw",
+  "three_finger_swipe_right": "rotate_cw"
+}
