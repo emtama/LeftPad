@@ -7,18 +7,18 @@
   <style>
     :root { --bg:#0d0e11; --surface:#16181e; --border:#2a2d36; --accent:#e8ff47; --accent2:#47c4ff; --text:#e4e6ee; --muted:#5a5f72; }
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-    body { margin:0; background:var(--bg); color:var(--text); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
-    header { display:flex; justify-content:space-between; align-items:center; padding:14px 16px; border-bottom:1px solid var(--border); }
+    body { margin:0; background:var(--bg); color:var(--text); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; overflow:hidden; }
+    header { position:fixed; top:0; left:0; right:0; z-index:20; display:flex; justify-content:space-between; align-items:center; padding:14px 16px; border-bottom:1px solid #2a2d3699; background:#0d0e1170; backdrop-filter:blur(4px); pointer-events:none; }
     .title { color:var(--accent); font-weight:700; font-size:22px; letter-spacing:1px; }
     .status { display:flex; gap:8px; align-items:center; color:var(--muted); font-size:12px; }
     .dot { width:10px; height:10px; border-radius:999px; background:var(--muted); }
     .dot.on { background:#4dff91; box-shadow:0 0 8px #4dff9180; }
 
-    main { padding:12px; display:flex; flex-direction:column; gap:12px; }
-    #gesture-canvas { position:relative; height:58dvh; min-height:320px; background:var(--surface); border:1px solid var(--border); touch-action:none; overflow:hidden; }
+    main { padding:0; }
+    #gesture-canvas { position:fixed; inset:0; background:var(--surface); touch-action:none; overflow:hidden; }
     .hint { position:absolute; color:var(--muted); font-size:11px; letter-spacing:1px; }
-    .top{top:8px;left:50%;transform:translateX(-50%)} .bottom{bottom:8px;left:50%;transform:translateX(-50%)}
-    .left{left:8px;top:50%;transform:translateY(-50%)} .right{right:8px;top:50%;transform:translateY(-50%)}
+    .top{top:56px;left:50%;transform:translateX(-50%)} .bottom{bottom:12px;left:50%;transform:translateX(-50%)}
+    .left{left:12px;top:50%;transform:translateY(-50%)} .right{right:12px;top:50%;transform:translateY(-50%)}
     #feedback { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%) scale(0.9); opacity:0; background:var(--accent); color:#000; padding:10px 18px; border-radius:999px; font-weight:700; transition:.12s; }
     #feedback.show { opacity:1; transform:translate(-50%,-50%) scale(1); }
     .touch-indicator {
@@ -89,7 +89,7 @@ function connect(){
 }
 
 const canvas = document.getElementById('gesture-canvas');
-let start=null, startTime=0, longPressTimer=null;
+let gesture = null, longPressTimer=null;
 const touchIndicators = new Map();
 
 function updateTouchIndicators(touchList){
@@ -118,49 +118,70 @@ function updateTouchIndicators(touchList){
 
 canvas.addEventListener('touchstart', (e)=>{
   updateTouchIndicators(e.touches);
-  if(e.touches.length===1){
-    const t=e.touches[0]; start={x:t.clientX,y:t.clientY,count:1}; startTime=Date.now();
+  if(!gesture && (e.touches.length===1 || e.touches.length===2 || e.touches.length===3)){
+    const starts = {};
+    for (const t of e.touches) starts[t.identifier] = {x:t.clientX, y:t.clientY};
+    gesture = {
+      count: e.touches.length,
+      maxTouches: e.touches.length,
+      startAt: Date.now(),
+      starts,
+      last: {x:e.touches[0].clientX, y:e.touches[0].clientY},
+    };
+  }
+  if(gesture){
+    gesture.maxTouches = Math.max(gesture.maxTouches, e.touches.length);
+    for (const t of e.touches){
+      if(!gesture.starts[t.identifier]) gesture.starts[t.identifier] = {x:t.clientX, y:t.clientY};
+      gesture.last = {x:t.clientX, y:t.clientY};
+    }
+  }
+  if(gesture && gesture.count===1){
     clearTimeout(longPressTimer);
-    longPressTimer=setTimeout(()=>{ sendCommand(gestureMap.long_press||gestureMap.hold_screen); }, 550);
-  } else if(e.touches.length===2 || e.touches.length===3){
-    const t=e.touches[0]; start={x:t.clientX,y:t.clientY,count:e.touches.length}; startTime=Date.now();
+    longPressTimer=setTimeout(()=>{ sendCommand(gestureMap.long_press||gestureMap.hold_screen); gesture = null; }, 550);
   }
 }, {passive:true});
 
 canvas.addEventListener('touchmove', (e)=>{
   updateTouchIndicators(e.touches);
+  if(gesture && e.touches.length > 0){
+    const t = e.touches[0];
+    gesture.last = {x:t.clientX, y:t.clientY};
+    gesture.maxTouches = Math.max(gesture.maxTouches, e.touches.length);
+  }
 }, {passive:true});
 
 canvas.addEventListener('touchend', (e)=>{
   updateTouchIndicators(e.touches);
   clearTimeout(longPressTimer);
-  if(!start) return;
-  const dt = Date.now()-startTime;
-  const t = (e.changedTouches && e.changedTouches[0]) ? e.changedTouches[0] : null;
-  const endX = t ? t.clientX : start.x;
-  const endY = t ? t.clientY : start.y;
-  const dx=endX-start.x, dy=endY-start.y;
+  if(!gesture) return;
+  if(e.touches.length > 0) return; // 全指が離れてから判定
+  const dt = Date.now()-gesture.startAt;
+  const firstStart = Object.values(gesture.starts)[0] || {x:gesture.last.x, y:gesture.last.y};
+  const dx=gesture.last.x-firstStart.x, dy=gesture.last.y-firstStart.y;
   const adx=Math.abs(dx), ady=Math.abs(dy);
+  const movements = Object.values(gesture.starts).map((s)=>Math.hypot(gesture.last.x-s.x, gesture.last.y-s.y));
+  const maxMove = movements.length ? Math.max(...movements) : 0;
 
   let key='';
-  if(start.count===1){
+  if(gesture.count===1){
     if(adx<25 && ady<25 && dt<240) key='double_tap';
     else key = adx>ady ? (dx>0?'swipe_right':'swipe_left') : (dy>0?'swipe_down':'swipe_up');
-  } else if(start.count===2){
-    if(adx<30 && ady<30) key='two_finger_tap';
+  } else if(gesture.count===2 && gesture.maxTouches===2){
+    if(maxMove<28 && dt<320) key='two_finger_tap';
     else key = adx>ady ? (dx>0?'two_finger_swipe_right':'two_finger_swipe_left') : (dy>0?'two_finger_swipe_down':'two_finger_swipe_up');
-  } else if(start.count===3){
-    if(adx<30 && ady<30) key='three_finger_tap';
+  } else if(gesture.count===3 && gesture.maxTouches===3){
+    if(maxMove<24 && dt<320) key='three_finger_tap';
     else key = adx>ady ? (dx>0?'three_finger_swipe_right':'three_finger_swipe_left') : (dy>0?'three_finger_swipe_down':'three_finger_swipe_up');
   }
   sendCommand(gestureMap[key]);
-  start=null;
+  gesture = null;
 }, {passive:true});
 
 canvas.addEventListener('touchcancel', (e)=>{
   updateTouchIndicators(e.touches);
   clearTimeout(longPressTimer);
-  start = null;
+  gesture = null;
 }, {passive:true});
 
 connect();
