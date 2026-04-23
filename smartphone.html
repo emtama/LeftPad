@@ -58,6 +58,7 @@ const token = new URLSearchParams(location.search).get('token') || '';
 const wsHost = location.hostname || location.host.split(':')[0];
 const wsUrl = `ws://${wsHost}:8765`;
 let ws = null, isAuthed = false;
+let vibrationEnabled = true;
 const stateEl = document.getElementById('state');
 const dotEl = document.getElementById('dot');
 const feedbackEl = document.getElementById('feedback');
@@ -74,7 +75,12 @@ let gestureMap = {};
 function setConn(ok,msg){ stateEl.textContent=msg; dotEl.className = ok ? 'dot on':'dot'; }
 function flash(t){ feedbackEl.textContent=t; feedbackEl.classList.add('show'); setTimeout(()=>feedbackEl.classList.remove('show'),280); }
 function send(obj){ if(ws && ws.readyState===1 && isAuthed) ws.send(JSON.stringify(obj)); }
-function sendCommand(cmd){ if(!cmd) return; send({cmd}); flash(cmd); }
+function sendCommand(cmd){
+  if(!cmd) return;
+  send({cmd});
+  if(vibrationEnabled && navigator.vibrate) navigator.vibrate(18);
+  flash(cmd);
+}
 
 function connect(){
   ws = new WebSocket(wsUrl);
@@ -82,8 +88,10 @@ function connect(){
   ws.onopen = ()=> ws.send(JSON.stringify({type:'auth', token}));
   ws.onmessage = (e)=>{
     let d; try{d=JSON.parse(e.data)}catch{return}
-    if(d.type==='auth'){ isAuthed=!!d.ok; setConn(isAuthed, isAuthed?'接続済み':'認証失敗'); if(isAuthed) send({type:'get_gestures'}); return; }
+    if(d.type==='auth'){ isAuthed=!!d.ok; setConn(isAuthed, isAuthed?'接続済み':'認証失敗'); if(isAuthed){ send({type:'get_gestures'}); send({type:'get_settings'}); } return; }
     if(d.type==='gestures'){ gestureMap = d.data || {}; }
+    if(d.type==='settings'){ vibrationEnabled = !!(d.data && d.data.vibration_enabled); }
+    if(d.type==='setting_updated' && d.key==='vibration_enabled'){ vibrationEnabled = !!d.value; }
   };
   ws.onclose = ()=>{ isAuthed=false; setConn(false,'未接続'); setTimeout(connect, 1500); };
 }

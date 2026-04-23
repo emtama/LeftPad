@@ -117,6 +117,9 @@ log = logging.getLogger("leftpad")
 # ══════════════════════════════════════════════
 connected_clients: set = set()
 connected_client_infos: dict = {}
+APP_SETTINGS = {
+    "vibration_enabled": True,
+}
 
 # ══════════════════════════════════════════════
 #  ネットワーク
@@ -264,6 +267,20 @@ async def ws_handler(websocket):
 
             if msg_type == "get_gestures":
                 await websocket.send(json.dumps({"type": "gestures", "data": gestures}))
+                continue
+
+            if msg_type == "get_settings":
+                await websocket.send(json.dumps({"type": "settings", "data": APP_SETTINGS}))
+                continue
+
+            if msg_type == "update_setting":
+                key = data.get("key")
+                value = data.get("value")
+                if key in APP_SETTINGS and isinstance(value, bool):
+                    APP_SETTINGS[key] = value
+                    await websocket.send(json.dumps({"type": "setting_updated", "ok": True, "key": key, "value": value}))
+                else:
+                    await websocket.send(json.dumps({"type": "setting_updated", "ok": False}))
                 continue
 
             # ── ショートカットを更新・保存 ────────────
@@ -488,15 +505,7 @@ class ShortcutEditorWindow(tk.Toplevel):
 
         wrapper = tk.Frame(self._body_inner, bg=self.BG)
         wrapper.pack(fill="both", expand=True)
-
-        left = tk.Frame(wrapper, bg=self.BG)
-        right = tk.Frame(wrapper, bg=self.BG)
-        left.pack(side="left", fill="both", expand=True, padx=(0, 6))
-        right.pack(side="left", fill="both", expand=True, padx=(6, 0))
-
-        self._build_shortcuts_panel(left)
-        self._build_gestures_panel(right)
-        self._build_add_shortcut_panel(self._body_inner)
+        self._build_gestures_panel(wrapper)
 
         tk.Frame(self, bg=self.BORDER, height=1).pack(fill="x", padx=16)
         footer = tk.Frame(self, bg=self.BG, pady=12)
@@ -549,54 +558,6 @@ class ShortcutEditorWindow(tk.Toplevel):
             self._body_canvas.yview_scroll(1, "units")
         elif getattr(event, "delta", 0) != 0:
             self._body_canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
-
-    def _build_shortcuts_panel(self, parent):
-        tk.Label(parent, text="ショートカットキー", bg=self.BG, fg=self.ACCENT2,
-                 font=("Courier New", 11, "bold")).pack(anchor="w")
-        box = tk.Frame(parent, bg=self.SURFACE, padx=8, pady=8)
-        box.pack(fill="both", expand=True, pady=(6, 0))
-        hdr = tk.Frame(box, bg=self.SURFACE)
-        hdr.pack(fill="x", pady=(0, 4))
-        tk.Label(hdr, text="コマンド", width=22, bg=self.SURFACE,
-                 fg=self.MUTED, font=("Courier New", 9, "bold"), anchor="w").grid(row=0, column=0, padx=(4, 8))
-        tk.Label(hdr, text="割り当てキー", width=22, bg=self.SURFACE,
-                 fg=self.MUTED, font=("Courier New", 9, "bold"), anchor="w").grid(row=0, column=1)
-        tk.Label(hdr, text="操作", width=12, bg=self.SURFACE,
-                 fg=self.MUTED, font=("Courier New", 9, "bold"), anchor="w").grid(row=0, column=2, columnspan=2)
-
-        real = get_real_shortcuts(self._shortcuts)
-        for i, (cmd, keys) in enumerate(real.items()):
-            row_bg = self.SURFACE if i % 2 == 0 else self.BG
-            row = tk.Frame(box, bg=row_bg, pady=3)
-            row.pack(fill="x")
-            tk.Label(
-                row, text=cmd, width=22,
-                bg=row_bg, fg=self.TEXT,
-                font=("Courier New", 9), anchor="w",
-            ).grid(row=0, column=0, padx=(4, 8))
-            var = tk.StringVar(value="+".join(keys))
-            tk.Label(
-                row, textvariable=var, width=22,
-                bg=self.SURFACE, fg=self.ACCENT2,
-                font=("Courier New", 10), anchor="w",
-            ).grid(row=0, column=1, padx=4)
-            btn = tk.Button(
-                row, text="キーを記録",
-                bg=self.BORDER, fg=self.TEXT, relief="flat",
-                font=("Courier New", 8), cursor="hand2",
-                command=lambda c=cmd: self._start_capture(("shortcut", c)),
-            )
-            btn.grid(row=0, column=2, padx=4)
-            del_btn = tk.Button(
-                row, text="削除",
-                bg=self.DANGER, fg=self.BG, relief="flat",
-                font=("Courier New", 8), cursor="hand2",
-                command=lambda c=cmd: self._delete_shortcut(c),
-            )
-            del_btn.grid(row=0, column=3, padx=4)
-            self._capture_buttons[("shortcut", cmd)] = btn
-            self._shortcut_rows[cmd] = row
-            self._entries[cmd] = var
 
     def _build_gestures_panel(self, parent):
         tk.Label(parent, text="ジェスチャー割り当て", bg=self.BG, fg=self.ACCENT2,
@@ -945,6 +906,22 @@ class QRWindow:
 
         tk.Frame(root, bg=self.BORDER, height=1).pack(fill="x", padx=PAD)
 
+        # スマホ振動設定
+        vib_row = tk.Frame(root, bg=self.BG, padx=PAD, pady=8)
+        vib_row.pack(fill="x")
+        self.vibration_var = tk.BooleanVar(value=APP_SETTINGS.get("vibration_enabled", True))
+        tk.Checkbutton(
+            vib_row,
+            text="スマホのタップ振動を有効にする",
+            variable=self.vibration_var,
+            command=self._toggle_vibration,
+            bg=self.BG, fg=self.TEXT, selectcolor=self.SURFACE,
+            activebackground=self.BG, activeforeground=self.ACCENT2,
+            font=("Courier New", 9), highlightthickness=0, bd=0,
+        ).pack(anchor="w")
+
+        tk.Frame(root, bg=self.BORDER, height=1).pack(fill="x", padx=PAD)
+
         # 接続デバイス情報
         device_panel = tk.Frame(root, bg=self.SURFACE, padx=10, pady=8)
         device_panel.pack(fill="x", padx=PAD, pady=(10, 0))
@@ -1038,6 +1015,10 @@ class QRWindow:
 
     def _open_shortcut_editor(self):
         ShortcutEditorWindow(self.root)
+
+    def _toggle_vibration(self):
+        APP_SETTINGS["vibration_enabled"] = bool(self.vibration_var.get())
+        log.info(f"スマホ振動設定: {'ON' if APP_SETTINGS['vibration_enabled'] else 'OFF'}")
 
     def _start_status_update(self):
         def update():
