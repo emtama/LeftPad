@@ -20,6 +20,7 @@ import asyncio
 import json
 import logging
 import os
+import queue
 import secrets
 import socket
 import sys
@@ -844,6 +845,18 @@ class ShortcutEditorWindow(tk.Toplevel):
 # ══════════════════════════════════════════════
 #  QRコードウィンドウ（メインGUI）
 # ══════════════════════════════════════════════
+class UILogHandler(logging.Handler):
+    def __init__(self, log_queue: "queue.Queue[str]"):
+        super().__init__()
+        self.log_queue = log_queue
+
+    def emit(self, record):
+        try:
+            self.log_queue.put_nowait(self.format(record))
+        except Exception:
+            pass
+
+
 class QRWindow:
     BG      = "#0d0e11"
     SURFACE = "#16181e"
@@ -862,9 +875,16 @@ class QRWindow:
         self.root.title("LeftPad Server")
         self.root.configure(bg=self.BG)
         self.root.resizable(False, False)
+        self.log_queue: "queue.Queue[str]" = queue.Queue()
+        self._log_handler = UILogHandler(self.log_queue)
+        self._log_handler.setFormatter(
+            logging.Formatter("%(asctime)s [%(levelname)s] %(message)s", "%H:%M:%S")
+        )
+        log.addHandler(self._log_handler)
 
         self._build_ui()
         self._start_status_update()
+        self._start_log_update()
 
     def _build_ui(self):
         root = self.root
@@ -921,6 +941,23 @@ class QRWindow:
         self.lamp_circle = self.lamp.create_oval(2, 2, 12, 12, fill=self.MUTED, outline="")
 
         tk.Frame(root, bg=self.BORDER, height=1).pack(fill="x", padx=PAD)
+
+        # ログ表示（コマンドプロンプトを見なくても状態確認できる）
+        log_panel = tk.Frame(root, bg=self.SURFACE, padx=10, pady=8)
+        log_panel.pack(fill="both", expand=True, padx=PAD, pady=10)
+        tk.Label(
+            log_panel, text="サーバーログ",
+            bg=self.SURFACE, fg=self.MUTED, font=("Courier New", 9, "bold"),
+        ).pack(anchor="w", pady=(0, 6))
+        self.log_text = tk.Text(
+            log_panel, height=10,
+            bg=self.BG, fg=self.TEXT, insertbackground=self.TEXT,
+            font=("Consolas", 9), relief="flat", wrap="none",
+        )
+        log_scroll = tk.Scrollbar(log_panel, orient="vertical", command=self.log_text.yview)
+        self.log_text.configure(yscrollcommand=log_scroll.set)
+        self.log_text.pack(side="left", fill="both", expand=True)
+        log_scroll.pack(side="right", fill="y")
 
         # ショートカット編集ボタン
         tk.Button(
@@ -991,8 +1028,23 @@ class QRWindow:
             self.root.after(1000, update)
         self.root.after(500, update)
 
+    def _start_log_update(self):
+        def update():
+            if not self.root.winfo_exists():
+                return
+            try:
+                while True:
+                    line = self.log_queue.get_nowait()
+                    self.log_text.insert("end", line + "\n")
+                    self.log_text.see("end")
+            except queue.Empty:
+                pass
+            self.root.after(120, update)
+        self.root.after(120, update)
+
     def _on_close(self):
         log.info("ウィンドウを閉じた。サーバーを停止する")
+        log.removeHandler(self._log_handler)
         self.root.destroy()
         os._exit(0)
 
