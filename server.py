@@ -400,6 +400,27 @@ class ShortcutEditorWindow(tk.Toplevel):
         "three_finger_tap", "three_finger_swipe_up", "three_finger_swipe_down",
         "three_finger_swipe_left", "three_finger_swipe_right",
     ]
+    GESTURE_LABELS = {
+        "swipe_up": "上スワイプ",
+        "swipe_down": "下スワイプ",
+        "swipe_left": "左スワイプ",
+        "swipe_right": "右スワイプ",
+        "long_press": "長押し",
+        "hold_screen": "画面ホールド",
+        "pinch_in": "ピンチイン",
+        "pinch_out": "ピンチアウト",
+        "double_tap": "ダブルタップ",
+        "two_finger_tap": "二本指タップ",
+        "two_finger_swipe_up": "二本指上スワイプ",
+        "two_finger_swipe_down": "二本指下スワイプ",
+        "two_finger_swipe_left": "二本指左スワイプ",
+        "two_finger_swipe_right": "二本指右スワイプ",
+        "three_finger_tap": "三本指タップ",
+        "three_finger_swipe_up": "三本指上スワイプ",
+        "three_finger_swipe_down": "三本指下スワイプ",
+        "three_finger_swipe_left": "三本指左スワイプ",
+        "three_finger_swipe_right": "三本指右スワイプ",
+    }
 
     def __init__(self, parent_root):
         super().__init__(parent_root)
@@ -413,7 +434,7 @@ class ShortcutEditorWindow(tk.Toplevel):
         self._entries   = {}   # cmd → StringVar("+区切り")
         self._shortcut_rows = {}  # cmd -> Frame
         self._deleted_shortcuts: set[str] = set()
-        self._gesture_entries = {}  # gesture_key -> StringVar
+        self._gesture_entries = {}  # gesture_key -> StringVar (キー組み合わせ)
         self._capture_target = None
         self._capture_pressed: set[str] = set()
         self._capture_candidate: list[str] = []
@@ -571,9 +592,12 @@ class ShortcutEditorWindow(tk.Toplevel):
         for key in self.GESTURE_KEYS:
             row = tk.Frame(box, bg=self.SURFACE, pady=2)
             row.pack(fill="x")
-            tk.Label(row, text=key, width=24, anchor="w", bg=self.SURFACE, fg=self.TEXT,
+            label = self.GESTURE_LABELS.get(key, key)
+            tk.Label(row, text=label, width=24, anchor="w", bg=self.SURFACE, fg=self.TEXT,
                      font=("Courier New", 9)).pack(side="left")
-            var = tk.StringVar(value=self._gestures.get(key, ""))
+            cmd = self._gestures.get(key, "")
+            combo = "+".join(self._shortcuts.get(cmd, [])) if cmd in self._shortcuts else ""
+            var = tk.StringVar(value=combo)
             ent = tk.Entry(row, textvariable=var, bg=self.BG, fg=self.ACCENT2,
                            font=("Courier New", 9), relief="flat")
             ent.pack(side="left", fill="x", expand=True, padx=(4, 0))
@@ -723,11 +747,30 @@ class ShortcutEditorWindow(tk.Toplevel):
                 self._shortcuts[cmd] = new_keys
                 changed += 1
 
+        combo_to_cmd = {}
+        for cmd, keys in self._shortcuts.items():
+            if not isinstance(keys, list):
+                continue
+            combo = "+".join([k.strip().lower() for k in keys if k.strip()])
+            if combo and combo not in combo_to_cmd:
+                combo_to_cmd[combo] = cmd
+
         gesture_changed = 0
         for gkey, var in self._gesture_entries.items():
-            val = var.get().strip()
-            if self._gestures.get(gkey, "") != val:
-                self._gestures[gkey] = val
+            combo = var.get().strip().lower()
+            if not combo:
+                cmd = ""
+            else:
+                cmd = combo_to_cmd.get(combo)
+                if not cmd:
+                    messagebox.showwarning(
+                        "LeftPad",
+                        f"ジェスチャー「{self.GESTURE_LABELS.get(gkey, gkey)}」のキー[{combo}]に対応するショートカットがない",
+                        parent=self
+                    )
+                    return
+            if self._gestures.get(gkey, "") != cmd:
+                self._gestures[gkey] = cmd
                 gesture_changed += 1
 
         if changed == 0 and deleted == 0 and gesture_changed == 0:
