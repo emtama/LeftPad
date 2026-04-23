@@ -663,10 +663,24 @@ class ShortcutEditorWindow(tk.Toplevel):
         }
         return mapping.get(k, k)
 
+    @staticmethod
+    def _modifiers_from_state(state: int) -> set[str]:
+        mods = set()
+        if state & 0x0001:
+            mods.add("shift")
+        if state & 0x0004:
+            mods.add("ctrl")
+        if state & 0x0008:
+            mods.add("alt")
+        if state & 0x0080:
+            mods.add("meta")
+        return mods
+
     def _on_key_press(self, event):
         if not self._capture_target:
             return
         self._capture_pressed.add(self._normalize_key(event.keysym))
+        self._capture_pressed.update(self._modifiers_from_state(event.state))
         self._update_capture_candidate()
 
     def _on_key_release(self, event):
