@@ -411,6 +411,8 @@ class ShortcutEditorWindow(tk.Toplevel):
         self._shortcuts = load_shortcuts()
         self._gestures  = load_gestures()
         self._entries   = {}   # cmd → StringVar("+区切り")
+        self._shortcut_rows = {}  # cmd -> Frame
+        self._deleted_shortcuts: set[str] = set()
         self._gesture_entries = {}  # gesture_key -> StringVar
         self._capture_target = None
         self._capture_pressed: set[str] = set()
@@ -524,6 +526,8 @@ class ShortcutEditorWindow(tk.Toplevel):
                  fg=self.MUTED, font=("Courier New", 9, "bold"), anchor="w").grid(row=0, column=0, padx=(4, 8))
         tk.Label(hdr, text="割り当てキー", width=22, bg=self.SURFACE,
                  fg=self.MUTED, font=("Courier New", 9, "bold"), anchor="w").grid(row=0, column=1)
+        tk.Label(hdr, text="操作", width=12, bg=self.SURFACE,
+                 fg=self.MUTED, font=("Courier New", 9, "bold"), anchor="w").grid(row=0, column=2, columnspan=2)
 
         real = get_real_shortcuts(self._shortcuts)
         for i, (cmd, keys) in enumerate(real.items()):
@@ -548,7 +552,15 @@ class ShortcutEditorWindow(tk.Toplevel):
                 command=lambda c=cmd: self._start_capture(("shortcut", c)),
             )
             btn.grid(row=0, column=2, padx=4)
+            del_btn = tk.Button(
+                row, text="削除",
+                bg=self.DANGER, fg=self.BG, relief="flat",
+                font=("Courier New", 8), cursor="hand2",
+                command=lambda c=cmd: self._delete_shortcut(c),
+            )
+            del_btn.grid(row=0, column=3, padx=4)
             self._capture_buttons[("shortcut", cmd)] = btn
+            self._shortcut_rows[cmd] = row
             self._entries[cmd] = var
 
     def _build_gestures_panel(self, parent):
@@ -624,7 +636,8 @@ class ShortcutEditorWindow(tk.Toplevel):
         key = self._normalize_key(event.keysym)
         if key in self._capture_pressed:
             self._capture_pressed.remove(key)
-        self._update_capture_candidate(fallback_key=key)
+        if not self._capture_candidate and key:
+            self._update_capture_candidate(fallback_key=key)
 
     def _update_capture_candidate(self, fallback_key=None):
         keys = set(self._capture_pressed)
@@ -669,13 +682,38 @@ class ShortcutEditorWindow(tk.Toplevel):
             messagebox.showwarning("LeftPad", "既に存在するコマンド", parent=self)
             return
         self._entries[cmd] = tk.StringVar(value=keys)
+        self._deleted_shortcuts.discard(cmd)
         self._shortcuts[cmd] = [k.strip() for k in keys.split("+") if k.strip()]
         self._new_shortcut_cmd_var.set("")
         self._new_shortcut_keys_var.set("")
         messagebox.showinfo("LeftPad", "追加した。保存を押して確定する", parent=self)
 
+    def _delete_shortcut(self, cmd):
+        if cmd not in self._entries:
+            return
+        if not messagebox.askyesno("LeftPad", f"「{cmd}」を削除しますか？", parent=self):
+            return
+        if self._capture_target == ("shortcut", cmd):
+            self._capture_target = None
+            self._capture_pressed.clear()
+            self._capture_candidate = []
+            for button in self._capture_buttons.values():
+                button.configure(text="キーを記録", state="normal", bg=self.BORDER, fg=self.TEXT)
+        self._capture_buttons.pop(("shortcut", cmd), None)
+        row = self._shortcut_rows.pop(cmd, None)
+        if row is not None:
+            row.destroy()
+        self._entries.pop(cmd, None)
+        self._deleted_shortcuts.add(cmd)
+
     def _save(self):
         changed = 0
+        deleted = 0
+        for cmd in list(self._deleted_shortcuts):
+            if cmd in self._shortcuts:
+                del self._shortcuts[cmd]
+                deleted += 1
+        self._deleted_shortcuts.clear()
         for cmd, var in self._entries.items():
             raw = var.get().strip()
             if not raw:
@@ -692,14 +730,18 @@ class ShortcutEditorWindow(tk.Toplevel):
                 self._gestures[gkey] = val
                 gesture_changed += 1
 
-        if changed == 0 and gesture_changed == 0:
+        if changed == 0 and deleted == 0 and gesture_changed == 0:
             messagebox.showinfo("LeftPad", "変更なし", parent=self)
             return
 
         ok_shortcuts = save_shortcuts(self._shortcuts)
         ok_gestures = save_gestures(self._gestures)
         if ok_shortcuts and ok_gestures:
-            messagebox.showinfo("LeftPad", f"ショートカット {changed} 件 / ジェスチャー {gesture_changed} 件を保存", parent=self)
+            messagebox.showinfo(
+                "LeftPad",
+                f"ショートカット変更 {changed} 件 / 削除 {deleted} 件 / ジェスチャー {gesture_changed} 件を保存",
+                parent=self
+            )
             self.destroy()
         else:
             messagebox.showerror("LeftPad", "保存に失敗した", parent=self)
