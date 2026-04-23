@@ -806,6 +806,120 @@ class ShortcutEditorWindow(tk.Toplevel):
             except tk.TclError:
                 self.geometry(f"{self.winfo_screenwidth()}x{self.winfo_screenheight()}+0+0")
 
+
+class InlineGestureEditor(tk.Frame):
+    BG = ShortcutEditorWindow.BG
+    SURFACE = ShortcutEditorWindow.SURFACE
+    BORDER = ShortcutEditorWindow.BORDER
+    ACCENT2 = ShortcutEditorWindow.ACCENT2
+    TEXT = ShortcutEditorWindow.TEXT
+    MUTED = ShortcutEditorWindow.MUTED
+    DANGER = ShortcutEditorWindow.DANGER
+    MODIFIERS = ShortcutEditorWindow.MODIFIERS
+    GESTURE_KEYS = ShortcutEditorWindow.GESTURE_KEYS
+    GESTURE_LABELS = ShortcutEditorWindow.GESTURE_LABELS
+
+    def __init__(self, parent):
+        super().__init__(parent, bg=self.SURFACE, padx=8, pady=8)
+        self._shortcuts = load_shortcuts()
+        self._gestures = load_gestures()
+        self._gesture_vars = {}
+        self._capture_buttons = {}
+        self._capture_target = None
+        self._capture_pressed = set()
+        self._capture_candidate = []
+        self._build()
+        self.bind_all("<KeyPress>", self._on_key_press, add="+")
+        self.bind_all("<KeyRelease>", self._on_key_release, add="+")
+
+    def _build(self):
+        tk.Label(self, text="ジェスチャー割り当て", bg=self.SURFACE, fg=self.ACCENT2, font=("Courier New", 10, "bold")).pack(anchor="w")
+        box = tk.Frame(self, bg=self.SURFACE)
+        box.pack(fill="both", expand=True, pady=(6, 0))
+        for key in self.GESTURE_KEYS:
+            row = tk.Frame(box, bg=self.SURFACE, pady=2)
+            row.pack(fill="x")
+            tk.Label(row, text=self.GESTURE_LABELS.get(key, key), width=16, anchor="w", bg=self.SURFACE, fg=self.TEXT, font=("Courier New", 9)).pack(side="left")
+            cmd = self._gestures.get(key, "")
+            combo = "+".join(self._shortcuts.get(cmd, [])) if cmd in self._shortcuts else cmd
+            var = tk.StringVar(value=combo)
+            ent = tk.Entry(row, textvariable=var, width=18, bg=self.BG, fg=self.ACCENT2, relief="flat", font=("Courier New", 9))
+            ent.pack(side="left", padx=(4, 6))
+            btn = tk.Button(row, text="キーを記録", bg=self.BORDER, fg=self.TEXT, relief="flat", font=("Courier New", 8), command=lambda g=key: self._start_capture(g))
+            btn.pack(side="left", padx=2)
+            tk.Button(row, text="削除", bg=self.DANGER, fg=self.BG, relief="flat", font=("Courier New", 8), command=lambda g=key: self._delete(g)).pack(side="left", padx=2)
+            var.trace_add("write", lambda *_args, g=key: self._save_one(g))
+            self._gesture_vars[key] = var
+            self._capture_buttons[key] = btn
+
+    def _normalize(self, keysym):
+        k = keysym.lower()
+        return {"control_l":"ctrl","control_r":"ctrl","shift_l":"shift","shift_r":"shift","alt_l":"alt","alt_r":"alt","meta_l":"meta","meta_r":"meta","return":"enter","escape":"esc"}.get(k, k)
+
+    def _start_capture(self, key):
+        if self._capture_target and self._capture_target != key:
+            return
+        if self._capture_target == key:
+            self._confirm_capture()
+            return
+        self._capture_target = key
+        self._capture_pressed.clear()
+        self._capture_candidate = []
+        for k, b in self._capture_buttons.items():
+            if k == key:
+                b.configure(text="確定", bg=self.ACCENT2, fg=self.BG)
+            else:
+                b.configure(state="disabled", bg=self.MUTED, fg=self.BG)
+
+    def _on_key_press(self, event):
+        if not self._capture_target:
+            return
+        self._capture_pressed.add(self._normalize(event.keysym))
+        mods = set()
+        if event.state & 0x0001: mods.add("shift")
+        if event.state & 0x0004: mods.add("ctrl")
+        if event.state & 0x0008: mods.add("alt")
+        self._capture_pressed.update(mods)
+        self._update_candidate()
+
+    def _on_key_release(self, _event):
+        if self._capture_target:
+            pass
+
+    def _update_candidate(self):
+        keys = set(self._capture_pressed)
+        if not keys:
+            return
+        modifiers = [k for k in ("ctrl", "shift", "alt", "meta") if k in keys]
+        non_mods = sorted([k for k in keys if k not in self.MODIFIERS])
+        combo = modifiers + non_mods
+        if not combo:
+            return
+        self._capture_candidate = combo
+        self._gesture_vars[self._capture_target].set("+".join(combo))
+
+    def _confirm_capture(self):
+        # 既存値がある場合に候補未入力でもエラーにしない
+        self._capture_target = None
+        self._capture_pressed.clear()
+        self._capture_candidate = []
+        for b in self._capture_buttons.values():
+            b.configure(text="キーを記録", state="normal", bg=self.BORDER, fg=self.TEXT)
+
+    def _delete(self, key):
+        self._gesture_vars[key].set("")
+
+    def _save_one(self, gkey):
+        combo = self._gesture_vars[gkey].get().strip().lower()
+        combo_to_cmd = {}
+        for cmd, keys in self._shortcuts.items():
+            if isinstance(keys, list):
+                c = "+".join([k.strip().lower() for k in keys if k.strip()])
+                if c and c not in combo_to_cmd:
+                    combo_to_cmd[c] = cmd
+        self._gestures[gkey] = combo_to_cmd.get(combo, combo) if combo else ""
+        save_gestures(self._gestures)
+
 # ══════════════════════════════════════════════
 #  QRコードウィンドウ（メインGUI）
 # ══════════════════════════════════════════════
@@ -839,7 +953,6 @@ class QRWindow:
         self.root.title("LeftPad Server")
         self.root.configure(bg=self.BG)
         self.root.resizable(True, True)
-        self._shortcut_editor = None
         self.log_queue: "queue.Queue[str]" = queue.Queue()
         self._log_handler = UILogHandler(self.log_queue)
         self._log_handler.setFormatter(
@@ -851,7 +964,6 @@ class QRWindow:
         self._start_status_update()
         self._start_log_update()
         self._maximize()
-        self._open_shortcut_editor()
 
     def _build_ui(self):
         root = self.root
@@ -959,6 +1071,12 @@ class QRWindow:
         self.log_text.pack(side="left", fill="both", expand=True)
         log_scroll.pack(side="right", fill="y")
 
+        tk.Frame(root, bg=self.BORDER, height=1).pack(fill="x", padx=PAD)
+
+        # インライン編集（別ウィンドウではなく同一ウィンドウ）
+        inline_editor = InlineGestureEditor(root)
+        inline_editor.pack(fill="both", expand=True, padx=PAD, pady=10)
+
         # フッター
         tk.Label(
             root, text="ウィンドウを閉じるとサーバーが停止する",
@@ -996,13 +1114,6 @@ class QRWindow:
     def _copy(self, text: str):
         self.root.clipboard_clear()
         self.root.clipboard_append(text)
-
-    def _open_shortcut_editor(self):
-        if self._shortcut_editor and self._shortcut_editor.winfo_exists():
-            self._shortcut_editor.lift()
-            self._shortcut_editor.focus_force()
-            return
-        self._shortcut_editor = ShortcutEditorWindow(self.root)
 
     def _maximize(self):
         self.root.update_idletasks()
@@ -1046,8 +1157,6 @@ class QRWindow:
     def _on_close(self):
         log.info("ウィンドウを閉じた。サーバーを停止する")
         log.removeHandler(self._log_handler)
-        if self._shortcut_editor and self._shortcut_editor.winfo_exists():
-            self._shortcut_editor.destroy()
         self.root.destroy()
         os._exit(0)
 
