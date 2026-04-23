@@ -245,18 +245,25 @@ canvas.addEventListener('touchend', (e)=>{
     const centerDist = Math.hypot(centerDx, centerDy);
     const distDelta = Math.hypot(e2.x-e1.x, e2.y-e1.y) - Math.hypot(s2.x-s1.x, s2.y-s1.y);
     const pinchStrength = Math.abs(distDelta);
-    if(pinchStrength > 24 && pinchStrength > (centerDist * 1.2)){
-      key = distDelta > 0 ? 'pinch_out' : 'pinch_in';
-    } else if(centerDist < 18 && dt < 320){
+    if(centerDist < 18 && dt < 320 && pinchStrength < 18){
       key='two_finger_tap';
+    } else if(pinchStrength > 30 && pinchStrength > (centerDist * 1.5)){
+      key = distDelta > 0 ? 'pinch_out' : 'pinch_in';
     } else {
       key = centerAbsX>centerAbsY
         ? (centerDx>0?'two_finger_swipe_right':'two_finger_swipe_left')
         : (centerDy>0?'two_finger_swipe_down':'two_finger_swipe_up');
     }
   } else if(gcount===3 && gesture.maxTouches===3){
-    if(maxMove<24 && dt<320) key='three_finger_tap';
-    else key = adx>ady ? (dx>0?'three_finger_swipe_right':'three_finger_swipe_left') : (dy>0?'three_finger_swipe_down':'three_finger_swipe_up');
+    const centerDx3 = (gesture.lastCenter?.x ?? gesture.last.x) - (gesture.startCenter?.x ?? firstStart.x);
+    const centerDy3 = (gesture.lastCenter?.y ?? gesture.last.y) - (gesture.startCenter?.y ?? firstStart.y);
+    const centerAbsX3 = Math.abs(centerDx3);
+    const centerAbsY3 = Math.abs(centerDy3);
+    const centerDist3 = Math.hypot(centerDx3, centerDy3);
+    if(centerDist3 < 22 && dt < 320) key='three_finger_tap';
+    else key = centerAbsX3>centerAbsY3
+      ? (centerDx3>0?'three_finger_swipe_right':'three_finger_swipe_left')
+      : (centerDy3>0?'three_finger_swipe_down':'three_finger_swipe_up');
   }
   sendCommand(gestureMap[key], key);
   gesture = null;
