@@ -159,6 +159,12 @@ canvas.addEventListener('touchstart', (e)=>{
       startDist: e.touches.length>=2 ? distance(e.touches[0], e.touches[1]) : 0,
       lastDist: e.touches.length>=2 ? distance(e.touches[0], e.touches[1]) : 0,
     };
+  } else if(gesture) {
+    // 途中で本数が増えたらジェスチャー種別を昇格（長押し誤判定回避）
+    gesture.maxTouches = Math.max(gesture.maxTouches, e.touches.length);
+    if (e.touches.length > gesture.count && (Date.now() - gesture.startAt) < 250) {
+      gesture.count = e.touches.length;
+    }
   }
   if(gesture){
     gesture.maxTouches = Math.max(gesture.maxTouches, e.touches.length);
@@ -169,9 +175,11 @@ canvas.addEventListener('touchstart', (e)=>{
     gesture.lastCenter = calcCenterFromTouches(e.touches) || gesture.lastCenter;
     if(e.touches.length>=2) gesture.lastDist = distance(e.touches[0], e.touches[1]);
   }
-  if(gesture && gesture.count===1){
+  if(gesture && gesture.count===1 && gesture.maxTouches===1 && e.touches.length===1){
     clearTimeout(longPressTimer);
     longPressTimer=setTimeout(()=>{ sendCommand(gestureMap.long_press||gestureMap.hold_screen, 'long_press'); gesture = null; }, 550);
+  } else {
+    clearTimeout(longPressTimer);
   }
 }, {passive:true});
 
@@ -184,6 +192,7 @@ canvas.addEventListener('touchmove', (e)=>{
     gesture.lastCenter = calcCenterFromTouches(e.touches) || gesture.lastCenter;
     if(e.touches.length>=2) gesture.lastDist = distance(e.touches[0], e.touches[1]);
   }
+  if(gesture && (gesture.maxTouches > 1 || e.touches.length > 1)) clearTimeout(longPressTimer);
 }, {passive:true});
 
 canvas.addEventListener('touchend', (e)=>{
@@ -199,7 +208,8 @@ canvas.addEventListener('touchend', (e)=>{
   const maxMove = movements.length ? Math.max(...movements) : 0;
 
   let key='';
-  if(gesture.count===1){
+  const gcount = Math.max(gesture.count, gesture.maxTouches);
+  if(gcount===1){
     if(adx<25 && ady<25 && dt<240){
       const now = Date.now();
       const nearPrev = lastTapPos && Math.hypot(gesture.last.x - lastTapPos.x, gesture.last.y - lastTapPos.y) < 36;
@@ -216,22 +226,23 @@ canvas.addEventListener('touchend', (e)=>{
       lastTapAt = 0;
       lastTapPos = null;
     }
-  } else if(gesture.count===2 && gesture.maxTouches===2){
+  } else if(gcount===2 && gesture.maxTouches===2){
     const centerDx = (gesture.lastCenter?.x ?? gesture.last.x) - (gesture.startCenter?.x ?? firstStart.x);
     const centerDy = (gesture.lastCenter?.y ?? gesture.last.y) - (gesture.startCenter?.y ?? firstStart.y);
     const centerAbsX = Math.abs(centerDx);
     const centerAbsY = Math.abs(centerDy);
+    const centerDist = Math.hypot(centerDx, centerDy);
     const distDelta = gesture.lastDist - gesture.startDist;
-    if(Math.abs(distDelta) > 24){
+    if(Math.abs(distDelta) > 14){
       key = distDelta > 0 ? 'pinch_out' : 'pinch_in';
-    } else if(maxMove<20 && dt<320){
+    } else if(centerDist < 18 && dt < 320){
       key='two_finger_tap';
     } else {
       key = centerAbsX>centerAbsY
         ? (centerDx>0?'two_finger_swipe_right':'two_finger_swipe_left')
         : (centerDy>0?'two_finger_swipe_down':'two_finger_swipe_up');
     }
-  } else if(gesture.count===3 && gesture.maxTouches===3){
+  } else if(gcount===3 && gesture.maxTouches===3){
     if(maxMove<24 && dt<320) key='three_finger_tap';
     else key = adx>ady ? (dx>0?'three_finger_swipe_right':'three_finger_swipe_left') : (dy>0?'three_finger_swipe_down':'three_finger_swipe_up');
   }
