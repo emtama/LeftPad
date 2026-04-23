@@ -314,6 +314,7 @@ async def ws_handler(websocket):
             # ── 既存のキー入力コマンド ────────────────
             cmd    = data.get("cmd", "").strip()
             is_raw = data.get("raw", False)
+            gesture_name = data.get("gesture", "").strip()
 
             if not cmd:
                 await websocket.send(json.dumps({"ok": False, "error": "no cmd"}))
@@ -323,7 +324,8 @@ async def ws_handler(websocket):
                 keys = parse_raw_cmd(cmd)
                 try:
                     execute_keys(keys)
-                    log.info(f"[raw] {cmd} → {keys}")
+                    prefix = f"[raw:{gesture_name}] " if gesture_name else "[raw] "
+                    log.info(f"{prefix}{cmd} → {keys}")
                     await websocket.send(json.dumps({"ok": True, "cmd": cmd, "keys": keys}))
                 except Exception as e:
                     log.error(f"キー実行エラー: {e}")
@@ -337,7 +339,8 @@ async def ws_handler(websocket):
                     keys = parse_raw_cmd(cmd)
                     try:
                         execute_keys(keys)
-                        log.info(f"[gesture-raw] {cmd} → {keys}")
+                        prefix = f"[gesture-raw:{gesture_name}] " if gesture_name else "[gesture-raw] "
+                        log.info(f"{prefix}{cmd} → {keys}")
                         await websocket.send(json.dumps({"ok": True, "cmd": cmd, "keys": keys}))
                     except Exception as e:
                         log.error(f"キー実行エラー: {e}")
@@ -350,7 +353,10 @@ async def ws_handler(websocket):
             keys = shortcuts[cmd]
             try:
                 execute_keys(keys)
-                log.info(f"[cmd] {cmd:20s} → {'+'.join(keys)}")
+                if gesture_name:
+                    log.info(f"[gesture:{gesture_name}] {cmd:20s} → {'+'.join(keys)}")
+                else:
+                    log.info(f"[cmd] {cmd:20s} → {'+'.join(keys)}")
                 await websocket.send(json.dumps({"ok": True, "cmd": cmd, "keys": keys}))
             except Exception as e:
                 log.error(f"キー実行エラー: {e}")

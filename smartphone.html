@@ -75,9 +75,9 @@ let gestureMap = {};
 function setConn(ok,msg){ stateEl.textContent=msg; dotEl.className = ok ? 'dot on':'dot'; }
 function flash(t){ feedbackEl.textContent=t; feedbackEl.classList.add('show'); setTimeout(()=>feedbackEl.classList.remove('show'),280); }
 function send(obj){ if(ws && ws.readyState===1 && isAuthed) ws.send(JSON.stringify(obj)); }
-function sendCommand(cmd){
+function sendCommand(cmd, gestureKey=''){
   if(!cmd) return;
-  send({cmd});
+  send({cmd, gesture: gestureKey});
   if(vibrationEnabled && navigator.vibrate) navigator.vibrate(18);
   flash(cmd);
 }
@@ -148,7 +148,7 @@ canvas.addEventListener('touchstart', (e)=>{
   }
   if(gesture && gesture.count===1){
     clearTimeout(longPressTimer);
-    longPressTimer=setTimeout(()=>{ sendCommand(gestureMap.long_press||gestureMap.hold_screen); gesture = null; }, 550);
+    longPressTimer=setTimeout(()=>{ sendCommand(gestureMap.long_press||gestureMap.hold_screen, 'long_press'); gesture = null; }, 550);
   }
 }, {passive:true});
 
@@ -198,7 +198,7 @@ canvas.addEventListener('touchend', (e)=>{
     if(maxMove<24 && dt<320) key='three_finger_tap';
     else key = adx>ady ? (dx>0?'three_finger_swipe_right':'three_finger_swipe_left') : (dy>0?'three_finger_swipe_down':'three_finger_swipe_up');
   }
-  sendCommand(gestureMap[key]);
+  sendCommand(gestureMap[key], key);
   gesture = null;
 }, {passive:true});
 
