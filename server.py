@@ -116,6 +116,7 @@ log = logging.getLogger("leftpad")
 #  接続クライアント
 # ══════════════════════════════════════════════
 connected_clients: set = set()
+connected_client_infos: dict = {}
 
 # ══════════════════════════════════════════════
 #  ネットワーク
@@ -241,6 +242,7 @@ async def ws_handler(websocket):
 
     log.info(f"WS 接続: {client[0]}:{client[1]}")
     connected_clients.add(websocket)
+    connected_client_infos[websocket] = f"{client[0]}:{client[1]}"
     shortcuts = load_shortcuts()
     gestures = load_gestures()
 
@@ -333,6 +335,7 @@ async def ws_handler(websocket):
         log.warning(f"WS 異常切断: {e}")
     finally:
         connected_clients.discard(websocket)
+        connected_client_infos.pop(websocket, None)
         log.info(f"WS 切断: {client[0]}")
 
 # ══════════════════════════════════════════════
@@ -942,6 +945,23 @@ class QRWindow:
 
         tk.Frame(root, bg=self.BORDER, height=1).pack(fill="x", padx=PAD)
 
+        # 接続デバイス情報
+        device_panel = tk.Frame(root, bg=self.SURFACE, padx=10, pady=8)
+        device_panel.pack(fill="x", padx=PAD, pady=(10, 0))
+        tk.Label(
+            device_panel, text="接続デバイス",
+            bg=self.SURFACE, fg=self.MUTED, font=("Courier New", 9, "bold"),
+        ).pack(anchor="w", pady=(0, 4))
+        self.device_list_var = tk.StringVar(value=("未接続",))
+        tk.Listbox(
+            device_panel,
+            listvariable=self.device_list_var,
+            bg=self.BG, fg=self.TEXT, height=3,
+            highlightthickness=0, borderwidth=0, font=("Consolas", 9),
+        ).pack(fill="x")
+
+        tk.Frame(root, bg=self.BORDER, height=1).pack(fill="x", padx=PAD)
+
         # ログ表示（コマンドプロンプトを見なくても状態確認できる）
         log_panel = tk.Frame(root, bg=self.SURFACE, padx=10, pady=8)
         log_panel.pack(fill="both", expand=True, padx=PAD, pady=10)
@@ -1025,6 +1045,8 @@ class QRWindow:
             self.client_count_var.set(str(n))
             self.lamp.itemconfig(self.lamp_circle,
                                  fill=self.ACCENT2 if n > 0 else self.MUTED)
+            infos = sorted(connected_client_infos.values()) if n > 0 else ["未接続"]
+            self.device_list_var.set(infos)
             self.root.after(1000, update)
         self.root.after(500, update)
 
