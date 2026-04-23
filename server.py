@@ -833,21 +833,30 @@ class InlineGestureEditor(tk.Frame):
         self.bind_all("<KeyRelease>", self._on_key_release, add="+")
 
     def _build(self):
-        tk.Label(self, text="ジェスチャー割り当て", bg=self.SURFACE, fg=self.ACCENT2, font=("Courier New", 10, "bold")).pack(anchor="w")
-        box = tk.Frame(self, bg=self.SURFACE)
-        box.pack(fill="both", expand=True, pady=(6, 0))
+        tk.Label(self, text="ジェスチャー割り当て", bg=self.SURFACE, fg=self.ACCENT2, font=("Courier New", 12, "bold")).pack(anchor="w")
+        body = tk.Frame(self, bg=self.SURFACE)
+        body.pack(fill="both", expand=True, pady=(6, 0))
+        canvas = tk.Canvas(body, bg=self.SURFACE, highlightthickness=0, bd=0)
+        scrollbar = tk.Scrollbar(body, orient="vertical", command=canvas.yview)
+        canvas.configure(yscrollcommand=scrollbar.set)
+        canvas.pack(side="left", fill="both", expand=True)
+        scrollbar.pack(side="right", fill="y")
+        box = tk.Frame(canvas, bg=self.SURFACE)
+        win = canvas.create_window((0, 0), window=box, anchor="nw")
+        box.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
+        canvas.bind("<Configure>", lambda e: canvas.itemconfigure(win, width=e.width))
         for key in self.GESTURE_KEYS:
             row = tk.Frame(box, bg=self.SURFACE, pady=2)
             row.pack(fill="x")
-            tk.Label(row, text=self.GESTURE_LABELS.get(key, key), width=16, anchor="w", bg=self.SURFACE, fg=self.TEXT, font=("Courier New", 9)).pack(side="left")
+            tk.Label(row, text=self.GESTURE_LABELS.get(key, key), width=16, anchor="w", bg=self.SURFACE, fg=self.TEXT, font=("Courier New", 10)).pack(side="left")
             cmd = self._gestures.get(key, "")
             combo = "+".join(self._shortcuts.get(cmd, [])) if cmd in self._shortcuts else cmd
             var = tk.StringVar(value=combo)
-            ent = tk.Entry(row, textvariable=var, width=18, bg=self.BG, fg=self.ACCENT2, relief="flat", font=("Courier New", 9))
+            ent = tk.Entry(row, textvariable=var, width=18, bg=self.BG, fg=self.ACCENT2, relief="flat", font=("Courier New", 10))
             ent.pack(side="left", padx=(4, 6))
-            btn = tk.Button(row, text="キーを記録", bg=self.BORDER, fg=self.TEXT, relief="flat", font=("Courier New", 8), command=lambda g=key: self._start_capture(g))
+            btn = tk.Button(row, text="キーを記録", bg=self.BORDER, fg=self.TEXT, relief="flat", font=("Courier New", 9), command=lambda g=key: self._start_capture(g))
             btn.pack(side="left", padx=2)
-            tk.Button(row, text="削除", bg=self.DANGER, fg=self.BG, relief="flat", font=("Courier New", 8), command=lambda g=key: self._delete(g)).pack(side="left", padx=2)
+            tk.Button(row, text="削除", bg=self.DANGER, fg=self.BG, relief="flat", font=("Courier New", 9), command=lambda g=key: self._delete(g)).pack(side="left", padx=2)
             var.trace_add("write", lambda *_args, g=key: self._save_one(g))
             self._gesture_vars[key] = var
             self._capture_buttons[key] = btn
@@ -968,39 +977,45 @@ class QRWindow:
     def _build_ui(self):
         root = self.root
         PAD  = 24
+        split = tk.Frame(root, bg=self.BG)
+        split.pack(fill="both", expand=True)
+        left = tk.Frame(split, bg=self.BG)
+        right = tk.Frame(split, bg=self.BG)
+        left.pack(side="left", fill="both", expand=True, padx=(12, 6), pady=12)
+        right.pack(side="left", fill="both", expand=True, padx=(6, 12), pady=12)
 
         # ロゴ
         tk.Label(
-            root, text="◀  LEFTPAD",
+            left, text="◀  LEFTPAD",
             bg=self.BG, fg=self.ACCENT,
-            font=("Courier New", 22, "bold"), pady=16,
+            font=("Courier New", 22, "bold"), pady=8,
         ).pack()
 
         # QRコード
-        qr_outer = tk.Frame(root, bg=self.ACCENT, padx=10, pady=10)
+        qr_outer = tk.Frame(left, bg=self.ACCENT, padx=10, pady=10)
         qr_outer.pack(padx=PAD)
 
         self.qr_photo = make_qr_image(self.http_url, size=260)
         tk.Label(qr_outer, image=self.qr_photo, bg=self.ACCENT).pack()
 
         tk.Label(
-            root, text="スマホのカメラでQRコードを読み込む",
+            left, text="スマホのカメラでQRコードを読み込む",
             bg=self.BG, fg=self.MUTED,
             font=("Courier New", 9), pady=10,
         ).pack()
 
-        tk.Frame(root, bg=self.BORDER, height=1).pack(fill="x", padx=PAD)
+        tk.Frame(left, bg=self.BORDER, height=1).pack(fill="x", padx=PAD)
 
         # URLパネル
-        info = tk.Frame(root, bg=self.SURFACE, padx=18, pady=14)
+        info = tk.Frame(left, bg=self.SURFACE, padx=18, pady=14)
         info.pack(fill="x", padx=PAD, pady=10)
         self._url_row(info, "PWA",       self.http_url, self.ACCENT)
         self._url_row(info, "WebSocket", self.ws_url,   self.ACCENT2)
 
-        tk.Frame(root, bg=self.BORDER, height=1).pack(fill="x", padx=PAD)
+        tk.Frame(left, bg=self.BORDER, height=1).pack(fill="x", padx=PAD)
 
         # ステータス行
-        st = tk.Frame(root, bg=self.BG, padx=PAD, pady=10)
+        st = tk.Frame(left, bg=self.BG, padx=PAD, pady=10)
         st.pack(fill="x")
 
         tk.Label(
@@ -1019,10 +1034,10 @@ class QRWindow:
         self.lamp.pack(side="left", padx=(8, 0))
         self.lamp_circle = self.lamp.create_oval(2, 2, 12, 12, fill=self.MUTED, outline="")
 
-        tk.Frame(root, bg=self.BORDER, height=1).pack(fill="x", padx=PAD)
+        tk.Frame(left, bg=self.BORDER, height=1).pack(fill="x", padx=PAD)
 
         # スマホ振動設定
-        vib_row = tk.Frame(root, bg=self.BG, padx=PAD, pady=8)
+        vib_row = tk.Frame(left, bg=self.BG, padx=PAD, pady=8)
         vib_row.pack(fill="x")
         self.vibration_var = tk.BooleanVar(value=APP_SETTINGS.get("vibration_enabled", True))
         tk.Checkbutton(
@@ -1035,10 +1050,10 @@ class QRWindow:
             font=("Courier New", 9), highlightthickness=0, bd=0,
         ).pack(anchor="w")
 
-        tk.Frame(root, bg=self.BORDER, height=1).pack(fill="x", padx=PAD)
+        tk.Frame(left, bg=self.BORDER, height=1).pack(fill="x", padx=PAD)
 
         # 接続デバイス情報
-        device_panel = tk.Frame(root, bg=self.SURFACE, padx=10, pady=8)
+        device_panel = tk.Frame(left, bg=self.SURFACE, padx=10, pady=8)
         device_panel.pack(fill="x", padx=PAD, pady=(10, 0))
         tk.Label(
             device_panel, text="接続デバイス",
@@ -1052,10 +1067,10 @@ class QRWindow:
             highlightthickness=0, borderwidth=0, font=("Consolas", 9),
         ).pack(fill="x")
 
-        tk.Frame(root, bg=self.BORDER, height=1).pack(fill="x", padx=PAD)
+        tk.Frame(left, bg=self.BORDER, height=1).pack(fill="x", padx=PAD)
 
         # ログ表示（コマンドプロンプトを見なくても状態確認できる）
-        log_panel = tk.Frame(root, bg=self.SURFACE, padx=10, pady=8)
+        log_panel = tk.Frame(left, bg=self.SURFACE, padx=10, pady=8)
         log_panel.pack(fill="both", expand=True, padx=PAD, pady=10)
         tk.Label(
             log_panel, text="サーバーログ",
@@ -1071,15 +1086,13 @@ class QRWindow:
         self.log_text.pack(side="left", fill="both", expand=True)
         log_scroll.pack(side="right", fill="y")
 
-        tk.Frame(root, bg=self.BORDER, height=1).pack(fill="x", padx=PAD)
-
-        # インライン編集（別ウィンドウではなく同一ウィンドウ）
-        inline_editor = InlineGestureEditor(root)
-        inline_editor.pack(fill="both", expand=True, padx=PAD, pady=10)
+        # 右半分: インライン編集
+        inline_editor = InlineGestureEditor(right)
+        inline_editor.pack(fill="both", expand=True)
 
         # フッター
         tk.Label(
-            root, text="ウィンドウを閉じるとサーバーが停止する",
+            left, text="ウィンドウを閉じるとサーバーが停止する",
             bg=self.BG, fg=self.BORDER,
             font=("Courier New", 7), pady=6,
         ).pack()
