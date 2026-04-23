@@ -234,7 +234,8 @@ canvas.addEventListener('touchend', (e)=>{
     const centerAbsY = Math.abs(centerDy);
     const centerDist = Math.hypot(centerDx, centerDy);
     const distDelta = gesture.lastDist - gesture.startDist;
-    if(Math.abs(distDelta) > 14){
+    const pinchStrength = Math.abs(distDelta);
+    if(pinchStrength > 24 && pinchStrength > (centerDist * 1.2)){
       key = distDelta > 0 ? 'pinch_out' : 'pinch_in';
     } else if(centerDist < 18 && dt < 320){
       key='two_finger_tap';
