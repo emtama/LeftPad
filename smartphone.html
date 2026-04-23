@@ -75,10 +75,15 @@ let gestureMap = {};
 function setConn(ok,msg){ stateEl.textContent=msg; dotEl.className = ok ? 'dot on':'dot'; }
 function flash(t){ feedbackEl.textContent=t; feedbackEl.classList.add('show'); setTimeout(()=>feedbackEl.classList.remove('show'),280); }
 function send(obj){ if(ws && ws.readyState===1 && isAuthed) ws.send(JSON.stringify(obj)); }
+function vibrateTap(){
+  if(!vibrationEnabled) return;
+  const v = navigator.vibrate || navigator.webkitVibrate;
+  if(v) v.call(navigator, [20]);
+}
 function sendCommand(cmd, gestureKey=''){
   if(!cmd) return;
   send({cmd, gesture: gestureKey});
-  if(vibrationEnabled && navigator.vibrate) navigator.vibrate(18);
+  vibrateTap();
   flash(cmd);
 }
 
@@ -126,8 +131,20 @@ function updateTouchIndicators(touchList){
   }
 }
 
+function calcCenterFromTouches(touches){
+  if(!touches || touches.length === 0) return null;
+  let sx=0, sy=0;
+  for(const t of touches){ sx += t.clientX; sy += t.clientY; }
+  return {x: sx / touches.length, y: sy / touches.length};
+}
+function distance(t1, t2){
+  if(!t1 || !t2) return 0;
+  return Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+}
+
 canvas.addEventListener('touchstart', (e)=>{
   updateTouchIndicators(e.touches);
+  vibrateTap();
   if(!gesture && (e.touches.length===1 || e.touches.length===2 || e.touches.length===3)){
     const starts = {};
     for (const t of e.touches) starts[t.identifier] = {x:t.clientX, y:t.clientY};
@@ -137,6 +154,10 @@ canvas.addEventListener('touchstart', (e)=>{
       startAt: Date.now(),
       starts,
       last: {x:e.touches[0].clientX, y:e.touches[0].clientY},
+      startCenter: calcCenterFromTouches(e.touches),
+      lastCenter: calcCenterFromTouches(e.touches),
+      startDist: e.touches.length>=2 ? distance(e.touches[0], e.touches[1]) : 0,
+      lastDist: e.touches.length>=2 ? distance(e.touches[0], e.touches[1]) : 0,
     };
   }
   if(gesture){
@@ -145,6 +166,8 @@ canvas.addEventListener('touchstart', (e)=>{
       if(!gesture.starts[t.identifier]) gesture.starts[t.identifier] = {x:t.clientX, y:t.clientY};
       gesture.last = {x:t.clientX, y:t.clientY};
     }
+    gesture.lastCenter = calcCenterFromTouches(e.touches) || gesture.lastCenter;
+    if(e.touches.length>=2) gesture.lastDist = distance(e.touches[0], e.touches[1]);
   }
   if(gesture && gesture.count===1){
     clearTimeout(longPressTimer);
@@ -158,6 +181,8 @@ canvas.addEventListener('touchmove', (e)=>{
     const t = e.touches[0];
     gesture.last = {x:t.clientX, y:t.clientY};
     gesture.maxTouches = Math.max(gesture.maxTouches, e.touches.length);
+    gesture.lastCenter = calcCenterFromTouches(e.touches) || gesture.lastCenter;
+    if(e.touches.length>=2) gesture.lastDist = distance(e.touches[0], e.touches[1]);
   }
 }, {passive:true});
 
@@ -192,8 +217,20 @@ canvas.addEventListener('touchend', (e)=>{
       lastTapPos = null;
     }
   } else if(gesture.count===2 && gesture.maxTouches===2){
-    if(maxMove<28 && dt<320) key='two_finger_tap';
-    else key = adx>ady ? (dx>0?'two_finger_swipe_right':'two_finger_swipe_left') : (dy>0?'two_finger_swipe_down':'two_finger_swipe_up');
+    const centerDx = (gesture.lastCenter?.x ?? gesture.last.x) - (gesture.startCenter?.x ?? firstStart.x);
+    const centerDy = (gesture.lastCenter?.y ?? gesture.last.y) - (gesture.startCenter?.y ?? firstStart.y);
+    const centerAbsX = Math.abs(centerDx);
+    const centerAbsY = Math.abs(centerDy);
+    const distDelta = gesture.lastDist - gesture.startDist;
+    if(Math.abs(distDelta) > 24){
+      key = distDelta > 0 ? 'pinch_out' : 'pinch_in';
+    } else if(maxMove<20 && dt<320){
+      key='two_finger_tap';
+    } else {
+      key = centerAbsX>centerAbsY
+        ? (centerDx>0?'two_finger_swipe_right':'two_finger_swipe_left')
+        : (centerDy>0?'two_finger_swipe_down':'two_finger_swipe_up');
+    }
   } else if(gesture.count===3 && gesture.maxTouches===3){
     if(maxMove<24 && dt<320) key='three_finger_tap';
     else key = adx>ady ? (dx>0?'three_finger_swipe_right':'three_finger_swipe_left') : (dy>0?'three_finger_swipe_down':'three_finger_swipe_up');

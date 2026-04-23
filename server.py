@@ -66,6 +66,16 @@ DEFAULT_GESTURES = {
     "three_finger_swipe_left": "左回転",
     "three_finger_swipe_right": "右回転",
 }
+GESTURE_LABELS_JA = {
+    "swipe_up": "上スワイプ", "swipe_down": "下スワイプ", "swipe_left": "左スワイプ", "swipe_right": "右スワイプ",
+    "long_press": "長押し", "hold_screen": "画面ホールド", "pinch_in": "ピンチイン", "pinch_out": "ピンチアウト",
+    "double_tap": "ダブルタップ", "two_finger_tap": "二本指タップ",
+    "two_finger_swipe_up": "二本指上スワイプ", "two_finger_swipe_down": "二本指下スワイプ",
+    "two_finger_swipe_left": "二本指左スワイプ", "two_finger_swipe_right": "二本指右スワイプ",
+    "three_finger_tap": "三本指タップ", "three_finger_swipe_up": "三本指上スワイプ",
+    "three_finger_swipe_down": "三本指下スワイプ", "three_finger_swipe_left": "三本指左スワイプ",
+    "three_finger_swipe_right": "三本指右スワイプ",
+}
 
 COMMAND_ALIASES = {
     "undo": "元に戻す",
@@ -315,6 +325,7 @@ async def ws_handler(websocket):
             cmd    = data.get("cmd", "").strip()
             is_raw = data.get("raw", False)
             gesture_name = data.get("gesture", "").strip()
+            gesture_label = GESTURE_LABELS_JA.get(gesture_name, gesture_name)
 
             if not cmd:
                 await websocket.send(json.dumps({"ok": False, "error": "no cmd"}))
@@ -324,7 +335,7 @@ async def ws_handler(websocket):
                 keys = parse_raw_cmd(cmd)
                 try:
                     execute_keys(keys)
-                    prefix = f"[raw:{gesture_name}] " if gesture_name else "[raw] "
+                    prefix = f"[生キー:{gesture_label}] " if gesture_label else "[生キー] "
                     log.info(f"{prefix}{cmd} → {keys}")
                     await websocket.send(json.dumps({"ok": True, "cmd": cmd, "keys": keys}))
                 except Exception as e:
@@ -339,7 +350,7 @@ async def ws_handler(websocket):
                     keys = parse_raw_cmd(cmd)
                     try:
                         execute_keys(keys)
-                        prefix = f"[gesture-raw:{gesture_name}] " if gesture_name else "[gesture-raw] "
+                        prefix = f"[ジェスチャー生キー:{gesture_label}] " if gesture_label else "[ジェスチャー生キー] "
                         log.info(f"{prefix}{cmd} → {keys}")
                         await websocket.send(json.dumps({"ok": True, "cmd": cmd, "keys": keys}))
                     except Exception as e:
@@ -354,7 +365,7 @@ async def ws_handler(websocket):
             try:
                 execute_keys(keys)
                 if gesture_name:
-                    log.info(f"[gesture:{gesture_name}] {cmd:20s} → {'+'.join(keys)}")
+                    log.info(f"[ジェスチャー:{gesture_label}] {cmd:20s} → {'+'.join(keys)}")
                 else:
                     log.info(f"[cmd] {cmd:20s} → {'+'.join(keys)}")
                 await websocket.send(json.dumps({"ok": True, "cmd": cmd, "keys": keys}))
