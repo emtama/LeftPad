@@ -37,6 +37,12 @@
       opacity: 0;
       transform: scale(1.35);
     }
+    .split-line { position:absolute; background:#2a2d3690; pointer-events:none; z-index:2; }
+    .split-line.v { top:0; bottom:0; left:50%; width:1px; }
+    .split-line.h { left:0; right:0; top:50%; height:1px; }
+    .region-label { position:absolute; color:#5a5f72; font-size:10px; letter-spacing:1px; pointer-events:none; z-index:2; }
+    .region-label.top{top:72px;left:50%;transform:translateX(-50%)} .region-label.bottom{bottom:10px;left:50%;transform:translateX(-50%)}
+    .region-label.left{left:10px;top:50%;transform:translateY(-50%)} .region-label.right{right:10px;top:50%;transform:translateY(-50%)}
 
   </style>
 </head>
@@ -48,6 +54,8 @@
 
   <main>
     <section id="gesture-canvas">
+      <div class="split-line v"></div><div class="split-line h"></div>
+      <div class="region-label top">上</div><div class="region-label bottom">下</div><div class="region-label left">左</div><div class="region-label right">右</div>
       <span class="hint top">UP</span><span class="hint bottom">DOWN</span><span class="hint left">LEFT</span><span class="hint right">RIGHT</span>
       <div id="feedback"></div>
     </section>
@@ -68,7 +76,9 @@ const GESTURE_LABELS = {
   long_press:'長押し', hold_screen:'画面ホールド', pinch_in:'ピンチイン', pinch_out:'ピンチアウト', double_tap:'ダブルタップ',
   two_finger_tap:'二本指タップ', two_finger_swipe_up:'二本指上スワイプ', two_finger_swipe_down:'二本指下スワイプ',
   two_finger_swipe_left:'二本指左スワイプ', two_finger_swipe_right:'二本指右スワイプ', three_finger_tap:'三本指タップ',
-  three_finger_swipe_up:'三本指上スワイプ', three_finger_swipe_down:'三本指下スワイプ', three_finger_swipe_left:'三本指左スワイプ', three_finger_swipe_right:'三本指右スワイプ'
+  three_finger_swipe_up:'三本指上スワイプ', three_finger_swipe_down:'三本指下スワイプ', three_finger_swipe_left:'三本指左スワイプ', three_finger_swipe_right:'三本指右スワイプ',
+  tap_top:'上部タップ', tap_bottom:'下部タップ', tap_left:'左部タップ', tap_right:'右部タップ',
+  double_tap_top:'上部ダブルタップ', double_tap_bottom:'下部ダブルタップ', double_tap_left:'左部ダブルタップ', double_tap_right:'右部ダブルタップ'
 };
 
 let gestureMap = {};
@@ -78,7 +88,26 @@ function send(obj){ if(ws && ws.readyState===1 && isAuthed) ws.send(JSON.stringi
 function vibrateTap(){
   if(!vibrationEnabled) return;
   const v = navigator.vibrate || navigator.webkitVibrate;
-  if(v) v.call(navigator, [20]);
+  if(v) return v.call(navigator, [20]);
+  return false;
+}
+let hapticsReported = false;
+function reportHapticsStatus(){
+  if(hapticsReported || !ws || ws.readyState !== 1) return;
+  const v = navigator.vibrate || navigator.webkitVibrate;
+  let allowed = false;
+  if(v){
+    try { allowed = !!v.call(navigator, [1]); } catch { allowed = false; }
+  }
+  send({type:'haptics_status', supported: !!v, allowed});
+  hapticsReported = true;
+}
+function getTapRegion(x, y){
+  const w = window.innerWidth, h = window.innerHeight;
+  if(y < h * 0.25) return 'top';
+  if(y > h * 0.75) return 'bottom';
+  if(x < w * 0.5) return 'left';
+  return 'right';
 }
 function sendCommand(cmd, gestureKey=''){
   if(!cmd) return;
@@ -94,7 +123,12 @@ function connect(){
   ws.onopen = ()=> ws.send(JSON.stringify({type:'auth', token}));
   ws.onmessage = (e)=>{
     let d; try{d=JSON.parse(e.data)}catch{return}
-    if(d.type==='auth'){ isAuthed=!!d.ok; setConn(isAuthed, isAuthed?'接続済み':'認証失敗'); if(isAuthed){ send({type:'get_gestures'}); send({type:'get_settings'}); } return; }
+    if(d.type==='auth'){
+      isAuthed=!!d.ok;
+      setConn(isAuthed, isAuthed?'接続済み':'認証失敗');
+      if(isAuthed){ send({type:'get_gestures'}); send({type:'get_settings'}); reportHapticsStatus(); }
+      return;
+    }
     if(d.type==='gestures'){ gestureMap = d.data || {}; }
     if(d.type==='settings'){ vibrationEnabled = !!(d.data && d.data.vibration_enabled); }
     if(d.type==='setting_updated' && d.key==='vibration_enabled'){ vibrationEnabled = !!d.value; }
@@ -107,6 +141,7 @@ let gesture = null, longPressTimer=null;
 const touchIndicators = new Map();
 let lastTapAt = 0;
 let lastTapPos = null;
+let pendingTap = null;
 
 function updateTouchIndicators(touchList){
   const activeIds = new Set();
@@ -220,10 +255,21 @@ canvas.addEventListener('touchend', (e)=>{
       const now = Date.now();
       const nearPrev = lastTapPos && Math.hypot(gesture.last.x - lastTapPos.x, gesture.last.y - lastTapPos.y) < 36;
       if((now - lastTapAt) < 320 && nearPrev){
-        key='double_tap';
+        const region = getTapRegion(gesture.last.x, gesture.last.y);
+        key = `double_tap_${region}`;
+        if(pendingTap && pendingTap.timer) clearTimeout(pendingTap.timer);
+        pendingTap = null;
         lastTapAt = 0;
         lastTapPos = null;
       } else {
+        const region = getTapRegion(gesture.last.x, gesture.last.y);
+        if(pendingTap && pendingTap.timer) clearTimeout(pendingTap.timer);
+        pendingTap = {
+          timer: setTimeout(()=>{
+            sendCommand(gestureMap[`tap_${region}`], `tap_${region}`);
+            pendingTap = null;
+          }, 280)
+        };
         lastTapAt = now;
         lastTapPos = {x: gesture.last.x, y: gesture.last.y};
       }

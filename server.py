@@ -65,6 +65,14 @@ DEFAULT_GESTURES = {
     "three_finger_swipe_down": "レイヤー下",
     "three_finger_swipe_left": "左回転",
     "three_finger_swipe_right": "右回転",
+    "tap_top": "",
+    "tap_bottom": "",
+    "tap_left": "",
+    "tap_right": "",
+    "double_tap_top": "",
+    "double_tap_bottom": "",
+    "double_tap_left": "",
+    "double_tap_right": "",
 }
 GESTURE_LABELS_JA = {
     "swipe_up": "上スワイプ", "swipe_down": "下スワイプ", "swipe_left": "左スワイプ", "swipe_right": "右スワイプ",
@@ -75,6 +83,9 @@ GESTURE_LABELS_JA = {
     "three_finger_tap": "三本指タップ", "three_finger_swipe_up": "三本指上スワイプ",
     "three_finger_swipe_down": "三本指下スワイプ", "three_finger_swipe_left": "三本指左スワイプ",
     "three_finger_swipe_right": "三本指右スワイプ",
+    "tap_top": "上部タップ", "tap_bottom": "下部タップ", "tap_left": "左部タップ", "tap_right": "右部タップ",
+    "double_tap_top": "上部ダブルタップ", "double_tap_bottom": "下部ダブルタップ",
+    "double_tap_left": "左部ダブルタップ", "double_tap_right": "右部ダブルタップ",
 }
 
 COMMAND_ALIASES = {
@@ -283,6 +294,15 @@ async def ws_handler(websocket):
                 await websocket.send(json.dumps({"type": "settings", "data": APP_SETTINGS}))
                 continue
 
+            if msg_type == "haptics_status":
+                supported = bool(data.get("supported", False))
+                allowed = bool(data.get("allowed", False))
+                if not supported or not allowed:
+                    log.warning(f"端末ハプティクス警告: {client[0]} (supported={supported}, allowed={allowed})")
+                else:
+                    log.info(f"端末ハプティクス状態: {client[0]} 利用可能")
+                continue
+
             if msg_type == "update_setting":
                 key = data.get("key")
                 value = data.get("value")
@@ -447,6 +467,8 @@ class ShortcutEditorWindow(tk.Toplevel):
         "two_finger_swipe_left", "two_finger_swipe_right",
         "three_finger_tap", "three_finger_swipe_up", "three_finger_swipe_down",
         "three_finger_swipe_left", "three_finger_swipe_right",
+        "tap_top", "tap_bottom", "tap_left", "tap_right",
+        "double_tap_top", "double_tap_bottom", "double_tap_left", "double_tap_right",
     ]
     GESTURE_LABELS = {
         "swipe_up": "上スワイプ",
@@ -468,6 +490,14 @@ class ShortcutEditorWindow(tk.Toplevel):
         "three_finger_swipe_down": "三本指下スワイプ",
         "three_finger_swipe_left": "三本指左スワイプ",
         "three_finger_swipe_right": "三本指右スワイプ",
+        "tap_top": "上部タップ",
+        "tap_bottom": "下部タップ",
+        "tap_left": "左部タップ",
+        "tap_right": "右部タップ",
+        "double_tap_top": "上部ダブルタップ",
+        "double_tap_bottom": "下部ダブルタップ",
+        "double_tap_left": "左部ダブルタップ",
+        "double_tap_right": "右部ダブルタップ",
     }
 
     def __init__(self, parent_root):
