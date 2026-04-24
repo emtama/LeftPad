@@ -3,32 +3,18 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <title>LeftPad</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+  <title>LeftPad Gesture</title>
   <style>
-    :root {
-      --bg:      #0d0e11;
-      --surface: #16181e;
-      --border:  #2a2d36;
-      --accent:  #e8ff47;
-      --accent2: #47c4ff;
-      --danger:  #ff5c5c;
-      --text:    #e4e6ee;
-      --muted:   #5a5f72;
-      --btn-bg:  #1e2128;
-      --radius:  12px;
-    }
-    * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
-    body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: 'Space Mono', monospace;
-      min-height: 100dvh;
-      overflow-x: hidden;
-    }
+    :root { --bg:#0d0e11; --surface:#16181e; --border:#2a2d36; --accent:#e8ff47; --accent2:#47c4ff; --text:#e4e6ee; --muted:#5a5f72; }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body { margin:0; background:var(--bg); color:var(--text); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; overflow:hidden; }
+    header { position:fixed; top:0; left:0; right:0; z-index:20; display:flex; justify-content:space-between; align-items:center; padding:14px 16px; border-bottom:1px solid #2a2d3699; background:#0d0e1170; backdrop-filter:blur(4px); pointer-events:none; }
+    .title { color:var(--accent); font-weight:700; font-size:22px; letter-spacing:1px; }
+    .status { display:flex; gap:8px; align-items:center; color:var(--muted); font-size:12px; }
+    .dot { width:10px; height:10px; border-radius:999px; background:var(--muted); }
+    .dot.on { background:#4dff91; box-shadow:0 0 8px #4dff9180; }
 
+<<<<<<< HEAD
     /* ── Header ── */
     header {
       display: flex; align-items: center; justify-content: space-between;
@@ -169,129 +155,47 @@
 
     /* 方向ヒント */
     .g-hint {
+=======
+    main { padding:0; }
+    #gesture-canvas { position:fixed; inset:0; background:var(--surface); touch-action:none; overflow:hidden; }
+    .hint { position:absolute; color:var(--muted); font-size:11px; letter-spacing:1px; }
+    .top{top:56px;left:50%;transform:translateX(-50%)} .bottom{bottom:12px;left:50%;transform:translateX(-50%)}
+    .left{left:12px;top:50%;transform:translateY(-50%)} .right{right:12px;top:50%;transform:translateY(-50%)}
+    #feedback { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%) scale(0.9); opacity:0; background:var(--accent); color:#000; padding:10px 18px; border-radius:999px; font-weight:700; transition:.12s; }
+    #feedback.show { opacity:1; transform:translate(-50%,-50%) scale(1); }
+    .touch-indicator {
+>>>>>>> codex/explain-the-repository-hmjhe9
       position: absolute;
-      font-size: 9px; letter-spacing: 2px; text-transform: uppercase;
-      color: var(--muted); pointer-events: none;
-    }
-    .g-hint.top    { top: 14px;  left: 50%; transform: translateX(-50%); }
-    .g-hint.bottom { bottom: 14px; left: 50%; transform: translateX(-50%); }
-    .g-hint.left   { left: 14px;  top: 50%;  transform: translateY(-50%); writing-mode: vertical-rl; }
-    .g-hint.right  { right: 14px; top: 50%;  transform: translateY(-50%); writing-mode: vertical-rl; }
-
-    /* 中央表示 */
-    .g-center {
-      position: absolute; top: 50%; left: 50%;
-      transform: translate(-50%, -50%);
-      text-align: center; pointer-events: none;
-    }
-    .g-center .g-icon  { font-size: 48px; opacity: .18; }
-    .g-center .g-label {
-      display: block; margin-top: 8px;
-      font-size: 10px; letter-spacing: 2px;
-      color: var(--muted); text-transform: uppercase;
-    }
-
-    /* ジェスチャー発火フィードバック */
-    #gesture-feedback {
-      position: absolute; top: 50%; left: 50%;
-      transform: translate(-50%, -50%) scale(0);
-      background: var(--accent); color: #0d0e11;
-      font-size: 13px; font-weight: 700; letter-spacing: 1px;
-      padding: 10px 22px; border-radius: 24px;
-      pointer-events: none; opacity: 0;
-      transition: transform .12s, opacity .12s;
-      white-space: nowrap;
-    }
-    #gesture-feedback.show {
-      transform: translate(-50%, -50%) scale(1);
-      opacity: 1;
-    }
-
-    /* ジェスチャー方向矢印アニメ */
-    #gesture-arrow {
-      position: absolute; top: 50%; left: 50%;
-      transform: translate(-50%, -50%);
-      font-size: 56px; opacity: 0;
+      width: 44px; height: 44px; margin-left: -22px; margin-top: -22px;
+      border-radius: 999px; border: 3px solid #7fdcff;
+      background: #47c4ff55;
       pointer-events: none;
-      transition: opacity .08s;
-      color: var(--accent2);
+      box-shadow: 0 0 0 2px #0d0e11aa, 0 0 12px #47c4ff99;
+      transform: scale(0.85);
+      transition: transform .16s, opacity .22s;
+      opacity: 1;
+      z-index: 5;
     }
-    #gesture-arrow.show { opacity: .6; }
+    .touch-indicator.up {
+      opacity: 0;
+      transform: scale(1.35);
+    }
+    .split-line { position:absolute; background:#2a2d3690; pointer-events:none; z-index:2; }
+    .split-line.v { top:0; bottom:0; left:50%; width:1px; }
+    .split-line.h { left:0; right:0; top:50%; height:1px; }
+    .region-label { position:absolute; color:#5a5f72; font-size:10px; letter-spacing:1px; pointer-events:none; z-index:2; }
+    .region-label.top{top:72px;left:50%;transform:translateX(-50%)} .region-label.bottom{bottom:10px;left:50%;transform:translateX(-50%)}
+    .region-label.left{left:10px;top:50%;transform:translateY(-50%)} .region-label.right{right:10px;top:50%;transform:translateY(-50%)}
 
-    /* ジェスチャー設定テーブル */
-    .gesture-map-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 11px;
-    }
-    .gesture-map-table th {
-      text-align: left; padding: 6px 8px;
-      color: var(--muted); font-size: 9px; letter-spacing: 1.5px;
-      border-bottom: 1px solid var(--border);
-    }
-    .gesture-map-table td {
-      padding: 8px 8px;
-      border-bottom: 1px solid var(--border);
-      vertical-align: middle;
-    }
-    .gesture-map-table tr:last-child td { border-bottom: none; }
-    .g-cmd-input {
-      background: var(--btn-bg); border: 1px solid var(--border);
-      border-radius: 6px; color: var(--accent2);
-      font-family: 'Space Mono', monospace; font-size: 11px;
-      padding: 5px 8px; outline: none; width: 100%;
-    }
-    .g-cmd-input:focus { border-color: var(--accent2); }
-
-    /* ══════════════════════════════════════════
-       設定タブ（ショートカット一覧）
-    ══════════════════════════════════════════ */
-    #shortcuts-list {
-      display: flex; flex-direction: column; gap: 4px;
-    }
-    .sc-row {
-      display: grid;
-      grid-template-columns: 1fr 1fr auto;
-      gap: 6px; align-items: center;
-      padding: 8px 10px;
-      background: var(--btn-bg); border-radius: 8px;
-      border: 1px solid var(--border);
-    }
-    .sc-row.editing { border-color: var(--accent2); }
-    .sc-cmd  { font-size: 10px; color: var(--text); }
-    .sc-keys {
-      font-size: 10px; color: var(--accent2);
-      background: var(--surface); border-radius: 4px;
-      padding: 3px 7px;
-    }
-    .sc-keys.input-mode {
-      background: var(--bg); border: 1px solid var(--accent2);
-      outline: none; font-family: 'Space Mono', monospace;
-      color: var(--accent2); width: 100%;
-    }
-    .sc-edit-btn {
-      background: none; border: 1px solid var(--border);
-      border-radius: 6px; color: var(--muted);
-      font-size: 9px; padding: 4px 8px; cursor: pointer;
-      font-family: 'Space Mono', monospace;
-    }
-    .sc-edit-btn:active { border-color: var(--accent2); color: var(--accent2); }
-    .sc-save-btn {
-      background: var(--accent2); border: none;
-      border-radius: 6px; color: #0d0e11;
-      font-size: 9px; padding: 4px 8px; cursor: pointer;
-      font-family: 'Space Mono', monospace; font-weight: 700;
-    }
-
-    /* ローディング */
-    .loading-msg {
-      text-align: center; color: var(--muted);
-      font-size: 11px; padding: 32px 0;
-    }
   </style>
 </head>
 <body>
+  <header>
+    <div class="title">LEFTPAD / GESTURE</div>
+    <div class="status"><span id="state">接続中...</span><span id="dot" class="dot"></span></div>
+  </header>
 
+<<<<<<< HEAD
 <header>
   <span class="logo">LeftPad</span>
   <div id="status-dot" class="status-dot"></div>
@@ -493,14 +397,28 @@
   </div>
 
 </main>
+=======
+  <main>
+    <section id="gesture-canvas">
+      <div class="split-line v"></div><div class="split-line h"></div>
+      <div class="region-label top">上</div><div class="region-label bottom">下</div><div class="region-label left">左</div><div class="region-label right">右</div>
+      <span class="hint top">UP</span><span class="hint bottom">DOWN</span><span class="hint left">LEFT</span><span class="hint right">RIGHT</span>
+      <div id="feedback"></div>
+    </section>
+  </main>
+>>>>>>> codex/explain-the-repository-hmjhe9
 
 <script>
-// ══════════════════════════════════════════════
-//  URLパラメータからトークンを取得
-// ══════════════════════════════════════════════
-const URL_PARAMS = new URLSearchParams(window.location.search);
-const TOKEN = URL_PARAMS.get('token') || '';
+const token = new URLSearchParams(location.search).get('token') || '';
+const wsHost = location.hostname || location.host.split(':')[0];
+const wsUrl = `ws://${wsHost}:8765`;
+let ws = null, isAuthed = false;
+let vibrationEnabled = true;
+const stateEl = document.getElementById('state');
+const dotEl = document.getElementById('dot');
+const feedbackEl = document.getElementById('feedback');
 
+<<<<<<< HEAD
 // ══════════════════════════════════════════════
 //  WebSocket
 // ══════════════════════════════════════════════
@@ -771,63 +689,70 @@ function renderShortcuts(data) {
     row.appendChild(keysEl);
     row.appendChild(editBtn);
     list.appendChild(row);
+=======
+fetch("gesture_labels.json")
+  .then(response => response.json())
+  .then(data => {
+    const GESTURE_LABELS_JP_JP = data.labels;
+    for (const key in GESTURE_LABELS_JP_JP) {
+      console.log(key, GESTURE_LABELS_JP_JP[key]);
+    }
+>>>>>>> codex/explain-the-repository-hmjhe9
   });
 
-  if (list.children.length === 0) {
-    list.innerHTML = '<div class="loading-msg">ショートカットが見つからない</div>';
+let gestureMap = {};
+function setConn(ok,msg){ stateEl.textContent=msg; dotEl.className = ok ? 'dot on':'dot'; }
+function flash(t){ feedbackEl.textContent=t; feedbackEl.classList.add('show'); setTimeout(()=>feedbackEl.classList.remove('show'),280); }
+function send(obj){ if(ws && ws.readyState===1 && isAuthed) ws.send(JSON.stringify(obj)); }
+function vibrateTap(){
+  if(!vibrationEnabled) return;
+  const v = navigator.vibrate || navigator.webkitVibrate;
+  if(v) return v.call(navigator, [20]);
+  return false;
+}
+let hapticsReported = false;
+function reportHapticsStatus(){
+  if(hapticsReported || !ws || ws.readyState !== 1) return;
+  const v = navigator.vibrate || navigator.webkitVibrate;
+  let allowed = false;
+  if(v){
+    try { allowed = !!v.call(navigator, [1]); } catch { allowed = false; }
   }
+  send({type:'haptics_status', supported: !!v, allowed});
+  hapticsReported = true;
+}
+function getTapRegion(x, y){
+  const w = window.innerWidth, h = window.innerHeight;
+  if(y < h * 0.25) return 'top';
+  if(y > h * 0.75) return 'bottom';
+  if(x < w * 0.5) return 'left';
+  return 'right';
+}
+function sendCommand(cmd, gestureKey=''){
+  if(!cmd) return;
+  send({cmd, gesture: gestureKey});
+  vibrateTap();
+  const gestureLabel = GESTURE_LABELS_JP[gestureKey] || cmd;
+  flash(gestureLabel);
 }
 
-function startEditShortcut(row, keysEl, editBtn, cmd) {
-  // 既に編集中なら無視
-  if (row.classList.contains('editing')) return;
-  row.classList.add('editing');
-
-  const input = document.createElement('input');
-  input.className = 'sc-keys input-mode';
-  input.type = 'text';
-  input.value = keysEl.dataset.original;
-  keysEl.replaceWith(input);
-  input.focus();
-  input.select();
-
-  const saveBtn = document.createElement('button');
-  saveBtn.className = 'sc-save-btn';
-  saveBtn.textContent = '✓';
-  editBtn.replaceWith(saveBtn);
-
-  const commit = () => {
-    const val = input.value.trim();
-    if (val) {
-      const newKeys = val.split('+').map(k => k.trim().toLowerCase()).filter(Boolean);
-      ws.send(JSON.stringify({ type: 'update_shortcut', cmd, keys: newKeys }));
-      input.dataset.original = val;
-      // UIを更新
-      const newKeysEl = document.createElement('div');
-      newKeysEl.className = 'sc-keys';
-      newKeysEl.textContent = val;
-      newKeysEl.dataset.original = val;
-      input.replaceWith(newKeysEl);
-      const newEditBtn = document.createElement('button');
-      newEditBtn.className = 'sc-edit-btn';
-      newEditBtn.textContent = '✏';
-      newEditBtn.onclick = () => startEditShortcut(row, newKeysEl, newEditBtn, cmd);
-      saveBtn.replaceWith(newEditBtn);
-    } else {
-      // キャンセル
-      const newKeysEl = document.createElement('div');
-      newKeysEl.className = 'sc-keys';
-      newKeysEl.textContent = input.dataset.original || '';
-      newKeysEl.dataset.original = newKeysEl.textContent;
-      input.replaceWith(newKeysEl);
-      const newEditBtn = document.createElement('button');
-      newEditBtn.className = 'sc-edit-btn';
-      newEditBtn.textContent = '✏';
-      newEditBtn.onclick = () => startEditShortcut(row, newKeysEl, newEditBtn, cmd);
-      saveBtn.replaceWith(newEditBtn);
+function connect(){
+  ws = new WebSocket(wsUrl);
+  setConn(false,'接続中...');
+  ws.onopen = ()=> ws.send(JSON.stringify({type:'auth', token}));
+  ws.onmessage = (e)=>{
+    let d; try{d=JSON.parse(e.data)}catch{return}
+    if(d.type==='auth'){
+      isAuthed=!!d.ok;
+      setConn(isAuthed, isAuthed?'接続済み':'認証失敗');
+      if(isAuthed){ send({type:'get_gestures'}); send({type:'get_settings'}); reportHapticsStatus(); }
+      return;
     }
-    row.classList.remove('editing');
+    if(d.type==='gestures'){ gestureMap = d.data || {}; }
+    if(d.type==='settings'){ vibrationEnabled = !!(d.data && d.data.vibration_enabled); }
+    if(d.type==='setting_updated' && d.key==='vibration_enabled'){ vibrationEnabled = !!d.value; }
   };
+<<<<<<< HEAD
 
   saveBtn.onclick = commit;
   input.addEventListener('keydown', e => { if (e.key === 'Enter') commit(); });
@@ -996,10 +921,19 @@ const PINCH_THRESHOLD  = 0.25; // ratio change threshold
 
 function getTouchDist(t1, t2) {
   return Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+=======
+  ws.onclose = ()=>{ isAuthed=false; setConn(false,'未接続'); setTimeout(connect, 1500); };
+>>>>>>> codex/explain-the-repository-hmjhe9
 }
 
 const canvas = document.getElementById('gesture-canvas');
+let gesture = null, longPressTimer=null;
+const touchIndicators = new Map();
+let lastTapAt = 0;
+let lastTapPos = null;
+let pendingTap = null;
 
+<<<<<<< HEAD
 canvas.addEventListener('touchstart', (e) => {
   e.preventDefault();
   if (e.touches.length === 1) {
@@ -1049,31 +983,187 @@ canvas.addEventListener('touchmove', (e) => {
     const dy = t.clientY - touchStart.y;
     if (Math.abs(dx) > TAP_MAX_MOVE || Math.abs(dy) > TAP_MAX_MOVE) {
       clearTimeout(longPressTimer);
+=======
+function updateTouchIndicators(touchList){
+  const activeIds = new Set();
+  for(const t of touchList){
+    activeIds.add(t.identifier);
+    let el = touchIndicators.get(t.identifier);
+    if(!el){
+      el = document.createElement('div');
+      el.className = 'touch-indicator';
+      canvas.appendChild(el);
+      touchIndicators.set(t.identifier, el);
+>>>>>>> codex/explain-the-repository-hmjhe9
     }
-  } else if (e.touches.length === 2 && pinchStart !== null) {
-    const dist  = getTouchDist(e.touches[0], e.touches[1]);
-    const ratio = dist / pinchStart;
-    if (!pinchFired) {
-      if (ratio > 1 + PINCH_THRESHOLD) {
-        fireGesture('pinch_out');
-        pinchFired = true;
-        pinchStart = dist;
-      } else if (ratio < 1 - PINCH_THRESHOLD) {
-        fireGesture('pinch_in');
-        pinchFired = true;
-        pinchStart = dist;
-      }
-    } else {
-      // 連続ピンチのリセット
-      if (Math.abs(ratio - 1) < 0.05) { pinchFired = false; pinchStart = dist; }
+    const rect = canvas.getBoundingClientRect();
+    el.style.left = `${t.clientX - rect.left}px`;
+    el.style.top = `${t.clientY - rect.top}px`;
+  }
+  for(const [id, el] of touchIndicators.entries()){
+    if(!activeIds.has(id)){
+      el.classList.add('up');
+      setTimeout(()=>el.remove(), 280);
+      touchIndicators.delete(id);
     }
   }
-}, { passive: false });
+}
 
-canvas.addEventListener('touchend', (e) => {
-  e.preventDefault();
+function calcCenterFromTouches(touches){
+  if(!touches || touches.length === 0) return null;
+  let sx=0, sy=0;
+  for(const t of touches){ sx += t.clientX; sy += t.clientY; }
+  return {x: sx / touches.length, y: sy / touches.length};
+}
+function distance(t1, t2){
+  if(!t1 || !t2) return 0;
+  return Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+}
+
+canvas.addEventListener('touchstart', (e)=>{
+  updateTouchIndicators(e.touches);
+  vibrateTap();
+  if(!gesture && (e.touches.length===1 || e.touches.length===2 || e.touches.length===3)){
+    const starts = {};
+    for (const t of e.touches) starts[t.identifier] = {x:t.clientX, y:t.clientY};
+    gesture = {
+      count: e.touches.length,
+      maxTouches: e.touches.length,
+      startAt: Date.now(),
+      starts,
+      lastPositions: Object.fromEntries(Array.from(e.touches).map(t => [t.identifier, {x:t.clientX, y:t.clientY}])),
+      last: {x:e.touches[0].clientX, y:e.touches[0].clientY},
+      startCenter: calcCenterFromTouches(e.touches),
+      lastCenter: calcCenterFromTouches(e.touches),
+      startDist: e.touches.length>=2 ? distance(e.touches[0], e.touches[1]) : 0,
+      lastDist: e.touches.length>=2 ? distance(e.touches[0], e.touches[1]) : 0,
+    };
+  } else if(gesture) {
+    // 途中で本数が増えたらジェスチャー種別を昇格（長押し誤判定回避）
+    gesture.maxTouches = Math.max(gesture.maxTouches, e.touches.length);
+    if (e.touches.length > gesture.count && (Date.now() - gesture.startAt) < 250) {
+      gesture.count = e.touches.length;
+    }
+  }
+  if(gesture){
+    gesture.maxTouches = Math.max(gesture.maxTouches, e.touches.length);
+    for (const t of e.touches){
+      if(!gesture.starts[t.identifier]) gesture.starts[t.identifier] = {x:t.clientX, y:t.clientY};
+      gesture.lastPositions[t.identifier] = {x:t.clientX, y:t.clientY};
+      gesture.last = {x:t.clientX, y:t.clientY};
+    }
+    gesture.lastCenter = calcCenterFromTouches(e.touches) || gesture.lastCenter;
+    if(e.touches.length>=2) gesture.lastDist = distance(e.touches[0], e.touches[1]);
+  }
+  if(gesture && gesture.count===1 && gesture.maxTouches===1 && e.touches.length===1){
+    clearTimeout(longPressTimer);
+    longPressTimer=setTimeout(()=>{ sendCommand(gestureMap.long_press||gestureMap.hold_screen, 'long_press'); gesture = null; }, 550);
+  } else {
+    clearTimeout(longPressTimer);
+  }
+}, {passive:true});
+
+canvas.addEventListener('touchmove', (e)=>{
+  updateTouchIndicators(e.touches);
+  if(gesture && e.touches.length > 0){
+    const t = e.touches[0];
+    gesture.last = {x:t.clientX, y:t.clientY};
+    gesture.maxTouches = Math.max(gesture.maxTouches, e.touches.length);
+    for (const tt of e.touches){
+      gesture.lastPositions[tt.identifier] = {x:tt.clientX, y:tt.clientY};
+    }
+    gesture.lastCenter = calcCenterFromTouches(e.touches) || gesture.lastCenter;
+    if(e.touches.length>=2) gesture.lastDist = distance(e.touches[0], e.touches[1]);
+  }
+  if(gesture && (gesture.maxTouches > 1 || e.touches.length > 1)) clearTimeout(longPressTimer);
+}, {passive:true});
+
+canvas.addEventListener('touchend', (e)=>{
+  updateTouchIndicators(e.touches);
   clearTimeout(longPressTimer);
+  if(!gesture) return;
+  if(e.touches.length > 0) return; // 全指が離れてから判定
+  const dt = Date.now()-gesture.startAt;
+  const firstStart = Object.values(gesture.starts)[0] || {x:gesture.last.x, y:gesture.last.y};
+  const dx=gesture.last.x-firstStart.x, dy=gesture.last.y-firstStart.y;
+  const adx=Math.abs(dx), ady=Math.abs(dy);
+  const movements = Object.values(gesture.starts).map((s)=>Math.hypot(gesture.last.x-s.x, gesture.last.y-s.y));
+  const maxMove = movements.length ? Math.max(...movements) : 0;
 
+  let key='';
+  const gcount = Math.max(gesture.count, gesture.maxTouches);
+  if(gcount===1){
+    if(adx<25 && ady<25 && dt<240){
+      const now = Date.now();
+      const nearPrev = lastTapPos && Math.hypot(gesture.last.x - lastTapPos.x, gesture.last.y - lastTapPos.y) < 36;
+      if((now - lastTapAt) < 320 && nearPrev){
+        const region = getTapRegion(gesture.last.x, gesture.last.y);
+        key = `double_tap_${region}`;
+        if(pendingTap && pendingTap.timer) clearTimeout(pendingTap.timer);
+        pendingTap = null;
+        lastTapAt = 0;
+        lastTapPos = null;
+      } else {
+        const region = getTapRegion(gesture.last.x, gesture.last.y);
+        if(pendingTap && pendingTap.timer) clearTimeout(pendingTap.timer);
+        pendingTap = {
+          timer: setTimeout(()=>{
+            sendCommand(gestureMap[`tap_${region}`], `tap_${region}`);
+            pendingTap = null;
+          }, 280)
+        };
+        lastTapAt = now;
+        lastTapPos = {x: gesture.last.x, y: gesture.last.y};
+      }
+    } else {
+      key = adx>ady ? (dx>0?'swipe_right':'swipe_left') : (dy>0?'swipe_down':'swipe_up');
+      lastTapAt = 0;
+      lastTapPos = null;
+    }
+  } else if(gcount===2 && gesture.maxTouches===2){
+    const ids = Object.keys(gesture.starts).slice(0, 2);
+    const s1 = gesture.starts[ids[0]], s2 = gesture.starts[ids[1]];
+    const e1 = gesture.lastPositions[ids[0]] || s1, e2 = gesture.lastPositions[ids[1]] || s2;
+    const startCenter = {x:(s1.x+s2.x)/2, y:(s1.y+s2.y)/2};
+    const endCenter = {x:(e1.x+e2.x)/2, y:(e1.y+e2.y)/2};
+    const centerDx = endCenter.x - startCenter.x;
+    const centerDy = endCenter.y - startCenter.y;
+    const centerAbsX = Math.abs(centerDx);
+    const centerAbsY = Math.abs(centerDy);
+    const centerDist = Math.hypot(centerDx, centerDy);
+    const distDelta = Math.hypot(e2.x-e1.x, e2.y-e1.y) - Math.hypot(s2.x-s1.x, s2.y-s1.y);
+    const pinchStrength = Math.abs(distDelta);
+    if(centerDist < 18 && dt < 320 && pinchStrength < 18){
+      key='two_finger_tap';
+    } else if(pinchStrength > 30 && pinchStrength > (centerDist * 1.5)){
+      key = distDelta > 0 ? 'pinch_out' : 'pinch_in';
+    } else {
+      key = centerAbsX>centerAbsY
+        ? (centerDx>0?'two_finger_swipe_right':'two_finger_swipe_left')
+        : (centerDy>0?'two_finger_swipe_down':'two_finger_swipe_up');
+    }
+  } else if(gcount===3 && gesture.maxTouches===3){
+    const centerDx3 = (gesture.lastCenter?.x ?? gesture.last.x) - (gesture.startCenter?.x ?? firstStart.x);
+    const centerDy3 = (gesture.lastCenter?.y ?? gesture.last.y) - (gesture.startCenter?.y ?? firstStart.y);
+    const centerAbsX3 = Math.abs(centerDx3);
+    const centerAbsY3 = Math.abs(centerDy3);
+    const centerDist3 = Math.hypot(centerDx3, centerDy3);
+    if(centerDist3 < 22 && dt < 320) key='three_finger_tap';
+    else key = centerAbsX3>centerAbsY3
+      ? (centerDx3>0?'three_finger_swipe_right':'three_finger_swipe_left')
+      : (centerDy3>0?'three_finger_swipe_down':'three_finger_swipe_up');
+  }
+  sendCommand(gestureMap[key], key);
+  gesture = null;
+}, {passive:true});
+
+canvas.addEventListener('touchcancel', (e)=>{
+  updateTouchIndicators(e.touches);
+  clearTimeout(longPressTimer);
+  gesture = null;
+}, {passive:true});
+
+<<<<<<< HEAD
   if (e.touches.length === 0 && multiStart && e.changedTouches.length >= 1) {
     const pts = Array.from(e.changedTouches);
     const cx = pts.reduce((s, t) => s + t.clientX, 0) / pts.length;
@@ -1146,6 +1236,9 @@ window.addEventListener('DOMContentLoaded', () => {
     setTimeout(connect, 500);
   }
 });
+=======
+connect();
+>>>>>>> codex/explain-the-repository-hmjhe9
 </script>
 </body>
 </html>

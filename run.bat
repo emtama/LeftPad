@@ -25,10 +25,8 @@ if %errorlevel% neq 0 (
 
 :: ── サーバー起動 ───────────────────────────────────────────
 echo.
-echo [3/3] サーバーを起動中...
+echo [3/3] サーバーGUIを起動中...
 echo.
-python "server.py"
-
-echo.
-echo サーバーが終了した
-pause
+start "" pythonw "server.py"
+echo GUIを起動した。 このウィンドウは閉じてよい。
+exit /b 0
