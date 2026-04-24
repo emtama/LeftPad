@@ -29,4 +29,5 @@ echo [3/3] サーバーGUIを起動中...
 echo.
 start "" pythonw "server.py"
 echo GUIを起動した。 このウィンドウは閉じてよい。
-exit /b 0
+pause
+:: exit /b 0
