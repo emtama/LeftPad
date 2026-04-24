@@ -40,13 +40,18 @@ HOST           = "0.0.0.0"
 WS_PORT        = 8765
 HTTP_PORT      = 8080
 BASE_DIR       = os.path.dirname(os.path.abspath(__file__))
+GESTURE_LABELS_FILE = os.path.join(BASE_DIR, "gesture_labels.json")
 GESTURES_FILE  = os.path.join(BASE_DIR, "gesture_shortcuts.json")
 ACCESS_TOKEN   = secrets.token_urlsafe(16)   # 起動ごとに再生成
+
+WS_BROADCAST_QUEUE = queue.Queue()  # WebSocketブロードキャスト用のキュー。UIスレッドからこのキューにメッセージを入れると、broadcaster()が全クライアントに送信する。
+
+COMBO_CONNECTOR_STRING:str = " + "  # ジェスチャーのキーコンボを結合する文字列（例: "Ctrl + Shift + a"）
 
 # ═════════════════════════════════════════════
 # ジェスチャーの日本語ラベル（UI表示用）
 # ═════════════════════════════════════════════
-with open("gesture_labels.json", "r", encoding="utf-8") as f:
+with open(GESTURE_LABELS_FILE, "r", encoding="utf-8") as f:
     GESTURE_LABELS_JP = json.load(f)
 GESTURE_KEYS = list(GESTURE_LABELS_JP.keys())
 
@@ -92,24 +97,40 @@ def get_local_ip() -> str:
 #  ショートカット I/O
 # ══════════════════════════════════════════════
 
+# ジェスチャーと日本語ラベルの対応を読み込む。存在しない場合は空の辞書を返す。形式が不正な場合も空の辞書を返す。
+def load_gesture_labels() -> dict:
+    """gesture_labels.json を読み込む（ジェスチャー: 日本語ラベルの形式）"""
+    try:
+        with open(GESTURE_LABELS_FILE, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        if not isinstance(data, dict):
+            raise ValueError("gesture_labels.json must be object")
+        return data
+    except Exception as e:
+        log.error(f"gesture_labels.json の読み込みに失敗: {e}")
+        return {}
+    
+# ジェスチャーと対応キーの一覧を読み込む。存在しない場合は空の辞書を返す。形式が不正な場合も空の辞書を返す。
 def load_gestures() -> dict:
     """gesture_shortcuts.json を読み込む（ジェスチャー: キー配列の形式）"""
     if not os.path.exists(GESTURES_FILE):
-        save_gestures(DEFAULT_GESTURES.copy())
-        return DEFAULT_GESTURES.copy()
+        return {}
     try:
         with open(GESTURES_FILE, "r", encoding="utf-8") as f:
             data = json.load(f)
         if not isinstance(data, dict):
             raise ValueError("gesture_shortcuts.json must be object")
-        # デフォルト値とマージ（キー配列形式を保持）
-        merged = DEFAULT_GESTURES.copy()
-        merged.update(data)
-        return merged
+        # もしもgesture_labels.jsonにないキーがあった場合、対応できないので削除、警告
+        for key in list(data.keys()):
+            if key not in GESTURE_LABELS_JP:
+                log.warning(f"不明なジェスチャーがショートカットに存在したので削除しました: {key}")
+                del data[key]
+        return data
     except Exception as e:
         log.error(f"gesture_shortcuts.json の読み込みに失敗: {e}")
-        return DEFAULT_GESTURES.copy()
-
+        return {}
+    
+# ジェスチャーと対応キーの一覧を保存
 def save_gestures(data: dict) -> bool:
     try:
         with open(GESTURES_FILE, "w", encoding="utf-8") as f:
@@ -131,13 +152,11 @@ def execute_keys(keys: list[str]) -> None:
     else:
         pyautogui.hotkey(*keys)
 
-def parse_raw_cmd(cmd_str: str) -> list[str]:
-    return [k.strip().lower() for k in cmd_str.split("+")]
-
 # ══════════════════════════════════════════════
 #  WebSocket ハンドラ
 # ══════════════════════════════════════════════
 async def ws_handler(websocket):
+    # クライアント情報（IPアドレスとポート番号）を取得
     client = websocket.remote_address
 
     # ── 認証メッセージ検証（接続直後） ─────────────
@@ -154,12 +173,12 @@ async def ws_handler(websocket):
         return
     except websockets.exceptions.ConnectionClosed:
         return
-
+    # -- 認証メッセージの形式を検査 --
     if data.get("type") != "auth":
         log.warning(f"認証失敗(type不正): {client[0]}")
         await websocket.close(4001, "Unauthorized")
         return
-
+    # -- トークンを検査 --
     token = data.get("token", "")
     if token != ACCESS_TOKEN:
         log.warning(f"不正アクセス拒否: {client[0]} (token不一致)")
@@ -168,49 +187,40 @@ async def ws_handler(websocket):
         return
 
     await websocket.send(json.dumps({"type": "auth", "ok": True}))
-
-    token = data.get("token", "")
-    if token != ACCESS_TOKEN:
-        log.warning(f"不正アクセス拒否: {client[0]} (token不一致)")
-        await websocket.send(json.dumps({"type": "auth", "ok": False}))
-        await websocket.close(4001, "Unauthorized")
-        return
-
-    await websocket.send(json.dumps({"type": "auth", "ok": True}))
-
+    
+    # ── 認証成功 ─────────────
     log.info(f"WS 接続: {client[0]}:{client[1]}")
     connected_clients.add(websocket)
     connected_client_infos[websocket] = f"{client[0]}:{client[1]}"
-    gestures = load_gestures()
 
+    # （初回接続時）基本情報送信
+    gestures = load_gestures()
+    await websocket.send(json.dumps({"type": "gestures", "data": gestures}))
+    await websocket.send(json.dumps({"type": "gesture_labels", "data": GESTURE_LABELS_JP}))
+    await websocket.send(json.dumps({"type": "vibration_setting", "data": APP_SETTINGS.get("vibration_enabled")}))
+    
+    # クライアントからのメッセージを待機して処理するループ。接続が切れるまで続く。
     try:
-        async for message in websocket:
+        # クライアントからのメッセージを待機。メッセージの形式は全てJSONで、"type"フィールドで種類を判別する。
+        async for message in websocket:# データが来るたびに一回実行するということ。
+            # 受信メッセージは全てJSON形式を想定。コマンドの種類は "type" フィールドで判別する。
             try:
                 data = json.loads(message)
             except json.JSONDecodeError:
                 await websocket.send(json.dumps({"ok": False, "error": "invalid json"}))
                 continue
-
             msg_type = data.get("type", "")   # "get_shortcuts" / "update_shortcut" / ""
-
-            if msg_type == "get_gestures":
-                await websocket.send(json.dumps({"type": "gestures", "data": gestures}))
-                continue
-
-            if msg_type == "get_settings":
-                await websocket.send(json.dumps({"type": "settings", "data": APP_SETTINGS}))
-                continue
-
-            if msg_type == "haptics_status":
+            # "vibration_status" → 端末のバイブレーション対応状況を受け取る
+            if msg_type == "vibration_status":
                 supported = bool(data.get("supported", False))
                 allowed = bool(data.get("allowed", False))
                 if not supported or not allowed:
-                    log.warning(f"端末ハプティクス警告: {client[0]} (supported={supported}, allowed={allowed})")
+                    log.warning(f"端末バイブレーション警告: {client[0]} (supported={supported}, allowed={allowed})")
                 else:
-                    log.info(f"端末ハプティクス状態: {client[0]} 利用可能")
-                continue
-
-            if msg_type == "update_setting":
+                    log.info(f"端末バイブレーション状態: {client[0]} 利用可能")
+                continue          
+            # "update_setting" → アプリの設定値を更新する（例: vibration_enabled）
+            elif msg_type == "update_setting":
                 key = data.get("key")
                 value = data.get("value")
                 if key in APP_SETTINGS and isinstance(value, bool):
@@ -220,21 +230,6 @@ async def ws_handler(websocket):
                     await websocket.send(json.dumps({"type": "setting_updated", "ok": False}))
                 continue
 
-            # ── ジェスチャーを更新・保存 ────────────
-            if msg_type == "update_gesture":
-                gkey = data.get("gesture", "").strip()
-                keys = data.get("keys")
-                if not gkey or not isinstance(keys, list) or not keys:
-                    await websocket.send(json.dumps({"type": "gesture_updated", "ok": False}))
-                    continue
-                gestures[gkey] = keys
-                ok = save_gestures(gestures)
-                log.info(f"ジェスチャー更新: {gkey} → {'+'.join(keys)}")
-                await websocket.send(json.dumps({
-                    "type": "gesture_updated", "ok": ok, "gesture": gkey, "keys": keys
-                }))
-                continue
-
             # ── ジェスチャーコマンド実行 ────────────────
             gesture_name = data.get("gesture", "").strip()
             gesture_label = GESTURE_LABELS_JP.get(gesture_name, gesture_name)
@@ -242,12 +237,12 @@ async def ws_handler(websocket):
             if not gesture_name or gesture_name not in gestures:
                 await websocket.send(json.dumps({"ok": False, "error": "no gesture"}))
                 continue
-
+            # ジェスチャーに対応するキー配列を取得。形式が不正ならエラーを返す
             keys = gestures[gesture_name]
             if not isinstance(keys, list) or not keys:
                 await websocket.send(json.dumps({"ok": False, "error": "invalid gesture"}))
                 continue
-
+            # キー実行。エラーが出たらクライアントに返す（例: 無効なキー指定）
             try:
                 execute_keys(keys)
                 log.info(f"[ジェスチャー:{gesture_label}] {gesture_name:30s} → {'+'.join(keys)}")
@@ -285,15 +280,45 @@ def run_http_server():
 #  asyncio ループ
 # ══════════════════════════════════════════════
 def run_async_loop():
-    pyautogui.FAILSAFE = False
-
+    # PyAutoGUIのフェイルセーフを有効化
+    # マウスを画面左上(0,0)に移動すると強制停止する安全機構
+    pyautogui.FAILSAFE = True
+    # WebSocketブロードキャスト用のキュー。UIスレッドからこのキューにメッセージを入れると、broadcaster()が全クライアントに送信する。
+    async def broadcaster():
+        while True:
+            msg = await asyncio.to_thread(WS_BROADCAST_QUEUE.get)
+            dead = []
+            for client in connected_clients:
+                try:
+                    await client.send(msg)
+                except Exception:
+                    dead.append(client)
+            for d in dead:
+                connected_clients.discard(d)
+    # 非同期処理のメイン関数（WebSocketサーバーの起動と維持）
     async def _start():
+        # WebSocketサーバーを起動
+        # ws_handler: 接続ごとの処理関数
+        # HOST, WS_PORT: バインド先アドレスとポート
         async with websockets.serve(ws_handler, HOST, WS_PORT):
+            # サーバー起動ログ
             log.info(f"WebSocket サーバー起動: ポート {WS_PORT}")
+            # ブロードキャストタスクを開始
+            task = asyncio.create_task(broadcaster())
+            # 永久に待機してサーバーを終了させない
+            # Future()は未完了のままなので、ここでイベントループを維持する
             await asyncio.Future()
 
+    # asyncioイベントループを開始し、_start()を実行
+    # この関数が終了するまで（=通常は終了しない）ループが継続する
     asyncio.run(_start())
 
+def broadcast_message(type: str, data: any) -> None:
+    msg = json.dumps({
+        "type": type,
+        "data": data
+    }, ensure_ascii=False)
+    WS_BROADCAST_QUEUE.put(msg)
 # ══════════════════════════════════════════════
 #  QRコード生成
 # ══════════════════════════════════════════════
@@ -311,7 +336,7 @@ def make_qr_image(url: str, size: int = 260) -> ImageTk.PhotoImage:
     return ImageTk.PhotoImage(img)
 
 # ══════════════════════════════════════════════
-#  ショートカット編集ウィンドウ
+#  ジェスチャーショートカット編集ウィンドウ
 # ══════════════════════════════════════════════
 class InlineGestureEditor(tk.Frame):
     BG      = "#0d0e11"
@@ -322,7 +347,7 @@ class InlineGestureEditor(tk.Frame):
     MUTED   = "#5a5f72"
     TEXT    = "#e4e6ee"
     DANGER  = "#ff5c5c"
-    MODIFIERS = {"ctrl", "shift", "alt", "meta"}
+    MODIFIERS = {"Ctrl", "Shift", "Alt", "Meta"}
 
     def __init__(self, parent):
         super().__init__(parent, bg=self.SURFACE, padx=8, pady=8)
@@ -336,25 +361,40 @@ class InlineGestureEditor(tk.Frame):
         self.bind_all("<KeyPress>", self._on_key_press, add="+")
         self.bind_all("<KeyRelease>", self._on_key_release, add="+")
 
+    # UI構築。ジェスチャーごとに行を作り、ラベル・エントリー・記録ボタン・削除ボタンを配置。エントリーは現在の割り当てを表示し、変更を保存するためのもの。記録ボタンは押すとキーキャプチャモードになり、押されたキーをリアルタイムでエントリーに反映。削除ボタンは割り当てを消す。
     def _build(self):
-        tk.Label(self, text="ジェスチャー割り当て", bg=self.SURFACE, fg=self.ACCENT2, font=("Courier New", 12, "bold")).pack(anchor="w")
+        # タイトル
+        tk.Label(self, text="ジェスチャー割り当て", bg=self.SURFACE, fg=self.ACCENT2, font=("Courier New", 14, "bold")).pack(anchor="w")
+        
         body = tk.Frame(self, bg=self.SURFACE)
         body.pack(fill="both", expand=True, pady=(6, 0))
+        
         canvas = tk.Canvas(body, bg=self.SURFACE, highlightthickness=0, bd=0)
-        scrollbar = tk.Scrollbar(body, orient="vertical", command=canvas.yview)
+        scrollbar = tk.Scrollbar(body, orient="vertical", command=canvas.yview)        
         canvas.configure(yscrollcommand=scrollbar.set)
-        canvas.pack(side="left", fill="both", expand=True)
+        canvas.pack(side="left", fill="both", expand=True)        
         scrollbar.pack(side="right", fill="y")
+
+        # マウスホイールスクロール対応
+        # Canvasスクロール有効領域フラグ
+        self._canvas_hover = False
+        canvas.bind("<Enter>", lambda e: self._set_canvas_hover(True))
+        canvas.bind("<Leave>", lambda e: self._set_canvas_hover(False))
+        canvas.bind_all("<MouseWheel>", lambda e: self._on_mousewheel(e, canvas))
+        canvas.bind_all("<Button-4>", lambda e: self._on_mousewheel_linux(e, canvas))
+        canvas.bind_all("<Button-5>", lambda e: self._on_mousewheel_linux(e, canvas))
+
         box = tk.Frame(canvas, bg=self.SURFACE)
         win = canvas.create_window((0, 0), window=box, anchor="nw")
         box.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
         canvas.bind("<Configure>", lambda e: canvas.itemconfigure(win, width=e.width))
+
         for key in GESTURE_KEYS:
             row = tk.Frame(box, bg=self.SURFACE, pady=2)
             row.pack(fill="x")
             tk.Label(row, text=GESTURE_LABELS_JP.get(key, key), width=16, anchor="w", bg=self.SURFACE, fg=self.TEXT, font=("Courier New", 10)).pack(side="left")
             cmd = self._gestures.get(key, "")
-            combo = " + ".join(cmd) if isinstance(cmd, list) else str(cmd)
+            combo = COMBO_CONNECTOR_STRING.join(cmd) if isinstance(cmd, list) else str(cmd)
             var = tk.StringVar(value=combo)
 
             ent = tk.Entry(row, textvariable=var, width=18, bg=self.BG, fg=self.ACCENT2, relief="flat", font=("Courier New", 10))
@@ -365,79 +405,106 @@ class InlineGestureEditor(tk.Frame):
             
             delbtn = tk.Button(row, text="削除", bg=self.DANGER, fg=self.BG, relief="flat", font=("Courier New", 9), command=lambda g=key: self._delete(g))
             delbtn.pack(side="left", padx=2)
-            
+
+            # エントリーの内容が変更されたときに呼ばれるコールバックを設定。入力されたキーコンボをジェスチャーに保存するためのもの。形式は "Ctrl+Shift+a" → ["Ctrl", "Shift", "a"] のように変換して保存。
             var.trace_add("write", lambda *_args, g=key: self._save_one(g))
             
             self._gesture_vars[key] = var
             self._capture_buttons[key] = btn
 
+    # マウスホイールイベント処理
+    def _set_canvas_hover(self, hover: bool):
+        self._canvas_hover = hover
+    def _on_mousewheel(self, event, canvas):
+        # Windows / macOS
+        if event.delta:
+            canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+    def _on_mousewheel_linux(self, event, canvas):
+        # Linux（X11系）
+        if event.num == 4:
+            canvas.yview_scroll(-3, "units")
+        elif event.num == 5:
+            canvas.yview_scroll(3, "units")
+
+    # キーシンボルを正規化。大文字を小文字に変換し、左右のモディファイアキーを統一。例: "Control_L" → "Ctrl", "Shift_R" → "Shift", "Return" → "Enter" など。その他のキーは小文字化して返す。
     def _normalize(self, keysym):
         k = keysym.lower()
-        return {"control_l":"ctrl","control_r":"ctrl","shift_l":"shift","shift_r":"shift","alt_l":"alt","alt_r":"alt","meta_l":"meta","meta_r":"meta","return":"enter","escape":"esc"}.get(k, k)
-
+        return {"control_l":"Ctrl",
+                "control_r":"Ctrl",
+                "shift_l":"Shift",
+                "shift_r":"Shift",
+                "alt_l":"Alt",
+                "alt_r":"Alt",
+                "meta_l":"Meta",
+                "meta_r":"Meta",
+                "return":"Enter",
+                "escape":"Esc"}.get(k, k)
+    
+    # キャプチャ開始。すでにキャプチャ中なら確定 or キャンセル。別のキーのキャプチャ中なら無視。
     def _start_capture(self, key):
         if self._capture_target and self._capture_target != key:
             return
         if self._capture_target == key:
             self._confirm_capture()
             return
-        self._capture_target = key
-        self._capture_pressed.clear()
-        self._capture_candidate = []
+        # キャプチャ開始
+        self._capture_target = key  # どのジェスチャーのキーをキャプチャしているか
+        self._capture_pressed.clear()   # キャプチャ中に押されたキーのセット
+        self._capture_candidate = []    # キャプチャ中のキーセットをモディファイアと通常キーに分けてソートしたもの。UI表示用。
+        # UI更新: 対象のキーのボタンを「確定」にして強調、他のボタンは無効化して薄くする
         for k, b in self._capture_buttons.items():
             if k == key:
                 b.configure(text="確定", bg=self.ACCENT2, fg=self.BG)
             else:
-                b.configure(state="disabled", bg=self.MUTED, fg=self.BG)
-
+                b.configure(state="無効", bg=self.MUTED, fg=self.BG)
+    # キーイベント処理。キャプチャ中のキーセットを更新して候補表示に反映。キャプチャ対象外のキーは無視。
     def _on_key_press(self, event):
         if not self._capture_target:
             return
         self._capture_pressed.add(self._normalize(event.keysym))
         mods = set()
-        if event.state & 0x0001: mods.add("shift")
-        if event.state & 0x0004: mods.add("ctrl")
-        if event.state & 0x0008: mods.add("alt")
+        if event.state & 0x0001: mods.add("Shift")
+        if event.state & 0x0004: mods.add("Ctrl")
+        if event.state & 0x0008: mods.add("Alt")
         self._capture_pressed.update(mods)
         self._update_candidate()
-
+    # キーリリースイベント。キャプチャ中のキーセットから離されたキーを削除して候補表示に反映。キャプチャ対象外のキーは無視。
     def _on_key_release(self, _event):
         if self._capture_target:
             pass
-
+    # キャプチャ中のキーセットから、モディファイアと通常キーを分けてソート。候補表示を更新。
     def _update_candidate(self):
         keys = set(self._capture_pressed)
         if not keys:
             return
-        modifiers = [k for k in ("ctrl", "shift", "alt", "meta") if k in keys]
+        modifiers = [k for k in self.MODIFIERS if k in keys]
         non_mods = sorted([k for k in keys if k not in self.MODIFIERS])
         combo = modifiers + non_mods
-        if not combo:
+        if not combo:# キーがない場合は候補表示しない
             return
-        self._capture_candidate = combo
-        self._gesture_vars[self._capture_target].set("+".join(combo))
-
+        self._capture_candidate = combo # キャプチャ中のキーセットをモディファイアと通常キーに分けてソートしたものを保存
+        self._gesture_vars[self._capture_target].set(COMBO_CONNECTOR_STRING.join(combo))    # UIのエントリーに反映
+    # キャプチャ確定。候補のキーセットをジェスチャーに保存してUIをリセット。候補が空なら保存せずにリセット。
     def _confirm_capture(self):
         # 既存値がある場合に候補未入力でもエラーにしない
         self._capture_target = None
         self._capture_pressed.clear()
         self._capture_candidate = []
+        # UIリセット
         for b in self._capture_buttons.values():
-            b.configure(text="キーを記録", state="normal", bg=self.BORDER, fg=self.TEXT)
-
+            b.configure(text="キーを記録", state="normal", bg=self.BORDER, fg=self.TEXT)        
+    # 削除ボタン。対応するジェスチャーのキー割り当てを空にして保存。UIも空にする。
     def _delete(self, key):
-        self._gesture_vars[key].set("")
-
+        self._gesture_vars[key].set([])
+    # エントリーの内容が変更されたときに呼ばれる。入力されたキーコンボをジェスチャーに保存。形式は "Ctrl+Shift+a" → ["Ctrl", "Shift", "a"] のように変換して保存。
     def _save_one(self, gkey):
         combo = self._gesture_vars[gkey].get().strip().lower()
-        combo_to_cmd = {}
-        for cmd, keys in self._shortcuts.items():
-            if isinstance(keys, list):
-                c = "+".join([k.strip().lower() for k in keys if k.strip()])
-                if c and c not in combo_to_cmd:
-                    combo_to_cmd[c] = cmd
-        self._gestures[gkey] = combo_to_cmd.get(combo, combo) if combo else ""
+        # 入力が空ならジェスチャーの割り当ても空にする。そうでなければ、入力をCOMBO_CONNECTOR_STRINGで分割してリスト化し、ジェスチャーに保存。保存後、全ジェスチャーをファイルに書き出す。
+        self._gestures[gkey] = [k.strip() for k in combo.split(COMBO_CONNECTOR_STRING)] if combo else []
+        # 保存
         save_gestures(self._gestures)
+        # キャプチャ確定後にスマホ側にデータを送信
+        broadcast_message("gestures", self._gestures)
 
 
 # ══════════════════════════════════════════════
@@ -483,8 +550,8 @@ class QRWindow:
         self._build_ui()
         self._start_status_update()
         self._start_log_update()
-        self._maximize()
-
+        self._maximize_window()
+    # UI構築。左側にQRコードとURL、接続デバイス情報、設定項目などを配置。右側はジェスチャーショートカット編集ウィンドウ。
     def _build_ui(self):
         root = self.root
         PAD  = 24
@@ -528,23 +595,23 @@ class QRWindow:
         # ステータス行
         st = tk.Frame(left, bg=self.BG, padx=PAD, pady=10)
         st.pack(fill="x")
-
+        # 接続クライアント数表示
         tk.Label(
             st, text="接続中のデバイス : ",
             bg=self.BG, fg=self.MUTED, font=("Courier New", 10),
         ).pack(side="left")
-
+        # 接続クライアント数表示とランプ
         self.client_count_var = tk.StringVar(value="0")
         tk.Label(
             st, textvariable=self.client_count_var,
             bg=self.BG, fg=self.ACCENT2,
             font=("Courier New", 14, "bold"),
         ).pack(side="left")
-
+        # 接続ランプ（緑が1台以上、灰色が0台）
         self.lamp = tk.Canvas(st, width=14, height=14, bg=self.BG, highlightthickness=0)
         self.lamp.pack(side="left", padx=(8, 0))
         self.lamp_circle = self.lamp.create_oval(2, 2, 12, 12, fill=self.MUTED, outline="")
-
+        
         tk.Frame(left, bg=self.BORDER, height=1).pack(fill="x", padx=PAD)
 
         # スマホ振動設定
@@ -558,7 +625,8 @@ class QRWindow:
             command=self._toggle_vibration,
             bg=self.BG, fg=self.TEXT, selectcolor=self.SURFACE,
             activebackground=self.BG, activeforeground=self.ACCENT2,
-            font=("Courier New", 14), highlightthickness=0, bd=0
+            font=("Courier New", 14), highlightthickness=0, bd=0,
+            width=40, height=40
         ).pack(anchor="w")
 
         tk.Frame(left, bg=self.BORDER, height=1).pack(fill="x", padx=PAD)
@@ -634,12 +702,12 @@ class QRWindow:
             activebackground=self.ACCENT2, activeforeground=self.BG,
             command=lambda v=value: self._copy(v),
         ).pack(side="right")
-
+    # クリップボードにテキストをコピーする。URLの横の「copy」ボタンから呼ばれる。引数のテキストをクリップボードにセットする。
     def _copy(self, text: str):
         self.root.clipboard_clear()
         self.root.clipboard_append(text)
-
-    def _maximize(self):
+    # ウィンドウを最大化する。OSや環境によって最大化の方法が異なるため、複数の方法を試す。まずは標準的なstate("zoomed")を試し、失敗したらattributes("-zoomed")、それもダメなら画面サイズを直接指定してフルスクリーンにする。
+    def _maximize_window(self):
         self.root.update_idletasks()
         try:
             self.root.state("zoomed")
@@ -648,11 +716,12 @@ class QRWindow:
                 self.root.attributes("-zoomed", True)
             except tk.TclError:
                 self.root.geometry(f"{self.root.winfo_screenwidth()}x{self.root.winfo_screenheight()}+0+0")
-
+    # スマホのタップ振動設定が変更されたときの処理。APP_SETTINGSの値を更新してログに出力し、全クライアントに新しい設定値をブロードキャストする。
     def _toggle_vibration(self):
         APP_SETTINGS["vibration_enabled"] = bool(self.vibration_var.get())
         log.info(f"スマホ振動設定: {'ON' if APP_SETTINGS['vibration_enabled'] else 'OFF'}")
-
+        broadcast_message("vibration_setting_updated", APP_SETTINGS["vibration_enabled"])
+    # ステータス更新を開始する。接続クライアント数と接続デバイス情報を1秒ごとに更新する。接続クライアント数が0ならランプを灰色、1台以上ならアクセントカラーにする。
     def _start_status_update(self):
         def update():
             n = len(connected_clients)

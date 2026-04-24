@@ -10,7 +10,19 @@
     /* レイアウトとインタラクションスタイル */
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     body { margin:0; background:var(--bg); color:var(--text); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; overflow:hidden; }
-    header { position:fixed; top:0; left:0; right:0; z-index:20; display:flex; justify-content:space-between; align-items:center; padding:14px 16px; border-bottom:1px solid #2a2d3699; background:#0d0e1170; backdrop-filter:blur(4px); pointer-events:none; }
+    /* タイトルと接続表示関係 */
+    #overlay-ui {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 20;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 14px 16px;
+      pointer-events: none; /* タッチを邪魔しない */
+    }
     .title { color:var(--accent); font-weight:700; font-size:22px; letter-spacing:1px; }
     .status { display:flex; gap:8px; align-items:center; color:var(--muted); font-size:12px; }
     .dot { width:10px; height:10px; border-radius:999px; background:var(--muted); }
@@ -26,7 +38,19 @@
     .hint { position:absolute; color:var(--muted); font-size:11px; letter-spacing:1px; }
     .top{top:56px;left:50%;transform:translateX(-50%)} .bottom{bottom:12px;left:50%;transform:translateX(-50%)}
     .left{left:12px;top:50%;transform:translateY(-50%)} .right{right:12px;top:50%;transform:translateY(-50%)}
-    #feedback { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%) scale(0.9); opacity:0; background:var(--accent); color:#000; padding:10px 18px; border-radius:999px; font-weight:700; transition:.12s; }
+    #feedback { 
+      position:absolute; 
+      top:50%; left:50%; 
+      transform:translate(-50%,-50%) scale(0.9); 
+      opacity:0; 
+      background:var(--accent); 
+      color:#000; 
+      padding:10px 18px; 
+      border-radius:999px; 
+      font-weight:700; 
+      transition:.12s;
+      z-index: 3;
+     }
     #feedback.show { opacity:1; transform:translate(-50%,-50%) scale(1); }
     #diagonal-canvas {
       position: absolute;/* ジェスチャーエリア全体を覆うキャンバス */
@@ -51,34 +75,65 @@
       opacity: 0;
       transform: scale(1.35);
     }
-    .split-line { position:absolute; background:#2a2d3690; pointer-events:none; z-index:2; }
-    .region-label { position:absolute; color:#5a5f72; font-size:10px; letter-spacing:1px; pointer-events:none; z-index:2; }
-    .region-label.top{top:72px;left:50%;transform:translateX(-50%)} .region-label.bottom{bottom:10px;left:50%;transform:translateX(-50%)}
-    .region-label.left{left:10px;top:50%;transform:translateY(-50%)} .region-label.right{right:10px;top:50%;transform:translateY(-50%)}
 
+    /* ジェスチャーのヒントテキスト */
+    .ticker {
+      position: absolute;
+      overflow: hidden;
+      white-space: nowrap;
+      font-size: 12px;
+      color: var(--accent2);
+      opacity: 0.8;
+      pointer-events: none;
+    }
+    .ticker span {
+      display: inline-block;
+      padding-left: 100%;
+      animation: ticker-scroll 10s linear infinite;
+    }
+    @keyframes ticker-scroll {
+      0% { transform: translateX(0); }
+      100% { transform: translateX(-100%); }
+    }
+    /* 配置 */
+    #ticker-top    { top: 32px; left:0; right:0; }
+    #ticker-bottom { bottom: 0; left:0; right:0; }
+    #ticker-left   { left:0; top:50%; transform:translateY(-50%) rotate(-90deg); transform-origin:left top; width:100vh;}
+    #ticker-right  { right:0; top:50%; transform:translateY(-50%) rotate(90deg); transform-origin:right top; width:100vh;}
+    #ticker-center { top:50%; left:50%; transform:translate(-50%,-50%); text-align:center; }
+  
   </style>
 </head>
 <body>
-  <header>
-    <div class="title">LEFTPAD</div>
-    <div class="status"><span id="state">接続中...</span><span id="dot" class="dot"></span></div>
-  </header>
+  <div id="overlay-ui">
+  <div class="title">LEFTPAD</div>
+  <div class="status">
+    <span id="state">接続中...</span>
+    <span id="dot" class="dot"></span>
+  </div>
+  </div>
   <main>
     <section id="gesture-canvas">
       <canvas id="diagonal-canvas"></canvas> <!-- 対角線を描画するキャンバス -->
-      <div class="region-label top">上</div>
-      <div class="region-label bottom">下</div>
-      <div class="region-label left">左</div>
-      <div class="region-label right">右</div>
+
       <span class="hint top">UP</span>
       <span class="hint bottom">DOWN</span>
       <span class="hint left">LEFT</span>
       <span class="hint right">RIGHT</span>
-      <div id="feedback"></div>
+
+      <!-- ジェスチャーのヒントテキスト -->
+      <div id="ticker-top" class="ticker"></div>
+      <div id="ticker-bottom" class="ticker"></div>
+      <div id="ticker-left" class="ticker vertical"></div>
+      <div id="ticker-right" class="ticker vertical"></div>
+      <div id="ticker-center" class="ticker center"></div>
+
+      <div id="feedback"></div><!-- フィードバック表示 -->
     </section>
   </main>
 
 <script>
+
 // 対角線の描画
 const diagCanvas = document.getElementById("diagonal-canvas");
 const diagCtx = diagCanvas.getContext("2d");
@@ -106,12 +161,60 @@ function drawDiagonal() {
   diagCtx.lineTo(0, h);
 
   diagCtx.strokeStyle = "#2a2d36";
-  diagCtx.lineWidth = 1;
+  diagCtx.lineWidth = 6;
   diagCtx.stroke();
 }
 
 window.addEventListener("resize", resizeDiagonal);
 resizeDiagonal();
+
+
+// ジェスチャーのヒントテキストの描画
+// ジェスチャーのキー配列を「Ctrl + Shift + A」のような形式に整形
+function formatKeys(keys){
+  if(!Array.isArray(keys)) return '';
+  return keys.filter(k=>k).map(k=>k.toUpperCase()).join(' + ');
+}
+// gestureKey → 表示文字列
+function buildDisplayText(gestureKey){
+  const label = gesture_labels_jp[gestureKey] || gestureKey;
+  const keys  = formatKeys(gestureMap[gestureKey]);
+  if(!keys) return '';
+  return `${label}：${keys}`;
+}
+function buildTickerContent(position){
+  const list = [];
+
+  for(const key in gestureMap){
+    const txt = buildDisplayText(key);
+    if(!txt) continue;
+
+    // ピンチは中央
+    if((key === 'pinch_in' || key === 'pinch_out') && position === 'center'){
+      list.push(txt);
+      continue;
+    }
+
+    // 位置一致チェック
+    if(key.endsWith(`_${position}`)){
+      list.push(txt);
+    }
+  }
+
+  return list.join(' ｜ ');
+}
+
+function updateTickers(){
+  const positions = ['top','bottom','left','right','center'];
+
+  for(const pos of positions){
+    const el = document.getElementById(`ticker-${pos}`);
+    if(!el) continue;
+
+    const text = buildTickerContent(pos);
+    el.innerHTML = text ? `<span>${text}</span>` : '';
+  }
+}
 
 // WebSocket接続とジェスチャー処理の実装
 const token = new URLSearchParams(location.search).get('token') || '';
@@ -123,29 +226,41 @@ const stateEl = document.getElementById('state');
 const dotEl = document.getElementById('dot');
 const feedbackEl = document.getElementById('feedback');
 
-// gestureのラベルを読み込み
-const GESTURE_LABELS_JP = {};
-fetch("gesture_labels.json")
-  .then(response => response.json())
-  .then(data => {
-    GESTURE_LABELS_JP = data;
-    for (const key in GESTURE_LABELS_JP) {
-      console.log(key, GESTURE_LABELS_JP[key]);
-    }
-  });
+// gestureのラベル（後でサーバーから受け取る）
+let gesture_labels_jp = {};
 
 // ジェスチャーとコマンドの対応表
 let gestureMap = {};
-// 接続状態の更新
-function setConn(ok,msg){ stateEl.textContent=msg; dotEl.className = ok ? 'dot on':'dot'; } 
+
+// 接続状態表示の更新
+function setConn(ok, msg){ 
+  stateEl.textContent=msg; 
+  dotEl.className = ok ? 'dot on':'dot'; 
+}
+
 // フィードバック表示
+const FLASH_DURATION_MS = 300;// フィードバックテキストを表示してから消すまでの時間[ms]
 function flash_feedback_text(t){ 
   feedbackEl.textContent=t; 
   feedbackEl.classList.add('show'); 
-  setTimeout(()=>feedbackEl.classList.remove('show'),280); 
+  setTimeout(()=>feedbackEl.classList.remove('show'), FLASH_DURATION_MS); 
 }
-// サーバーへコマンドを送信
-function send(obj){ if(ws && ws.readyState===1 && isAuthed) ws.send(JSON.stringify(obj)); }
+
+// サーバーへデータを送信
+function send(obj){ 
+  if(ws && ws.readyState===1 && isAuthed) ws.send(JSON.stringify(obj)); 
+}
+
+// ジェスチャーに対応するコマンドを送信
+function sendCommand(cmd, gestureKey=''){
+  const gestureLabel = gesture_labels_jp[gestureKey] || gestureKey || cmd || 'unknown';
+  if (cmd){// コマンドがある場合のみ送信
+    send({cmd, gesture: gestureKey});
+    vibrateTap();
+  }
+  flash_feedback_text(gestureLabel);
+}
+
 
 // 振動フィードバック
 function vibrateTap(){
@@ -203,19 +318,12 @@ function getTapRegion(x, y){
   return 'right';
 }
 
-// ジェスチャーに対応するコマンドを送信
-function sendCommand(cmd, gestureKey=''){
-  if(!cmd) return;
-  send({cmd, gesture: gestureKey});
-  vibrateTap();
-  const gestureLabel = GESTURE_LABELS_JP[gestureKey] || cmd;
-  flash_feedback_text(gestureLabel);
-}
-
 // WebSocket接続とメッセージ処理
+// メッセージはJSON形式で、typeフィールドで種類を判別する。例: {type:'auth', data/token:XXX}
 function connect(){
   ws = new WebSocket(wsUrl);// websocketインスタンス
-  setConn(false,'接続中...');
+  // 接続開始時は「接続中...」と表示
+  setConn(false, '接続中...');
   // 接続が開いたら認証トークンを送る
   ws.onopen = ()=> ws.send(JSON.stringify({type:'auth', token}));
   // メッセージ受信時の処理
@@ -224,12 +332,37 @@ function connect(){
     if(d.type==='auth'){
       isAuthed=!!d.ok;
       setConn(isAuthed, isAuthed?'接続済み':'認証失敗');
-      if(isAuthed){ send({type:'get_gestures'}); send({type:'get_settings'}); reportVibrationStatus(); }
       return;
     }
-    if(d.type==='gestures'){ gestureMap = d.data || {}; }
-    if(d.type==='settings'){ vibrationEnabled = !!(d.data && d.data.vibration_enabled); }
-    if(d.type==='setting_updated' && d.key==='vibration_enabled'){ vibrationEnabled = !!d.value; }
+    // （初回接続時）ジェスチャーのマッピング情報を受け取る
+    if(d.type==='gestures'){ 
+      gestureMap = d.data || {};
+      updateTickers(); // ジェスチャーのマッピングが更新されたらヒントテキストも更新 
+    }
+    // （初回接続時）ジェスチャーのラベルを受け取る
+    if(d.type==='gesture_labels'){ 
+      gesture_labels_jp = d.data || {}; 
+    }
+    // （初回接続時）アプリの設定値を受け取る（例: vibration_enabled）
+    if(d.type==='vibration_setting'){ 
+      vibrationEnabled = !!d.data; 
+      // 送り返す
+      reportVibrationStatus(true);
+
+    }
+    // （随時）設定値の更新通知を受け取る（例: vibration_enabledの変更）
+    if(d.type==='vibration_setting_updated'){ 
+      vibrationEnabled = !!d.data; 
+      // 送り返す
+      reportVibrationStatus(true);
+    }
+    // （随時）ジェスチャーのマッピングが更新された場合に新しいマッピングを反映する
+    if (d.type == 'gesture_updated') {
+      if (d.gesture && d.cmd) {
+        gestureMap[d.gesture] = d.cmd;
+        updateTickers(); // ヒントテキストも更新
+      }
+    }
   };
   ws.onclose = ()=>{ isAuthed=false; setConn(false,'未接続'); setTimeout(connect, 1500); };
 }
@@ -422,7 +555,6 @@ canvas.addEventListener('touchstart', (e)=>{
     if(e.touches.length>=2) gesture.lastDist = distance(e.touches[0], e.touches[1]);
   }
   // 長押しの判定
-  /*
   if (
     gesture &&
     gesture.count >= 1 && gesture.count <= 3 &&   // 1〜3本指
@@ -441,7 +573,6 @@ canvas.addEventListener('touchstart', (e)=>{
   } else {
     clearTimeout(longPressTimer);
   }
-  */
 }
 , {passive:true});
 
