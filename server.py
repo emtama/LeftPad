@@ -1033,7 +1033,7 @@ class QRWindow:
 
         # ロゴ
         tk.Label(
-            left, text="◀  LEFTPAD",
+            left, text="LEFTPAD",
             bg=self.BG, fg=self.ACCENT,
             font=("Courier New", 22, "bold"), pady=8,
         ).pack()
@@ -1089,12 +1089,12 @@ class QRWindow:
         self.vibration_var = tk.BooleanVar(value=APP_SETTINGS.get("vibration_enabled", True))
         tk.Checkbutton(
             vib_row,
-            text="スマホのタップ振動を有効にする",
+            text="タップ振動",
             variable=self.vibration_var,
             command=self._toggle_vibration,
             bg=self.BG, fg=self.TEXT, selectcolor=self.SURFACE,
             activebackground=self.BG, activeforeground=self.ACCENT2,
-            font=("Courier New", 9), highlightthickness=0, bd=0,
+            font=("Courier New", 14, highlightthickness=0, bd=0,
         ).pack(anchor="w")
 
         tk.Frame(left, bg=self.BORDER, height=1).pack(fill="x", padx=PAD)
