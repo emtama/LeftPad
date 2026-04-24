@@ -1,7 +1,6 @@
 """
 LeftPad Server  ─  PC側サーバー
-=================================================
-必要なライブラリのインストール:
+==========================================必要なライブラリのインストール:
   pip install websockets pyautogui qrcode[pil] Pillow
 
 起動方法:
@@ -42,67 +41,6 @@ WS_PORT        = 8765
 HTTP_PORT      = 8080
 BASE_DIR       = os.path.dirname(os.path.abspath(__file__))
 SHORTCUTS_FILE = os.path.join(BASE_DIR, "shortcuts.json")
-<<<<<<< HEAD
-GESTURES_FILE  = os.path.join(BASE_DIR, "gestures.json")
-ACCESS_TOKEN   = secrets.token_urlsafe(16)   # 起動ごとに再生成
-
-DEFAULT_GESTURES = {
-    "swipe_up": "zoom_in",
-    "swipe_down": "zoom_out",
-    "swipe_left": "undo",
-    "swipe_right": "redo",
-    "long_press": "eyedrop",
-    "hold_screen": "eyedrop",
-    "pinch_in": "zoom_out",
-    "pinch_out": "zoom_in",
-    "double_tap": "fullscreen",
-    "two_finger_tap": "undo",
-    "two_finger_swipe_up": "zoom_in",
-    "two_finger_swipe_down": "zoom_out",
-    "two_finger_swipe_left": "undo",
-    "two_finger_swipe_right": "redo",
-    "three_finger_tap": "fullscreen",
-    "three_finger_swipe_up": "layer_up",
-    "three_finger_swipe_down": "layer_down",
-    "three_finger_swipe_left": "rotate_ccw",
-    "three_finger_swipe_right": "rotate_cw",
-}
-
-COMMAND_ALIASES = {
-    "undo": "元に戻す",
-    "redo": "やり直し",
-    "save": "保存",
-    "deselect": "選択解除",
-    "brush": "ブラシ",
-    "eraser": "消しゴム",
-    "fill": "塗りつぶし",
-    "eyedrop": "スポイト",
-    "select_rect": "矩形選択",
-    "move": "移動",
-    "pen": "ペン",
-    "text": "テキスト",
-    "lasso": "なげなわ",
-    "swap_color": "前後景切替",
-    "reset_color": "白黒リセット",
-    "brush_size_up": "ブラシサイズアップ",
-    "brush_size_down": "ブラシサイズダウン",
-    "zoom_in": "拡大",
-    "zoom_out": "縮小",
-    "zoom_fit": "全体表示",
-    "zoom_100": "100%表示",
-    "rotate_cw": "右回転",
-    "rotate_ccw": "左回転",
-    "rotate_reset": "回転リセット",
-    "flip_h": "左右反転",
-    "fullscreen": "全画面",
-    "layer_new": "レイヤー新規",
-    "layer_delete": "レイヤー削除",
-    "layer_merge": "レイヤー結合",
-    "layer_duplicate": "レイヤー複製",
-    "layer_up": "レイヤー上",
-    "layer_down": "レイヤー下",
-}
-=======
 GESTURES_FILE  = os.path.join(BASE_DIR, "gesture_shortcuts.json")
 ACCESS_TOKEN   = secrets.token_urlsafe(16)   # 起動ごとに再生成
 
@@ -113,7 +51,6 @@ DEFAULT_GESTURES = {
     key: [] for key in GESTURE_KEYS
 }
 
->>>>>>> codex/explain-the-repository-hmjhe9
 
 # ══════════════════════════════════════════════
 #  ログ設定
@@ -179,7 +116,6 @@ def save_gestures(data: dict) -> bool:
         log.error(f"gesture_shortcuts.json の保存に失敗: {e}")
         return False
 
-<<<<<<< HEAD
 def get_real_shortcuts(shortcuts: dict) -> dict:
     """コメントキーを除いた実際のショートカットのみを返す"""
     return {k: v for k, v in shortcuts.items()
@@ -211,8 +147,7 @@ def save_gestures(data: dict) -> bool:
         log.error(f"gestures.json の保存に失敗: {e}")
         return False
 
-=======
->>>>>>> codex/explain-the-repository-hmjhe9
+
 # ══════════════════════════════════════════════
 #  キー入力
 # ══════════════════════════════════════════════
@@ -226,11 +161,6 @@ def execute_keys(keys: list[str]) -> None:
 def parse_raw_cmd(cmd_str: str) -> list[str]:
     return [k.strip().lower() for k in cmd_str.split("+")]
 
-def resolve_command_name(cmd: str) -> str:
-    if cmd in COMMAND_ALIASES:
-        return COMMAND_ALIASES[cmd]
-    return cmd
-
 # ══════════════════════════════════════════════
 #  WebSocket ハンドラ
 # ══════════════════════════════════════════════
@@ -243,20 +173,6 @@ async def ws_handler(websocket):
         data = json.loads(raw)
     except asyncio.TimeoutError:
         log.warning(f"認証タイムアウト: {client[0]}")
-<<<<<<< HEAD
-=======
-        await websocket.close(4001, "Unauthorized")
-        return
-    except json.JSONDecodeError:
-        log.warning(f"認証失敗(JSON不正): {client[0]}")
-        await websocket.close(4001, "Unauthorized")
-        return
-    except websockets.exceptions.ConnectionClosed:
-        return
-
-    if data.get("type") != "auth":
-        log.warning(f"認証失敗(type不正): {client[0]}")
->>>>>>> codex/explain-the-repository-hmjhe9
         await websocket.close(4001, "Unauthorized")
         return
     except json.JSONDecodeError:
@@ -291,11 +207,7 @@ async def ws_handler(websocket):
 
     log.info(f"WS 接続: {client[0]}:{client[1]}")
     connected_clients.add(websocket)
-<<<<<<< HEAD
-    shortcuts = load_shortcuts()
-=======
     connected_client_infos[websocket] = f"{client[0]}:{client[1]}"
->>>>>>> codex/explain-the-repository-hmjhe9
     gestures = load_gestures()
 
     try:
@@ -312,15 +224,6 @@ async def ws_handler(websocket):
                 await websocket.send(json.dumps({"type": "gestures", "data": gestures}))
                 continue
 
-<<<<<<< HEAD
-            if msg_type == "get_gestures":
-                await websocket.send(json.dumps({"type": "gestures", "data": gestures}))
-                continue
-
-            # ── ショートカットを更新・保存 ────────────
-            if msg_type == "update_shortcut":
-                cmd  = resolve_command_name(data.get("cmd", "").strip())
-=======
             if msg_type == "get_settings":
                 await websocket.send(json.dumps({"type": "settings", "data": APP_SETTINGS}))
                 continue
@@ -347,7 +250,6 @@ async def ws_handler(websocket):
             # ── ジェスチャーを更新・保存 ────────────
             if msg_type == "update_gesture":
                 gkey = data.get("gesture", "").strip()
->>>>>>> codex/explain-the-repository-hmjhe9
                 keys = data.get("keys")
                 if not gkey or not isinstance(keys, list) or not keys:
                     await websocket.send(json.dumps({"type": "gesture_updated", "ok": False}))
@@ -360,28 +262,9 @@ async def ws_handler(websocket):
                 }))
                 continue
 
-<<<<<<< HEAD
-            if msg_type == "update_gesture":
-                gkey = data.get("gesture", "").strip()
-                cmd = data.get("cmd", "").strip()
-                if not gkey:
-                    await websocket.send(json.dumps({"type": "gesture_updated", "ok": False}))
-                    continue
-                gestures[gkey] = cmd
-                ok = save_gestures(gestures)
-                await websocket.send(json.dumps({
-                    "type": "gesture_updated", "ok": ok, "gesture": gkey, "cmd": cmd
-                }))
-                continue
-
-            # ── 既存のキー入力コマンド ────────────────
-            cmd    = data.get("cmd", "").strip()
-            is_raw = data.get("raw", False)
-=======
             # ── ジェスチャーコマンド実行 ────────────────
             gesture_name = data.get("gesture", "").strip()
             gesture_label = GESTURE_LABELS_JP.get(gesture_name, gesture_name)
->>>>>>> codex/explain-the-repository-hmjhe9
 
             if not gesture_name or gesture_name not in gestures:
                 await websocket.send(json.dumps({"ok": False, "error": "no gesture"}))
@@ -392,17 +275,6 @@ async def ws_handler(websocket):
                 await websocket.send(json.dumps({"ok": False, "error": "invalid gesture"}))
                 continue
 
-<<<<<<< HEAD
-            cmd = resolve_command_name(cmd)
-            real = get_real_shortcuts(shortcuts)
-            if cmd not in real:
-                log.warning(f"未定義コマンド: {cmd!r}")
-                await websocket.send(json.dumps({"ok": False, "error": f"unknown cmd: {cmd}"}))
-                continue
-
-            keys = shortcuts[cmd]
-=======
->>>>>>> codex/explain-the-repository-hmjhe9
             try:
                 execute_keys(keys)
                 log.info(f"[ジェスチャー:{gesture_label}] {gesture_name:30s} → {'+'.join(keys)}")
@@ -478,40 +350,20 @@ class ShortcutEditorWindow(tk.Toplevel):
     TEXT    = "#e4e6ee"
     DANGER  = "#ff5c5c"
     MODIFIERS = {"ctrl", "shift", "alt", "meta"}
-<<<<<<< HEAD
-    GESTURE_KEYS = [
-        "swipe_up", "swipe_down", "swipe_left", "swipe_right",
-        "long_press", "hold_screen", "pinch_in", "pinch_out", "double_tap",
-        "two_finger_tap", "two_finger_swipe_up", "two_finger_swipe_down",
-        "two_finger_swipe_left", "two_finger_swipe_right",
-        "three_finger_tap", "three_finger_swipe_up", "three_finger_swipe_down",
-        "three_finger_swipe_left", "three_finger_swipe_right",
-    ]
-
-    def __init__(self, parent_root):
-        super().__init__(parent_root)
-        self.title("LeftPad ─ キー/ジェスチャー編集")
-=======
 
     def __init__(self, parent_root):
         super().__init__(parent_root)
         self.title("LeftPad ─ ジェスチャー編集")
->>>>>>> codex/explain-the-repository-hmjhe9
         self.configure(bg=self.BG)
         self.resizable(True, True)
         self.minsize(860, 560)
-
-<<<<<<< HEAD
-        self._shortcuts = load_shortcuts()
         self._gestures  = load_gestures()
         self._entries   = {}   # cmd → StringVar("+区切り")
         self._gesture_entries = {}  # gesture_key -> StringVar
         self._capture_target = None
         self._capture_pressed: set[str] = set()
-<<<<<<< HEAD
         self._new_shortcut_keys_var = tk.StringVar(value="")
         self._new_shortcut_cmd_var = tk.StringVar(value="")
-=======
         self._capture_candidate: list[str] = []
         self._capture_buttons = {}
         self._active_capture_button = None
@@ -520,8 +372,6 @@ class ShortcutEditorWindow(tk.Toplevel):
         self._body_canvas = None
         self._body_scrollbar = None
         self._body_inner = None
->>>>>>> origin/codex/explain-the-repository
-=======
         self._gestures  = load_gestures()
         self._gesture_entries = {}  # gesture_key -> StringVar (キー配列)
         self._capture_target = None
@@ -532,8 +382,6 @@ class ShortcutEditorWindow(tk.Toplevel):
         self._body_canvas = None
         self._body_scrollbar = None
         self._body_inner = None
->>>>>>> codex/explain-the-repository-hmjhe9
-
         self._build()
         self._maximize()
         self.focus_force()
@@ -543,11 +391,7 @@ class ShortcutEditorWindow(tk.Toplevel):
     # ── UI ───────────────────────────────────
     def _build(self):
         tk.Label(
-<<<<<<< HEAD
             self, text="キー / ジェスチャー編集",
-=======
-            self, text="ジェスチャー編集",
->>>>>>> codex/explain-the-repository-hmjhe9
             bg=self.BG, fg=self.ACCENT,
             font=("Courier New", 14, "bold"), pady=12,
         ).pack()
@@ -560,8 +404,6 @@ class ShortcutEditorWindow(tk.Toplevel):
 
         tk.Frame(self, bg=self.BORDER, height=1).pack(fill="x", padx=16)
 
-<<<<<<< HEAD
-<<<<<<< HEAD
         wrapper = tk.Frame(self, bg=self.BG)
         wrapper.pack(fill="both", expand=True, padx=16, pady=8)
 
@@ -577,7 +419,6 @@ class ShortcutEditorWindow(tk.Toplevel):
         tk.Frame(self, bg=self.BORDER, height=1).pack(fill="x", padx=16)
         footer = tk.Frame(self, bg=self.BG, pady=12)
         footer.pack()
-=======
         body = tk.Frame(self, bg=self.BG)
         body.pack(fill="both", expand=True, padx=16, pady=8)
         self._build_scrollable_body(body)
@@ -597,8 +438,6 @@ class ShortcutEditorWindow(tk.Toplevel):
         tk.Frame(self, bg=self.BORDER, height=1).pack(fill="x", padx=16)
         footer = tk.Frame(self, bg=self.BG, pady=12)
         footer.pack(fill="x")
->>>>>>> origin/codex/explain-the-repository
-=======
         body = tk.Frame(self, bg=self.BG)
         body.pack(fill="both", expand=True, padx=16, pady=8)
         self._build_scrollable_body(body)
@@ -610,7 +449,6 @@ class ShortcutEditorWindow(tk.Toplevel):
         tk.Frame(self, bg=self.BORDER, height=1).pack(fill="x", padx=16)
         footer = tk.Frame(self, bg=self.BG, pady=12)
         footer.pack(fill="x")
->>>>>>> codex/explain-the-repository-hmjhe9
         tk.Button(
             footer, text="  保存  ",
             bg=self.ACCENT, fg=self.BG,
@@ -629,11 +467,6 @@ class ShortcutEditorWindow(tk.Toplevel):
             command=self.destroy,
         ).pack(side="left", padx=8)
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-=======
->>>>>>> codex/explain-the-repository-hmjhe9
     def _build_scrollable_body(self, parent):
         self._body_canvas = tk.Canvas(parent, bg=self.BG, highlightthickness=0, bd=0)
         self._body_scrollbar = tk.Scrollbar(parent, orient="vertical", command=self._body_canvas.yview)
@@ -665,8 +498,6 @@ class ShortcutEditorWindow(tk.Toplevel):
         elif getattr(event, "delta", 0) != 0:
             self._body_canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
 
-<<<<<<< HEAD
->>>>>>> origin/codex/explain-the-repository
     def _build_shortcuts_panel(self, parent):
         tk.Label(parent, text="ショートカットキー", bg=self.BG, fg=self.ACCENT2,
                  font=("Courier New", 11, "bold")).pack(anchor="w")
@@ -695,32 +526,23 @@ class ShortcutEditorWindow(tk.Toplevel):
                 bg=self.SURFACE, fg=self.ACCENT2,
                 font=("Courier New", 10), anchor="w",
             ).grid(row=0, column=1, padx=4)
-<<<<<<< HEAD
             tk.Button(
-=======
             btn = tk.Button(
->>>>>>> origin/codex/explain-the-repository
                 row, text="キーを記録",
                 bg=self.BORDER, fg=self.TEXT, relief="flat",
                 font=("Courier New", 8), cursor="hand2",
                 command=lambda c=cmd: self._start_capture(("shortcut", c)),
-<<<<<<< HEAD
             ).grid(row=0, column=2, padx=4)
-=======
             )
             btn.grid(row=0, column=2, padx=4)
             self._capture_buttons[("shortcut", cmd)] = btn
->>>>>>> origin/codex/explain-the-repository
             self._entries[cmd] = var
 
-=======
->>>>>>> codex/explain-the-repository-hmjhe9
     def _build_gestures_panel(self, parent):
         tk.Label(parent, text="ジェスチャー割り当て", bg=self.BG, fg=self.ACCENT2,
                  font=("Courier New", 11, "bold")).pack(anchor="w")
         box = tk.Frame(parent, bg=self.SURFACE, padx=8, pady=8)
         box.pack(fill="both", expand=True, pady=(6, 0))
-<<<<<<< HEAD
         for key in self.GESTURE_KEYS:
             row = tk.Frame(box, bg=self.SURFACE, pady=2)
             row.pack(fill="x")
@@ -732,40 +554,28 @@ class ShortcutEditorWindow(tk.Toplevel):
             ent.pack(side="left", fill="x", expand=True, padx=(4, 0))
             self._gesture_entries[key] = var
 
-<<<<<<< HEAD
-    def _build_add_shortcut_panel(self):
-        panel = tk.Frame(self, bg=self.SURFACE, padx=10, pady=8)
-        panel.pack(fill="x", padx=16, pady=(0, 8))
-=======
     def _build_add_shortcut_panel(self, parent):
         panel = tk.Frame(parent, bg=self.SURFACE, padx=10, pady=8)
         panel.pack(fill="x", pady=(8, 0))
->>>>>>> origin/codex/explain-the-repository
         tk.Label(panel, text="ショートカット追加", bg=self.SURFACE, fg=self.ACCENT2,
                  font=("Courier New", 10, "bold")).pack(side="left", padx=(0, 10))
         tk.Entry(panel, textvariable=self._new_shortcut_cmd_var, width=24, bg=self.BG, fg=self.TEXT,
                  font=("Courier New", 10), relief="flat").pack(side="left")
         tk.Label(panel, textvariable=self._new_shortcut_keys_var, width=22, anchor="w",
                  bg=self.BG, fg=self.ACCENT2, font=("Courier New", 10)).pack(side="left", padx=6)
-<<<<<<< HEAD
         tk.Button(panel, text="キーを記録", bg=self.BORDER, fg=self.TEXT, relief="flat",
                   command=lambda: self._start_capture(("new_shortcut", ""))).pack(side="left", padx=4)
-=======
         btn = tk.Button(panel, text="キーを記録", bg=self.BORDER, fg=self.TEXT, relief="flat",
                         command=lambda: self._start_capture(("new_shortcut", "")))
         btn.pack(side="left", padx=4)
         self._capture_buttons[("new_shortcut", "")] = btn
->>>>>>> origin/codex/explain-the-repository
         tk.Button(panel, text="追加", bg=self.ACCENT2, fg=self.BG, relief="flat",
                   command=self._add_shortcut).pack(side="left", padx=4)
 
     def _start_capture(self, target):
-<<<<<<< HEAD
         self._capture_target = target
         self._capture_pressed.clear()
         messagebox.showinfo("LeftPad", "割り当てたいキーを押す", parent=self)
-=======
-=======
         for key in GESTURE_KEYS:
             row = tk.Frame(box, bg=self.SURFACE, pady=2)
             row.pack(fill="x")
@@ -796,7 +606,7 @@ class ShortcutEditorWindow(tk.Toplevel):
             self._gesture_entries[key] = var
 
     def _start_capture(self, target):
->>>>>>> codex/explain-the-repository-hmjhe9
+
         if self._capture_target and self._capture_target != target:
             return
         if self._capture_target == target:
@@ -811,10 +621,7 @@ class ShortcutEditorWindow(tk.Toplevel):
                 button.configure(text="確定", bg=self.ACCENT2, fg=self.BG, state="normal")
             else:
                 button.configure(state="disabled", bg=self.MUTED, fg=self.BG)
-<<<<<<< HEAD
->>>>>>> origin/codex/explain-the-repository
-=======
->>>>>>> codex/explain-the-repository-hmjhe9
+
 
     @staticmethod
     def _normalize_key(keysym: str) -> str:
@@ -829,8 +636,6 @@ class ShortcutEditorWindow(tk.Toplevel):
         }
         return mapping.get(k, k)
 
-<<<<<<< HEAD
-=======
     @staticmethod
     def _modifiers_from_state(state: int) -> set[str]:
         mods = set()
@@ -844,83 +649,62 @@ class ShortcutEditorWindow(tk.Toplevel):
             mods.add("meta")
         return mods
 
->>>>>>> codex/explain-the-repository-hmjhe9
+
     def _on_key_press(self, event):
         if not self._capture_target:
             return
         self._capture_pressed.add(self._normalize_key(event.keysym))
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
         self._update_capture_candidate()
->>>>>>> origin/codex/explain-the-repository
-=======
         self._capture_pressed.update(self._modifiers_from_state(event.state))
         self._update_capture_candidate()
->>>>>>> codex/explain-the-repository-hmjhe9
+
 
     def _on_key_release(self, event):
         if not self._capture_target:
             return
         key = self._normalize_key(event.keysym)
-<<<<<<< HEAD
-<<<<<<< HEAD
         keys = set(self._capture_pressed)
         if key:
             keys.add(key)
-=======
         if key in self._capture_pressed:
             self._capture_pressed.remove(key)
         self._update_capture_candidate(fallback_key=key)
-=======
         if key in self._capture_pressed:
             self._capture_pressed.remove(key)
         if not self._capture_candidate and key:
             self._update_capture_candidate(fallback_key=key)
->>>>>>> codex/explain-the-repository-hmjhe9
+
 
     def _update_capture_candidate(self, fallback_key=None):
         keys = set(self._capture_pressed)
         if not keys and fallback_key:
             keys.add(fallback_key)
-<<<<<<< HEAD
->>>>>>> origin/codex/explain-the-repository
-=======
->>>>>>> codex/explain-the-repository-hmjhe9
+
         if not keys:
             return
         modifiers = [k for k in ("ctrl", "shift", "alt", "meta") if k in keys]
         non_mods = sorted([k for k in keys if k not in self.MODIFIERS])
-<<<<<<< HEAD
-<<<<<<< HEAD
         combo = modifiers + (non_mods if non_mods else [key] if key in self.MODIFIERS else [])
         combo = [k for i, k in enumerate(combo) if k and k not in combo[:i]]
-=======
-=======
->>>>>>> codex/explain-the-repository-hmjhe9
+
         combo = modifiers + (non_mods if non_mods else [fallback_key] if fallback_key in self.MODIFIERS else [])
         combo = [k for i, k in enumerate(combo) if k and k not in combo[:i]]
         if not combo:
             return
         self._capture_candidate = combo
-<<<<<<< HEAD
->>>>>>> origin/codex/explain-the-repository
         joined = "+".join(combo)
         ttype, tkey = self._capture_target
         if ttype == "shortcut" and tkey in self._entries:
             self._entries[tkey].set(joined)
         elif ttype == "new_shortcut":
             self._new_shortcut_keys_var.set(joined)
-<<<<<<< HEAD
         self._capture_target = None
         self._capture_pressed.clear()
-=======
-=======
         joined = "+".join(combo)
         ttype, tkey = self._capture_target
         if ttype == "gesture" and tkey in self._gesture_entries:
             self._gesture_entries[tkey].set(joined)
->>>>>>> codex/explain-the-repository-hmjhe9
+
 
     def _confirm_capture(self):
         if not self._capture_target:
@@ -934,8 +718,6 @@ class ShortcutEditorWindow(tk.Toplevel):
         self._active_capture_button = None
         for button in self._capture_buttons.values():
             button.configure(text="キーを記録", state="normal", bg=self.BORDER, fg=self.TEXT)
-<<<<<<< HEAD
->>>>>>> origin/codex/explain-the-repository
 
     def _add_shortcut(self):
         cmd = self._new_shortcut_cmd_var.get().strip()
@@ -951,7 +733,6 @@ class ShortcutEditorWindow(tk.Toplevel):
         self._new_shortcut_cmd_var.set("")
         self._new_shortcut_keys_var.set("")
         messagebox.showinfo("LeftPad", "追加した。保存を押して確定する", parent=self)
-=======
 
     def _delete_gesture(self, gesture_key):
         if gesture_key not in self._gesture_entries:
@@ -963,7 +744,7 @@ class ShortcutEditorWindow(tk.Toplevel):
         ):
             return
         self._gesture_entries[gesture_key].set("")
->>>>>>> codex/explain-the-repository-hmjhe9
+
 
     def _save(self):
         gesture_changed = 0
@@ -977,7 +758,6 @@ class ShortcutEditorWindow(tk.Toplevel):
                 self._gestures[gkey] = keys
                 gesture_changed += 1
 
-<<<<<<< HEAD
         gesture_changed = 0
         for gkey, var in self._gesture_entries.items():
             val = var.get().strip()
@@ -993,7 +773,6 @@ class ShortcutEditorWindow(tk.Toplevel):
         ok_gestures = save_gestures(self._gestures)
         if ok_shortcuts and ok_gestures:
             messagebox.showinfo("LeftPad", f"ショートカット {changed} 件 / ジェスチャー {gesture_changed} 件を保存", parent=self)
-=======
         if gesture_changed == 0:
             messagebox.showinfo("LeftPad", "変更なし", parent=self)
             return
@@ -1005,7 +784,7 @@ class ShortcutEditorWindow(tk.Toplevel):
                 f"ジェスチャー {gesture_changed} 件を保存",
                 parent=self
             )
->>>>>>> codex/explain-the-repository-hmjhe9
+
             self.destroy()
         else:
             messagebox.showerror("LeftPad", "保存に失敗した", parent=self)
@@ -1019,8 +798,6 @@ class ShortcutEditorWindow(tk.Toplevel):
                 self.attributes("-zoomed", True)
             except tk.TclError:
                 self.geometry(f"{self.winfo_screenwidth()}x{self.winfo_screenheight()}+0+0")
-<<<<<<< HEAD
-=======
 
 
 class InlineGestureEditor(tk.Frame):
@@ -1141,7 +918,7 @@ class InlineGestureEditor(tk.Frame):
                     combo_to_cmd[c] = cmd
         self._gestures[gkey] = combo_to_cmd.get(combo, combo) if combo else ""
         save_gestures(self._gestures)
->>>>>>> codex/explain-the-repository-hmjhe9
+
 
 # ══════════════════════════════════════════════
 #  QRコードウィンドウ（メインGUI）
