@@ -40,7 +40,6 @@ HOST           = "0.0.0.0"
 WS_PORT        = 8765
 HTTP_PORT      = 8080
 BASE_DIR       = os.path.dirname(os.path.abspath(__file__))
-SHORTCUTS_FILE = os.path.join(BASE_DIR, "shortcuts.json")
 GESTURES_FILE  = os.path.join(BASE_DIR, "gesture_shortcuts.json")
 ACCESS_TOKEN   = secrets.token_urlsafe(16)   # 起動ごとに再生成
 
