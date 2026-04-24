@@ -42,131 +42,16 @@ WS_PORT        = 8765
 HTTP_PORT      = 8080
 BASE_DIR       = os.path.dirname(os.path.abspath(__file__))
 SHORTCUTS_FILE = os.path.join(BASE_DIR, "shortcuts.json")
-GESTURES_FILE  = os.path.join(BASE_DIR, "gestures.json")
+GESTURES_FILE  = os.path.join(BASE_DIR, "gesture_shortcuts.json")
 ACCESS_TOKEN   = secrets.token_urlsafe(16)   # 起動ごとに再生成
 
+with open("gesture_labels.json", "r", encoding="utf-8") as f:
+    GESTURE_LABELS_JP = json.load(f)
+GESTURE_KEYS = list(GESTURE_LABELS_JP.keys())
 DEFAULT_GESTURES = {
-  "swipe_up": [
-    "ctrl",
-    "semicolon"
-  ],
-  "swipe_down": [
-    "ctrl",
-    "-"
-  ],
-  "swipe_left": [
-    "ctrl",
-    "z"
-  ],
-  "swipe_right": [
-    "ctrl",
-    "y"
-  ],
-  "long_press": [
-    "i"
-  ],
-  "hold_screen": [
-    "i"
-  ],
-  "pinch_in": [
-    "ctrl",
-    "-"
-  ],
-  "pinch_out": [
-    "ctrl",
-    "semicolon"
-  ],
-  "double_tap": [
-    "tab"
-  ],
-  "two_finger_tap": [
-    "ctrl",
-    "z"
-  ],
-  "two_finger_swipe_up": [
-    "ctrl",
-    "shift",
-    "bracketright"
-  ],
-  "two_finger_swipe_down": [
-    "ctrl",
-    "shift",
-    "bracketleft"
-  ],
-  "two_finger_swipe_left": [
-    "ctrl",
-    "z"
-  ],
-  "two_finger_swipe_right": [
-    "ctrl",
-    "y"
-  ],
-  "three_finger_tap": [
-    "tab"
-  ],
-  "three_finger_swipe_up": [
-    "ctrl",
-    "bracketright"
-  ],
-  "three_finger_swipe_down": [
-    "ctrl",
-    "bracketleft"
-  ],
-  "three_finger_swipe_left": [
-    "ctrl",
-    "alt",
-    "left"
-  ],
-  "three_finger_swipe_right": [
-    "ctrl",
-    "alt",
-    "right"
-  ]
+    key: [] for key in GESTURE_KEYS
 }
-GESTURE_LABELS_JA = {
-    "long_press": "長押し", 
-    "hold_screen": "画面ホールド", 
 
-    "pinch_in": "ピンチイン", 
-    "pinch_out": "ピンチアウト",
-
-    "tap_top": "上部タップ", 
-    "tap_bottom": "下部タップ", 
-    "tap_left": "左部タップ", 
-    "tap_right": "右部タップ",
-
-    "swipe_up": "上スワイプ", 
-    "swipe_down": "下スワイプ", 
-    "swipe_left": "左スワイプ", 
-    "swipe_right": "右スワイプ",
-    
-    "double_tap": "ダブルタップ", 
-    "double_tap_top": "上部ダブルタップ", 
-    "double_tap_bottom": "下部ダブルタップ",
-    "double_tap_left": "左部ダブルタップ", 
-    "double_tap_right": "右部ダブルタップ",
-
-    "two_finger_tap_top": "上部二本指タップ",
-    "two_finger_tap_bottom": "下部二本指タップ",
-    "two_finger_tap_left": "左部二本指タップ",
-    "two_finger_tap_right": "右部二本指タップ",
-
-    "two_finger_swipe_up": "二本指上スワイプ", 
-    "two_finger_swipe_down": "二本指下スワイプ",
-    "two_finger_swipe_left": "二本指左スワイプ", 
-    "two_finger_swipe_right": "二本指右スワイプ",
-    
-    "three_finger_tap_top": "上部三本指タップ",
-    "three_finger_tap_bottom": "下部三本指タップ",
-    "three_finger_tap_left": "左部三本指タップ",
-    "three_finger_tap_right": "右部三本指タップ",
-    
-    "three_finger_swipe_up": "三本指上スワイプ",
-    "three_finger_swipe_down": "三本指下スワイプ", 
-    "three_finger_swipe_left": "三本指左スワイプ",
-    "three_finger_swipe_right": "三本指右スワイプ",
-
-}
 
 # ══════════════════════════════════════════════
 #  ログ設定
@@ -203,35 +88,9 @@ def get_local_ip() -> str:
 # ══════════════════════════════════════════════
 #  ショートカット I/O
 # ══════════════════════════════════════════════
-def load_shortcuts() -> dict:
-    try:
-        with open(SHORTCUTS_FILE, "r", encoding="utf-8") as f:
-            data = json.load(f)
-        return data
-    except FileNotFoundError:
-        log.error(f"shortcuts.json が見つからない: {SHORTCUTS_FILE}")
-        sys.exit(1)
-    except json.JSONDecodeError as e:
-        log.error(f"shortcuts.json の JSON が不正: {e}")
-        sys.exit(1)
-
-def save_shortcuts(data: dict) -> bool:
-    try:
-        with open(SHORTCUTS_FILE, "w", encoding="utf-8") as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
-        log.info("shortcuts.json を保存した")
-        return True
-    except Exception as e:
-        log.error(f"shortcuts.json の保存に失敗: {e}")
-        return False
-
-def get_real_shortcuts(shortcuts: dict) -> dict:
-    """コメントキーを除いた実際のショートカットのみを返す"""
-    return {k: v for k, v in shortcuts.items()
-            if isinstance(v, list) and not k.startswith("_")}
 
 def load_gestures() -> dict:
-    """gestures.json を読み込む（ジェスチャー: キー配列の形式）"""
+    """gesture_shortcuts.json を読み込む（ジェスチャー: キー配列の形式）"""
     if not os.path.exists(GESTURES_FILE):
         save_gestures(DEFAULT_GESTURES.copy())
         return DEFAULT_GESTURES.copy()
@@ -239,23 +98,23 @@ def load_gestures() -> dict:
         with open(GESTURES_FILE, "r", encoding="utf-8") as f:
             data = json.load(f)
         if not isinstance(data, dict):
-            raise ValueError("gestures.json must be object")
+            raise ValueError("gesture_shortcuts.json must be object")
         # デフォルト値とマージ（キー配列形式を保持）
         merged = DEFAULT_GESTURES.copy()
         merged.update(data)
         return merged
     except Exception as e:
-        log.error(f"gestures.json の読み込みに失敗: {e}")
+        log.error(f"gesture_shortcuts.json の読み込みに失敗: {e}")
         return DEFAULT_GESTURES.copy()
 
 def save_gestures(data: dict) -> bool:
     try:
         with open(GESTURES_FILE, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
-        log.info("gestures.json を保存した")
+        log.info("gesture_shortcuts.json を保存した")
         return True
     except Exception as e:
-        log.error(f"gestures.json の保存に失敗: {e}")
+        log.error(f"gesture_shortcuts.json の保存に失敗: {e}")
         return False
 
 # ══════════════════════════════════════════════
@@ -365,7 +224,7 @@ async def ws_handler(websocket):
 
             # ── ジェスチャーコマンド実行 ────────────────
             gesture_name = data.get("gesture", "").strip()
-            gesture_label = GESTURE_LABELS_JA.get(gesture_name, gesture_name)
+            gesture_label = GESTURE_LABELS_JP.get(gesture_name, gesture_name)
 
             if not gesture_name or gesture_name not in gestures:
                 await websocket.send(json.dumps({"ok": False, "error": "no gesture"}))
@@ -451,45 +310,6 @@ class ShortcutEditorWindow(tk.Toplevel):
     TEXT    = "#e4e6ee"
     DANGER  = "#ff5c5c"
     MODIFIERS = {"ctrl", "shift", "alt", "meta"}
-    GESTURE_KEYS = [
-        "swipe_up", "swipe_down", "swipe_left", "swipe_right",
-        "long_press", "hold_screen", "pinch_in", "pinch_out", "double_tap",
-        "two_finger_tap", "two_finger_swipe_up", "two_finger_swipe_down",
-        "two_finger_swipe_left", "two_finger_swipe_right",
-        "three_finger_tap", "three_finger_swipe_up", "three_finger_swipe_down",
-        "three_finger_swipe_left", "three_finger_swipe_right",
-        "tap_top", "tap_bottom", "tap_left", "tap_right",
-        "double_tap_top", "double_tap_bottom", "double_tap_left", "double_tap_right",
-    ]
-    GESTURE_LABELS = {
-        "swipe_up": "上スワイプ",
-        "swipe_down": "下スワイプ",
-        "swipe_left": "左スワイプ",
-        "swipe_right": "右スワイプ",
-        "long_press": "長押し",
-        "hold_screen": "画面ホールド",
-        "pinch_in": "ピンチイン",
-        "pinch_out": "ピンチアウト",
-        "double_tap": "ダブルタップ",
-        "two_finger_tap": "二本指タップ",
-        "two_finger_swipe_up": "二本指上スワイプ",
-        "two_finger_swipe_down": "二本指下スワイプ",
-        "two_finger_swipe_left": "二本指左スワイプ",
-        "two_finger_swipe_right": "二本指右スワイプ",
-        "three_finger_tap": "三本指タップ",
-        "three_finger_swipe_up": "三本指上スワイプ",
-        "three_finger_swipe_down": "三本指下スワイプ",
-        "three_finger_swipe_left": "三本指左スワイプ",
-        "three_finger_swipe_right": "三本指右スワイプ",
-        "tap_top": "上部タップ",
-        "tap_bottom": "下部タップ",
-        "tap_left": "左部タップ",
-        "tap_right": "右部タップ",
-        "double_tap_top": "上部ダブルタップ",
-        "double_tap_bottom": "下部ダブルタップ",
-        "double_tap_left": "左部ダブルタップ",
-        "double_tap_right": "右部ダブルタップ",
-    }
 
     def __init__(self, parent_root):
         super().__init__(parent_root)
@@ -596,7 +416,7 @@ class ShortcutEditorWindow(tk.Toplevel):
                  font=("Courier New", 11, "bold")).pack(anchor="w")
         box = tk.Frame(parent, bg=self.SURFACE, padx=8, pady=8)
         box.pack(fill="both", expand=True, pady=(6, 0))
-        for key in self.GESTURE_KEYS:
+        for key in GESTURE_KEYS:
             row = tk.Frame(box, bg=self.SURFACE, pady=2)
             row.pack(fill="x")
             label = self.GESTURE_LABELS.get(key, key)
@@ -772,12 +592,9 @@ class InlineGestureEditor(tk.Frame):
     MUTED = ShortcutEditorWindow.MUTED
     DANGER = ShortcutEditorWindow.DANGER
     MODIFIERS = ShortcutEditorWindow.MODIFIERS
-    GESTURE_KEYS = ShortcutEditorWindow.GESTURE_KEYS
-    GESTURE_LABELS = ShortcutEditorWindow.GESTURE_LABELS
 
     def __init__(self, parent):
         super().__init__(parent, bg=self.SURFACE, padx=8, pady=8)
-        self._shortcuts = load_shortcuts()
         self._gestures = load_gestures()
         self._gesture_vars = {}
         self._capture_buttons = {}
@@ -801,12 +618,12 @@ class InlineGestureEditor(tk.Frame):
         win = canvas.create_window((0, 0), window=box, anchor="nw")
         box.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
         canvas.bind("<Configure>", lambda e: canvas.itemconfigure(win, width=e.width))
-        for key in self.GESTURE_KEYS:
+        for key in GESTURE_KEYS:
             row = tk.Frame(box, bg=self.SURFACE, pady=2)
             row.pack(fill="x")
-            tk.Label(row, text=self.GESTURE_LABELS.get(key, key), width=16, anchor="w", bg=self.SURFACE, fg=self.TEXT, font=("Courier New", 10)).pack(side="left")
+            tk.Label(row, text=GESTURE_LABELS_JP.get(key, key), width=16, anchor="w", bg=self.SURFACE, fg=self.TEXT, font=("Courier New", 10)).pack(side="left")
             cmd = self._gestures.get(key, "")
-            combo = "+".join(self._shortcuts.get(cmd, [])) if cmd in self._shortcuts else cmd
+            combo = " + ".join(cmd) if isinstance(cmd, list) else str(cmd)
             var = tk.StringVar(value=combo)
             ent = tk.Entry(row, textvariable=var, width=18, bg=self.BG, fg=self.ACCENT2, relief="flat", font=("Courier New", 10))
             ent.pack(side="left", padx=(4, 6))

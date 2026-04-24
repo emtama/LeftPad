@@ -71,15 +71,14 @@ const stateEl = document.getElementById('state');
 const dotEl = document.getElementById('dot');
 const feedbackEl = document.getElementById('feedback');
 
-const GESTURE_LABELS = {
-  swipe_up:'上スワイプ', swipe_down:'下スワイプ', swipe_left:'左スワイプ', swipe_right:'右スワイプ',
-  long_press:'長押し', hold_screen:'画面ホールド', pinch_in:'ピンチイン', pinch_out:'ピンチアウト', double_tap:'ダブルタップ',
-  two_finger_tap:'二本指タップ', two_finger_swipe_up:'二本指上スワイプ', two_finger_swipe_down:'二本指下スワイプ',
-  two_finger_swipe_left:'二本指左スワイプ', two_finger_swipe_right:'二本指右スワイプ', three_finger_tap:'三本指タップ',
-  three_finger_swipe_up:'三本指上スワイプ', three_finger_swipe_down:'三本指下スワイプ', three_finger_swipe_left:'三本指左スワイプ', three_finger_swipe_right:'三本指右スワイプ',
-  tap_top:'上部タップ', tap_bottom:'下部タップ', tap_left:'左部タップ', tap_right:'右部タップ',
-  double_tap_top:'上部ダブルタップ', double_tap_bottom:'下部ダブルタップ', double_tap_left:'左部ダブルタップ', double_tap_right:'右部ダブルタップ'
-};
+fetch("gesture_labels.json")
+  .then(response => response.json())
+  .then(data => {
+    const GESTURE_LABELS_JP_JP = data.labels;
+    for (const key in GESTURE_LABELS_JP_JP) {
+      console.log(key, GESTURE_LABELS_JP_JP[key]);
+    }
+  });
 
 let gestureMap = {};
 function setConn(ok,msg){ stateEl.textContent=msg; dotEl.className = ok ? 'dot on':'dot'; }
@@ -113,7 +112,7 @@ function sendCommand(cmd, gestureKey=''){
   if(!cmd) return;
   send({cmd, gesture: gestureKey});
   vibrateTap();
-  const gestureLabel = GESTURE_LABELS[gestureKey] || cmd;
+  const gestureLabel = GESTURE_LABELS_JP[gestureKey] || cmd;
   flash(gestureLabel);
 }
 
