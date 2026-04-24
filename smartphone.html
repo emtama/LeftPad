@@ -5,7 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
   <title>LeftPad Gesture</title>
   <style>
+    /* カラーテーマと基本スタイル */
     :root { --bg:#0d0e11; --surface:#16181e; --border:#2a2d36; --accent:#e8ff47; --accent2:#47c4ff; --text:#e4e6ee; --muted:#5a5f72; }
+    /* レイアウトとインタラクションスタイル */
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     body { margin:0; background:var(--bg); color:var(--text); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; overflow:hidden; }
     header { position:fixed; top:0; left:0; right:0; z-index:20; display:flex; justify-content:space-between; align-items:center; padding:14px 16px; border-bottom:1px solid #2a2d3699; background:#0d0e1170; backdrop-filter:blur(4px); pointer-events:none; }
@@ -14,13 +16,25 @@
     .dot { width:10px; height:10px; border-radius:999px; background:var(--muted); }
     .dot.on { background:#4dff91; box-shadow:0 0 8px #4dff9180; }
 
+    /* メインエリアとジェスチャーUIスタイル */
     main { padding:0; }
-    #gesture-canvas { position:fixed; inset:0; background:var(--surface); touch-action:none; overflow:hidden; }
+    
+    /* IDセレクタ */
+    #gesture-canvas { 
+      position:fixed; inset:0; background:var(--surface); touch-action:none; overflow:hidden; 
+    }/* ジェスチャーエリアとフィードバックスタイル */
     .hint { position:absolute; color:var(--muted); font-size:11px; letter-spacing:1px; }
     .top{top:56px;left:50%;transform:translateX(-50%)} .bottom{bottom:12px;left:50%;transform:translateX(-50%)}
     .left{left:12px;top:50%;transform:translateY(-50%)} .right{right:12px;top:50%;transform:translateY(-50%)}
     #feedback { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%) scale(0.9); opacity:0; background:var(--accent); color:#000; padding:10px 18px; border-radius:999px; font-weight:700; transition:.12s; }
     #feedback.show { opacity:1; transform:translate(-50%,-50%) scale(1); }
+    #diagonal-canvas {
+      position: absolute;/* ジェスチャーエリア全体を覆うキャンバス */
+      inset: 0; /* 全面に広げる */
+      z-index: 1;           /* split-line(=2)より下 */
+      pointer-events: none; /* タッチを邪魔しない */
+    }
+    /* クラスセレクタ */
     .touch-indicator {
       position: absolute;
       width: 44px; height: 44px; margin-left: -22px; margin-top: -22px;
@@ -38,8 +52,6 @@
       transform: scale(1.35);
     }
     .split-line { position:absolute; background:#2a2d3690; pointer-events:none; z-index:2; }
-    .split-line.v { top:0; bottom:0; left:50%; width:1px; }
-    .split-line.h { left:0; right:0; top:50%; height:1px; }
     .region-label { position:absolute; color:#5a5f72; font-size:10px; letter-spacing:1px; pointer-events:none; z-index:2; }
     .region-label.top{top:72px;left:50%;transform:translateX(-50%)} .region-label.bottom{bottom:10px;left:50%;transform:translateX(-50%)}
     .region-label.left{left:10px;top:50%;transform:translateY(-50%)} .region-label.right{right:10px;top:50%;transform:translateY(-50%)}
@@ -48,20 +60,60 @@
 </head>
 <body>
   <header>
-    <div class="title">LEFTPAD / GESTURE</div>
+    <div class="title">LEFTPAD</div>
     <div class="status"><span id="state">接続中...</span><span id="dot" class="dot"></span></div>
   </header>
-
   <main>
     <section id="gesture-canvas">
-      <div class="split-line v"></div><div class="split-line h"></div>
-      <div class="region-label top">上</div><div class="region-label bottom">下</div><div class="region-label left">左</div><div class="region-label right">右</div>
-      <span class="hint top">UP</span><span class="hint bottom">DOWN</span><span class="hint left">LEFT</span><span class="hint right">RIGHT</span>
+      <canvas id="diagonal-canvas"></canvas> <!-- 対角線を描画するキャンバス -->
+      <div class="region-label top">上</div>
+      <div class="region-label bottom">下</div>
+      <div class="region-label left">左</div>
+      <div class="region-label right">右</div>
+      <span class="hint top">UP</span>
+      <span class="hint bottom">DOWN</span>
+      <span class="hint left">LEFT</span>
+      <span class="hint right">RIGHT</span>
       <div id="feedback"></div>
     </section>
   </main>
 
 <script>
+// 対角線の描画
+const diagCanvas = document.getElementById("diagonal-canvas");
+const diagCtx = diagCanvas.getContext("2d");
+
+function resizeDiagonal() {
+  const parent = document.getElementById("gesture-canvas");
+  diagCanvas.width = parent.clientWidth;
+  diagCanvas.height = parent.clientHeight;
+  drawDiagonal();
+}
+
+function drawDiagonal() {
+  const w = diagCanvas.width;
+  const h = diagCanvas.height;
+
+  diagCtx.clearRect(0, 0, w, h);
+
+  diagCtx.beginPath();
+  // 左上 → 右下
+  diagCtx.moveTo(0, 0);
+  diagCtx.lineTo(w, h);
+
+  // 右上 → 左下
+  diagCtx.moveTo(w, 0);
+  diagCtx.lineTo(0, h);
+
+  diagCtx.strokeStyle = "#2a2d36";
+  diagCtx.lineWidth = 1;
+  diagCtx.stroke();
+}
+
+window.addEventListener("resize", resizeDiagonal);
+resizeDiagonal();
+
+// WebSocket接続とジェスチャー処理の実装
 const token = new URLSearchParams(location.search).get('token') || '';
 const wsHost = location.hostname || location.host.split(':')[0];
 const wsUrl = `ws://${wsHost}:8765`;
@@ -71,62 +123,108 @@ const stateEl = document.getElementById('state');
 const dotEl = document.getElementById('dot');
 const feedbackEl = document.getElementById('feedback');
 
-'gestureのラベルを読み込み'
+// gestureのラベルを読み込み
+const GESTURE_LABELS_JP = {};
 fetch("gesture_labels.json")
   .then(response => response.json())
   .then(data => {
-    const GESTURE_LABELS_JP_JP = data;
-    for (const key in GESTURE_LABELS_JP_JP) {
-      console.log(key, GESTURE_LABELS_JP_JP[key]);
+    GESTURE_LABELS_JP = data;
+    for (const key in GESTURE_LABELS_JP) {
+      console.log(key, GESTURE_LABELS_JP[key]);
     }
   });
 
+// ジェスチャーとコマンドの対応表
 let gestureMap = {};
-function setConn(ok,msg){ stateEl.textContent=msg; dotEl.className = ok ? 'dot on':'dot'; }
-function flash(t){ feedbackEl.textContent=t; feedbackEl.classList.add('show'); setTimeout(()=>feedbackEl.classList.remove('show'),280); }
+// 接続状態の更新
+function setConn(ok,msg){ stateEl.textContent=msg; dotEl.className = ok ? 'dot on':'dot'; } 
+// フィードバック表示
+function flash_feedback_text(t){ 
+  feedbackEl.textContent=t; 
+  feedbackEl.classList.add('show'); 
+  setTimeout(()=>feedbackEl.classList.remove('show'),280); 
+}
+// サーバーへコマンドを送信
 function send(obj){ if(ws && ws.readyState===1 && isAuthed) ws.send(JSON.stringify(obj)); }
+
+// 振動フィードバック
 function vibrateTap(){
   if(!vibrationEnabled) return;
   const v = navigator.vibrate || navigator.webkitVibrate;
   if(v) return v.call(navigator, [20]);
   return false;
 }
-let hapticsReported = false;
-function reportHapticsStatus(){
-  if(hapticsReported || !ws || ws.readyState !== 1) return;
-  const v = navigator.vibrate || navigator.webkitVibrate;
+// 振動の利用可否を報告
+let vibrationReported = false;
+function reportVibrationStatus(force = false){
+  if(!force && vibrationReported) return;
+  if(!ws || ws.readyState !== WebSocket.OPEN) return;
+
+  const supported = typeof navigator.vibrate === 'function';
+
   let allowed = false;
-  if(v){
-    try { allowed = !!v.call(navigator, [1]); } catch { allowed = false; }
+  if(supported){
+    try {
+      allowed = navigator.vibrate(1) === true;
+    } catch {
+      allowed = false;
+    }
   }
-  send({type:'haptics_status', supported: !!v, allowed});
-  hapticsReported = true;
+
+  send({
+    type: 'vibration_status',
+    supported,
+    allowed
+  });
+
+  vibrationReported = true;
 }
+
+// タップ位置から上下左右のどの領域かを判定
 function getTapRegion(x, y){
-  const w = window.innerWidth, h = window.innerHeight;
-  if(y < h * 0.25) return 'top';
-  if(y > h * 0.75) return 'bottom';
-  if(x < w * 0.5) return 'left';
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+
+  // 対角線の傾き
+  const k = h / w;
+
+  const diag1 = k * x;         // 左上 → 右下
+  const diag2 = h - k * x;     // 左下 → 右上
+
+  if (y < diag1 && y < diag2) {
+    return 'top';
+  }
+  if (y > diag1 && y > diag2) {
+    return 'bottom';
+  }
+  if (y > diag1 && y < diag2) {
+    return 'left';
+  }
   return 'right';
 }
+
+// ジェスチャーに対応するコマンドを送信
 function sendCommand(cmd, gestureKey=''){
   if(!cmd) return;
   send({cmd, gesture: gestureKey});
   vibrateTap();
   const gestureLabel = GESTURE_LABELS_JP[gestureKey] || cmd;
-  flash(gestureLabel);
+  flash_feedback_text(gestureLabel);
 }
 
+// WebSocket接続とメッセージ処理
 function connect(){
-  ws = new WebSocket(wsUrl);
+  ws = new WebSocket(wsUrl);// websocketインスタンス
   setConn(false,'接続中...');
+  // 接続が開いたら認証トークンを送る
   ws.onopen = ()=> ws.send(JSON.stringify({type:'auth', token}));
+  // メッセージ受信時の処理
   ws.onmessage = (e)=>{
-    let d; try{d=JSON.parse(e.data)}catch{return}
+    let d; try{d=JSON.parse(e.data)}catch{return} // メッセージをjsonに変換
     if(d.type==='auth'){
       isAuthed=!!d.ok;
       setConn(isAuthed, isAuthed?'接続済み':'認証失敗');
-      if(isAuthed){ send({type:'get_gestures'}); send({type:'get_settings'}); reportHapticsStatus(); }
+      if(isAuthed){ send({type:'get_gestures'}); send({type:'get_settings'}); reportVibrationStatus(); }
       return;
     }
     if(d.type==='gestures'){ gestureMap = d.data || {}; }
@@ -135,93 +233,22 @@ function connect(){
   };
   ws.onclose = ()=>{ isAuthed=false; setConn(false,'未接続'); setTimeout(connect, 1500); };
 }
-function renderGestureTable() {
-  const tbody = document.getElementById('gesture-map-body');
-  tbody.innerHTML = '';
-  GESTURE_KEYS.forEach(key => {
-    const tr = document.createElement('tr');
-    const tdLabel = document.createElement('td');
-    tdLabel.style.color = 'var(--text)';
-    tdLabel.style.fontSize = '11px';
-    tdLabel.textContent = GESTURE_LABELS[key];
-
-    const tdInput = document.createElement('td');
-    const input = document.createElement('input');
-    input.className = 'g-cmd-input';
-    input.type  = 'text';
-    input.value = gestureMap[key] || '';
-    input.placeholder = '未割り当て';
-    input.onchange = () => {
-      gestureMap[key] = input.value.trim();
-      saveGestureMap();
-      if (ws && ws.readyState === WebSocket.OPEN && isAuthed) {
-        ws.send(JSON.stringify({ type: 'update_gesture', gesture: key, cmd: gestureMap[key] }));
-      }
-    };
-    tdInput.appendChild(input);
-
-    tr.appendChild(tdLabel);
-    tr.appendChild(tdInput);
-    tbody.appendChild(tr);
-  });
-
-  // ヒントラベルを更新
-  document.getElementById('hint-up').textContent    = gestureMap.swipe_up    || '';
-  document.getElementById('hint-down').textContent  = gestureMap.swipe_down  || '';
-  document.getElementById('hint-left').textContent  = gestureMap.swipe_left  || '';
-  document.getElementById('hint-right').textContent = gestureMap.swipe_right || '';
-}
-
-// ジェスチャー発火
-let gestureArrowTimer = null;
-function fireGesture(key) {
-  const cmd = gestureMap[key];
-  if (!cmd) return;
-
-  // ビジュアルフィードバック
-  const arrow = document.getElementById('gesture-arrow');
-  const arrowMap = {
-    swipe_up:'↑', swipe_down:'↓', swipe_left:'←', swipe_right:'→',
-    long_press:'●', hold_screen:'●', pinch_in:'◎', pinch_out:'○', double_tap:'⊙',
-    two_finger_tap:'②', two_finger_swipe_up:'⇈', two_finger_swipe_down:'⇊', two_finger_swipe_left:'⇇', two_finger_swipe_right:'⇉',
-    three_finger_tap:'③', three_finger_swipe_up:'⤊', three_finger_swipe_down:'⤋', three_finger_swipe_left:'⤆', three_finger_swipe_right:'⤇',
-  };
-  arrow.textContent = arrowMap[key] || '';
-  arrow.classList.add('show');
-  clearTimeout(gestureArrowTimer);
-  gestureArrowTimer = setTimeout(() => arrow.classList.remove('show'), 300);
-
-  const fb = document.getElementById('gesture-feedback');
-  fb.textContent = cmd;
-  fb.classList.add('show');
-  setTimeout(() => fb.classList.remove('show'), 600);
-
-  // コマンド送信
-  sendByValue(cmd);
-}
 
 // ── タッチイベント ──────────────────────────
-let touchStart   = null;
-let touchTime    = null;
-let longPressTimer = null;
-let lastTapTime  = 0;
-let pinchStart   = null;
-let pinchFired   = false;
-let multiStart   = null;
+let longPressTimer = null;  // 長押し判定用タイマー
+let lastTapTime  = 0; // 連続タップの判定用
 
-const SWIPE_THRESHOLD  = 40;
-const LONG_PRESS_MS    = 600;
-const DOUBLE_TAP_MS    = 300;
-const TAP_MAX_MOVE     = 12;
+const SWIPE_THRESHOLD  = 40;  // スワイプと判定する最小移動距離（ピクセル）
+const LONG_PRESS_MS    = 600; // 長押しと判定するための最小時間（ミリ秒）
+const DOUBLE_TAP_MS    = 300; // ダブルタップと判定する最大間隔（ミリ秒）
+const TAP_SEQUENCE_MS  = 250;  // 指が増えても一連のジェスチャーに含める最大間隔（ミリ秒）
 const PINCH_THRESHOLD  = 0.25; // ratio change threshold
 
 const canvas = document.getElementById('gesture-canvas');
-let gesture = null;
-const touchIndicators = new Map();
-let lastTapAt = 0;
-let lastTapPos = null;
-let pendingTap = null;
+let gesture = null; // 現在進行中のジェスチャー状態を保持するオブジェクト
+const touchIndicators = new Map();// タッチIDとインジケーター要素のマップ
 
+// タッチインジケーターの更新とクリーンアップ
 function updateTouchIndicators(touchList){
   const activeIds = new Set();
   for(const t of touchList){
@@ -246,29 +273,130 @@ function updateTouchIndicators(touchList){
   }
 }
 
-
+// タッチの中心点を計算
 function calcCenterFromTouches(touches){
   if(!touches || touches.length === 0) return null;
   let sx=0, sy=0;
   for(const t of touches){ sx += t.clientX; sy += t.clientY; }
   return {x: sx / touches.length, y: sy / touches.length};
 }
+
+// 2点間の距離を計算
 function distance(t1, t2){
   if(!t1 || !t2) return 0;
   return Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
 }
 
+// ジェスチャーの分類とコマンド送信
+function classifyGesture(gesture){
+  const dt = Date.now() - gesture.startAt;
+
+  const first = Object.values(gesture.starts)[0];
+  if(!first) return '';
+
+  const dx = gesture.last.x - first.x;
+  const dy = gesture.last.y - first.y;
+  const adx = Math.abs(dx);
+  const ady = Math.abs(dy);
+  const dist = Math.hypot(dx, dy);
+
+  const finger = getFingerPrefix(gesture);
+
+  // --- スワイプ ---
+  if(dist > SWIPE_THRESHOLD){
+    const dir = adx > ady
+      ? (dx > 0 ? 'right' : 'left')
+      : (dy > 0 ? 'down' : 'up');
+
+    return `${finger}_swipe_${dir}`;
+  }
+
+  // --- 長押し ---
+  if(dt > LONG_PRESS_MS){
+    const region = getTapRegion(gesture.last.x, gesture.last.y);
+    return `${finger}_long_press_${region}`;
+  }
+
+  // --- タップ（回数管理） ---
+  return handleTapSequence(gesture, finger);
+}
+// 指の本数に応じたプレフィックスを取得
+function getFingerPrefix(gesture){
+  const count = Math.max(gesture.count, gesture.maxTouches);
+  if(count === 1) return 'single_finger';
+  if(count === 2) return 'two_finger';
+  if(count === 3) return 'three_finger';
+  return '';
+}
+// タップ回数管理
+let tapState = {
+  lastTime: 0,
+  count: 0,// 直近のタップ位置（連続タップの判定用）
+  pos: null,
+  timer: null
+};
+
+// タップの連続性を管理して、シングルタップ、ダブルタップ、トリプルタップを判定
+function handleTapSequence(gesture, finger){
+  const now = Date.now();
+  const pos = gesture.last;
+  // 前回のタップ位置と今回のタップ位置が近いかどうかを判定（40px以内）
+  const near = tapState.pos &&
+    Math.hypot(pos.x - tapState.pos.x, pos.y - tapState.pos.y) < 40;
+  // 前回のタップからの時間と位置が近い場合はカウントを増やす、そうでない場合はリセットして1からスタート
+  if(now - tapState.lastTime < DOUBLE_TAP_MS && near){
+    tapState.count++;
+  } else {
+    tapState.count = 1;
+  }
+
+  tapState.lastTime = now;
+  tapState.pos = pos;
+
+  const region = getTapRegion(pos.x, pos.y);
+
+  clearTimeout(tapState.timer);
+
+  // タップの種類を判定するために少し待つ（ダブルタップやトリプルタップの可能性を考慮）
+  return new Promise(resolve=>{
+    tapState.timer = setTimeout(()=>{
+      let type = 'tap';
+      if(tapState.count === 2) type = 'double_tap';
+      if(tapState.count >= 3) type = 'triple_tap';
+
+      resolve(`${finger}_${type}_${region}`);
+      tapState.count = 0;
+    }, 260);
+  });
+}
+// ピンチジェスチャーの検出
+function detectPinch(gesture){
+  // ピンチは2本指のみで判定
+  if(gesture.maxTouches !== 2) return '';
+
+  const startDist = gesture.startDist;
+  const endDist   = gesture.lastDist;
+
+  const delta = endDist - startDist;
+
+  if(Math.abs(delta) < PINCH_THRESHOLD) return '';
+
+  return delta > 0 ? 'pinch_out' : 'pinch_in';
+}
+
+// タッチ開始イベント
 canvas.addEventListener('touchstart', (e)=>{
   updateTouchIndicators(e.touches);
   vibrateTap();
+  // 現在ジェスチャーがなく、かつ指の本数が1〜3本の場合に新しいジェスチャーを開始
   if(!gesture && (e.touches.length===1 || e.touches.length===2 || e.touches.length===3)){
     const starts = {};
     for (const t of e.touches) starts[t.identifier] = {x:t.clientX, y:t.clientY};
-    gesture = {
-      count: e.touches.length,
-      maxTouches: e.touches.length,
-      startAt: Date.now(),
-      starts,
+    gesture = {// ジェスチャー状態の初期化
+      count: e.touches.length,// 開始時の指の本数
+      maxTouches: e.touches.length,// ジェスチャー中に増えた指の本数（長押し誤判定回避用）
+      startAt: Date.now(),// ジェスチャー開始時刻
+      starts,// 各指の開始位置 {id: {x, y}}
       lastPositions: Object.fromEntries(Array.from(e.touches).map(t => [t.identifier, {x:t.clientX, y:t.clientY}])),
       last: {x:e.touches[0].clientX, y:e.touches[0].clientY},
       startCenter: calcCenterFromTouches(e.touches),
@@ -276,15 +404,16 @@ canvas.addEventListener('touchstart', (e)=>{
       startDist: e.touches.length>=2 ? distance(e.touches[0], e.touches[1]) : 0,
       lastDist: e.touches.length>=2 ? distance(e.touches[0], e.touches[1]) : 0,
     };
-  } else if(gesture) {
+  } else if(gesture) {// 途中で本数が増えたらジェスチャー種別を昇格（長押し誤判定回避）
     gesture.maxTouches = Math.max(gesture.maxTouches, e.touches.length);
-    if (e.touches.length > gesture.count && (Date.now() - gesture.startAt) < 250) {
+    if (e.touches.length > gesture.count && (Date.now() - gesture.startAt) < TAP_SEQUENCE_MS) {
       gesture.count = e.touches.length;
     }
   }
+  // ジェスチャー状態の更新
   if(gesture){
     gesture.maxTouches = Math.max(gesture.maxTouches, e.touches.length);
-    for (const t of e.touches){
+    for (const t of e.touches){// 各指の開始位置と最新位置を更新
       if(!gesture.starts[t.identifier]) gesture.starts[t.identifier] = {x:t.clientX, y:t.clientY};
       gesture.lastPositions[t.identifier] = {x:t.clientX, y:t.clientY};
       gesture.last = {x:t.clientX, y:t.clientY};
@@ -292,14 +421,31 @@ canvas.addEventListener('touchstart', (e)=>{
     gesture.lastCenter = calcCenterFromTouches(e.touches) || gesture.lastCenter;
     if(e.touches.length>=2) gesture.lastDist = distance(e.touches[0], e.touches[1]);
   }
-  if(gesture && gesture.count===1 && gesture.maxTouches===1 && e.touches.length===1){
+  // 長押しの判定
+  /*
+  if (
+    gesture &&
+    gesture.count >= 1 && gesture.count <= 3 &&   // 1〜3本指
+    gesture.maxTouches === gesture.count &&       // 途中で増えていない
+    e.touches.length === gesture.count            // 現在も同じ本数
+  ){
     clearTimeout(longPressTimer);
-    longPressTimer=setTimeout(()=>{ sendCommand(gestureMap.long_press||gestureMap.hold_screen, 'long_press'); gesture = null; }, 550);
+    // LONG_PRESS_MSたったら長押しとみなす
+    longPressTimer = setTimeout(()=>{
+      sendCommand(
+        gestureMap[`long_press_${gesture.count}`] || gestureMap.long_press,
+        `long_press_${gesture.count}`
+      );
+      gesture = null;
+    }, LONG_PRESS_MS);
   } else {
     clearTimeout(longPressTimer);
   }
-}, {passive:true});
+  */
+}
+, {passive:true});
 
+// タッチ移動イベント
 canvas.addEventListener('touchmove', (e)=>{
   updateTouchIndicators(e.touches);
   if(gesture && e.touches.length > 0){
@@ -315,233 +461,35 @@ canvas.addEventListener('touchmove', (e)=>{
   if(gesture && (gesture.maxTouches > 1 || e.touches.length > 1)) clearTimeout(longPressTimer);
 }, {passive:true});
 
-function calcCenterFromTouches(touches){
-  if(!touches || touches.length === 0) return null;
-  let sx=0, sy=0;
-  for(const t of touches){ sx += t.clientX; sy += t.clientY; }
-  return {x: sx / touches.length, y: sy / touches.length};
-}
-function distance(t1, t2){
-  if(!t1 || !t2) return 0;
-  return Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
-}
-
-canvas.addEventListener('touchstart', (e)=>{
+// タッチ終了イベント
+canvas.addEventListener('touchend', async (e)=>{
   updateTouchIndicators(e.touches);
-  vibrateTap();
-  if(!gesture && (e.touches.length===1 || e.touches.length===2 || e.touches.length===3)){
-    const starts = {};
-    for (const t of e.touches) starts[t.identifier] = {x:t.clientX, y:t.clientY};
-    gesture = {
-      count: e.touches.length,
-      maxTouches: e.touches.length,
-      startAt: Date.now(),
-      starts,
-      lastPositions: Object.fromEntries(Array.from(e.touches).map(t => [t.identifier, {x:t.clientX, y:t.clientY}])),
-      last: {x:e.touches[0].clientX, y:e.touches[0].clientY},
-      startCenter: calcCenterFromTouches(e.touches),
-      lastCenter: calcCenterFromTouches(e.touches),
-      startDist: e.touches.length>=2 ? distance(e.touches[0], e.touches[1]) : 0,
-      lastDist: e.touches.length>=2 ? distance(e.touches[0], e.touches[1]) : 0,
-    };
-  } else if(gesture) {
-    // 途中で本数が増えたらジェスチャー種別を昇格（長押し誤判定回避）
-    gesture.maxTouches = Math.max(gesture.maxTouches, e.touches.length);
-    if (e.touches.length > gesture.count && (Date.now() - gesture.startAt) < 250) {
-      gesture.count = e.touches.length;
-    }
+  clearTimeout(longPressTimer);
+
+  if(!gesture) return;// ジェスチャー状態がない場合は何もしない
+  if(e.touches.length > 0) return;// まだ指が残っている場合はジェスチャーを確定しない
+
+  // ピンチ優先
+  const pinch = detectPinch(gesture);
+  if(pinch){
+    sendCommand(gestureMap[pinch], pinch);
+    gesture = null;
+    return;
   }
-  if(gesture){
-    gesture.maxTouches = Math.max(gesture.maxTouches, e.touches.length);
-    for (const t of e.touches){
-      if(!gesture.starts[t.identifier]) gesture.starts[t.identifier] = {x:t.clientX, y:t.clientY};
-      gesture.lastPositions[t.identifier] = {x:t.clientX, y:t.clientY};
-      gesture.last = {x:t.clientX, y:t.clientY};
-    }
-    gesture.lastCenter = calcCenterFromTouches(e.touches) || gesture.lastCenter;
-    if(e.touches.length>=2) gesture.lastDist = distance(e.touches[0], e.touches[1]);
-  }
-  if(gesture && gesture.count===1 && gesture.maxTouches===1 && e.touches.length===1){
-    clearTimeout(longPressTimer);
-    longPressTimer=setTimeout(()=>{ sendCommand(gestureMap.long_press||gestureMap.hold_screen, 'long_press'); gesture = null; }, 550);
+  // その他のジェスチャー
+  const result = classifyGesture(gesture);
+
+  if(result instanceof Promise){
+    const key = await result;
+    sendCommand(gestureMap[key], key);
   } else {
-    clearTimeout(longPressTimer);
+    sendCommand(gestureMap[result], result);
   }
-}, {passive:true});
 
-canvas.addEventListener('touchmove', (e)=>{
-  updateTouchIndicators(e.touches);
-  if(gesture && e.touches.length > 0){
-    const t = e.touches[0];
-    gesture.last = {x:t.clientX, y:t.clientY};
-    gesture.maxTouches = Math.max(gesture.maxTouches, e.touches.length);
-    for (const tt of e.touches){
-      gesture.lastPositions[tt.identifier] = {x:tt.clientX, y:tt.clientY};
-    }
-    gesture.lastCenter = calcCenterFromTouches(e.touches) || gesture.lastCenter;
-    if(e.touches.length>=2) gesture.lastDist = distance(e.touches[0], e.touches[1]);
-  }
-  if(gesture && (gesture.maxTouches > 1 || e.touches.length > 1)) clearTimeout(longPressTimer);
-}, {passive:true});
-
-canvas.addEventListener('touchend', (e)=>{
-  updateTouchIndicators(e.touches);
-  clearTimeout(longPressTimer);
-  if(!gesture) return;
-  if(e.touches.length > 0) return; // 全指が離れてから判定
-  const dt = Date.now()-gesture.startAt;
-  const firstStart = Object.values(gesture.starts)[0] || {x:gesture.last.x, y:gesture.last.y};
-  const dx=gesture.last.x-firstStart.x, dy=gesture.last.y-firstStart.y;
-  const adx=Math.abs(dx), ady=Math.abs(dy);
-  const movements = Object.values(gesture.starts).map((s)=>Math.hypot(gesture.last.x-s.x, gesture.last.y-s.y));
-  const maxMove = movements.length ? Math.max(...movements) : 0;
-
-  let key='';
-  const gcount = Math.max(gesture.count, gesture.maxTouches);
-  if(gcount===1){
-    if(adx<25 && ady<25 && dt<240){
-      const now = Date.now();
-      const nearPrev = lastTapPos && Math.hypot(gesture.last.x - lastTapPos.x, gesture.last.y - lastTapPos.y) < 36;
-      if((now - lastTapAt) < 320 && nearPrev){
-        const region = getTapRegion(gesture.last.x, gesture.last.y);
-        key = `double_tap_${region}`;
-        if(pendingTap && pendingTap.timer) clearTimeout(pendingTap.timer);
-        pendingTap = null;
-        lastTapAt = 0;
-        lastTapPos = null;
-      } else {
-        const region = getTapRegion(gesture.last.x, gesture.last.y);
-        if(pendingTap && pendingTap.timer) clearTimeout(pendingTap.timer);
-        pendingTap = {
-          timer: setTimeout(()=>{
-            sendCommand(gestureMap[`tap_${region}`], `tap_${region}`);
-            pendingTap = null;
-          }, 280)
-        };
-        lastTapAt = now;
-        lastTapPos = {x: gesture.last.x, y: gesture.last.y};
-      }
-    } else {
-      key = adx>ady ? (dx>0?'swipe_right':'swipe_left') : (dy>0?'swipe_down':'swipe_up');
-      lastTapAt = 0;
-      lastTapPos = null;
-    }
-  } else if(gcount===2 && gesture.maxTouches===2){
-    const ids = Object.keys(gesture.starts).slice(0, 2);
-    const s1 = gesture.starts[ids[0]], s2 = gesture.starts[ids[1]];
-    const e1 = gesture.lastPositions[ids[0]] || s1, e2 = gesture.lastPositions[ids[1]] || s2;
-    const startCenter = {x:(s1.x+s2.x)/2, y:(s1.y+s2.y)/2};
-    const endCenter = {x:(e1.x+e2.x)/2, y:(e1.y+e2.y)/2};
-    const centerDx = endCenter.x - startCenter.x;
-    const centerDy = endCenter.y - startCenter.y;
-    const centerAbsX = Math.abs(centerDx);
-    const centerAbsY = Math.abs(centerDy);
-    const centerDist = Math.hypot(centerDx, centerDy);
-    const distDelta = Math.hypot(e2.x-e1.x, e2.y-e1.y) - Math.hypot(s2.x-s1.x, s2.y-s1.y);
-    const pinchStrength = Math.abs(distDelta);
-    if(centerDist < 18 && dt < 320 && pinchStrength < 18){
-      key='two_finger_tap';
-    } else if(pinchStrength > 30 && pinchStrength > (centerDist * 1.5)){
-      key = distDelta > 0 ? 'pinch_out' : 'pinch_in';
-    } else {
-      key = centerAbsX>centerAbsY
-        ? (centerDx>0?'two_finger_swipe_right':'two_finger_swipe_left')
-        : (centerDy>0?'two_finger_swipe_down':'two_finger_swipe_up');
-    }
-  } else if(gcount===3 && gesture.maxTouches===3){
-    const centerDx3 = (gesture.lastCenter?.x ?? gesture.last.x) - (gesture.startCenter?.x ?? firstStart.x);
-    const centerDy3 = (gesture.lastCenter?.y ?? gesture.last.y) - (gesture.startCenter?.y ?? firstStart.y);
-    const centerAbsX3 = Math.abs(centerDx3);
-    const centerAbsY3 = Math.abs(centerDy3);
-    const centerDist3 = Math.hypot(centerDx3, centerDy3);
-    if(centerDist3 < 22 && dt < 320) key='three_finger_tap';
-    else key = centerAbsX3>centerAbsY3
-      ? (centerDx3>0?'three_finger_swipe_right':'three_finger_swipe_left')
-      : (centerDy3>0?'three_finger_swipe_down':'three_finger_swipe_up');
-  }
-  sendCommand(gestureMap[key], key);
   gesture = null;
 }, {passive:true});
 
-canvas.addEventListener('touchcancel', (e)=>{
-  updateTouchIndicators(e.touches);
-  clearTimeout(longPressTimer);
-  if(!gesture) return;
-  if(e.touches.length > 0) return; // 全指が離れてから判定
-  const dt = Date.now()-gesture.startAt;
-  const firstStart = Object.values(gesture.starts)[0] || {x:gesture.last.x, y:gesture.last.y};
-  const dx=gesture.last.x-firstStart.x, dy=gesture.last.y-firstStart.y;
-  const adx=Math.abs(dx), ady=Math.abs(dy);
-  const movements = Object.values(gesture.starts).map((s)=>Math.hypot(gesture.last.x-s.x, gesture.last.y-s.y));
-  const maxMove = movements.length ? Math.max(...movements) : 0;
-
-  let key='';
-  const gcount = Math.max(gesture.count, gesture.maxTouches);
-  if(gcount===1){
-    if(adx<25 && ady<25 && dt<240){
-      const now = Date.now();
-      const nearPrev = lastTapPos && Math.hypot(gesture.last.x - lastTapPos.x, gesture.last.y - lastTapPos.y) < 36;
-      if((now - lastTapAt) < 320 && nearPrev){
-        const region = getTapRegion(gesture.last.x, gesture.last.y);
-        key = `double_tap_${region}`;
-        if(pendingTap && pendingTap.timer) clearTimeout(pendingTap.timer);
-        pendingTap = null;
-        lastTapAt = 0;
-        lastTapPos = null;
-      } else {
-        const region = getTapRegion(gesture.last.x, gesture.last.y);
-        if(pendingTap && pendingTap.timer) clearTimeout(pendingTap.timer);
-        pendingTap = {
-          timer: setTimeout(()=>{
-            sendCommand(gestureMap[`tap_${region}`], `tap_${region}`);
-            pendingTap = null;
-          }, 280)
-        };
-        lastTapAt = now;
-        lastTapPos = {x: gesture.last.x, y: gesture.last.y};
-      }
-    } else {
-      key = adx>ady ? (dx>0?'swipe_right':'swipe_left') : (dy>0?'swipe_down':'swipe_up');
-      lastTapAt = 0;
-      lastTapPos = null;
-    }
-  } else if(gcount===2 && gesture.maxTouches===2){
-    const ids = Object.keys(gesture.starts).slice(0, 2);
-    const s1 = gesture.starts[ids[0]], s2 = gesture.starts[ids[1]];
-    const e1 = gesture.lastPositions[ids[0]] || s1, e2 = gesture.lastPositions[ids[1]] || s2;
-    const startCenter = {x:(s1.x+s2.x)/2, y:(s1.y+s2.y)/2};
-    const endCenter = {x:(e1.x+e2.x)/2, y:(e1.y+e2.y)/2};
-    const centerDx = endCenter.x - startCenter.x;
-    const centerDy = endCenter.y - startCenter.y;
-    const centerAbsX = Math.abs(centerDx);
-    const centerAbsY = Math.abs(centerDy);
-    const centerDist = Math.hypot(centerDx, centerDy);
-    const distDelta = Math.hypot(e2.x-e1.x, e2.y-e1.y) - Math.hypot(s2.x-s1.x, s2.y-s1.y);
-    const pinchStrength = Math.abs(distDelta);
-    if(centerDist < 18 && dt < 320 && pinchStrength < 18){
-      key='two_finger_tap';
-    } else if(pinchStrength > 30 && pinchStrength > (centerDist * 1.5)){
-      key = distDelta > 0 ? 'pinch_out' : 'pinch_in';
-    } else {
-      key = centerAbsX>centerAbsY
-        ? (centerDx>0?'two_finger_swipe_right':'two_finger_swipe_left')
-        : (centerDy>0?'two_finger_swipe_down':'two_finger_swipe_up');
-    }
-  } else if(gcount===3 && gesture.maxTouches===3){
-    const centerDx3 = (gesture.lastCenter?.x ?? gesture.last.x) - (gesture.startCenter?.x ?? firstStart.x);
-    const centerDy3 = (gesture.lastCenter?.y ?? gesture.last.y) - (gesture.startCenter?.y ?? firstStart.y);
-    const centerAbsX3 = Math.abs(centerDx3);
-    const centerAbsY3 = Math.abs(centerDy3);
-    const centerDist3 = Math.hypot(centerDx3, centerDy3);
-    if(centerDist3 < 22 && dt < 320) key='three_finger_tap';
-    else key = centerAbsX3>centerAbsY3
-      ? (centerDx3>0?'three_finger_swipe_right':'three_finger_swipe_left')
-      : (centerDy3>0?'three_finger_swipe_down':'three_finger_swipe_up');
-  }
-  sendCommand(gestureMap[key], key);
-  gesture = null;
-}, {passive:true});
-
+// タッチキャンセルイベント（例: システムによる割り込みなど）
 canvas.addEventListener('touchcancel', (e)=>{
   updateTouchIndicators(e.touches);
   clearTimeout(longPressTimer);

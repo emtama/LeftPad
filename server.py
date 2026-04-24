@@ -44,11 +44,16 @@ SHORTCUTS_FILE = os.path.join(BASE_DIR, "shortcuts.json")
 GESTURES_FILE  = os.path.join(BASE_DIR, "gesture_shortcuts.json")
 ACCESS_TOKEN   = secrets.token_urlsafe(16)   # 起動ごとに再生成
 
+# ═════════════════════════════════════════════
+# ジェスチャーの日本語ラベル（UI表示用）
+# ═════════════════════════════════════════════
 with open("gesture_labels.json", "r", encoding="utf-8") as f:
     GESTURE_LABELS_JP = json.load(f)
 GESTURE_KEYS = list(GESTURE_LABELS_JP.keys())
+
+# デフォルトのジェスチャー・ショートカット対応（全てからっぽ）
 DEFAULT_GESTURES = {
-    key: [] for key in GESTURE_KEYS
+    key: "" for key in GESTURE_KEYS
 }
 
 
@@ -114,37 +119,6 @@ def save_gestures(data: dict) -> bool:
         return True
     except Exception as e:
         log.error(f"gesture_shortcuts.json の保存に失敗: {e}")
-        return False
-
-def get_real_shortcuts(shortcuts: dict) -> dict:
-    """コメントキーを除いた実際のショートカットのみを返す"""
-    return {k: v for k, v in shortcuts.items()
-            if isinstance(v, list) and not k.startswith("_")}
-
-def load_gestures() -> dict:
-    if not os.path.exists(GESTURES_FILE):
-        save_gestures(DEFAULT_GESTURES.copy())
-        return DEFAULT_GESTURES.copy()
-    try:
-        with open(GESTURES_FILE, "r", encoding="utf-8") as f:
-            data = json.load(f)
-        if not isinstance(data, dict):
-            raise ValueError("gestures.json must be object")
-        merged = DEFAULT_GESTURES.copy()
-        merged.update({k: str(v) for k, v in data.items()})
-        return merged
-    except Exception as e:
-        log.error(f"gestures.json の読み込みに失敗: {e}")
-        return DEFAULT_GESTURES.copy()
-
-def save_gestures(data: dict) -> bool:
-    try:
-        with open(GESTURES_FILE, "w", encoding="utf-8") as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
-        log.info("gestures.json を保存した")
-        return True
-    except Exception as e:
-        log.error(f"gestures.json の保存に失敗: {e}")
         return False
 
 
@@ -342,7 +316,7 @@ def make_qr_image(url: str, size: int = 260) -> ImageTk.PhotoImage:
 # ══════════════════════════════════════════════
 class InlineGestureEditor(tk.Frame):
     BG      = "#0d0e11"
-    SURFACE = "#16181e"
+    SURFACE = "#3e424f"
     BORDER  = "#2a2d36"
     ACCENT  = "#e8ff47"
     ACCENT2 = "#47c4ff"
@@ -383,12 +357,18 @@ class InlineGestureEditor(tk.Frame):
             cmd = self._gestures.get(key, "")
             combo = " + ".join(cmd) if isinstance(cmd, list) else str(cmd)
             var = tk.StringVar(value=combo)
+
             ent = tk.Entry(row, textvariable=var, width=18, bg=self.BG, fg=self.ACCENT2, relief="flat", font=("Courier New", 10))
             ent.pack(side="left", padx=(4, 6))
-            btn = tk.Button(row, text="キーを記録", bg=self.BORDER, fg=self.TEXT, relief="flat", font=("Courier New", 9), command=lambda g=key: self._start_capture(g))
+
+            btn = tk.Button(row, text="記録", bg=self.BORDER, fg=self.TEXT, relief="flat", font=("Courier New", 9), command=lambda g=key: self._start_capture(g))
             btn.pack(side="left", padx=2)
-            tk.Button(row, text="削除", bg=self.DANGER, fg=self.BG, relief="flat", font=("Courier New", 9), command=lambda g=key: self._delete(g)).pack(side="left", padx=2)
+            
+            delbtn = tk.Button(row, text="削除", bg=self.DANGER, fg=self.BG, relief="flat", font=("Courier New", 9), command=lambda g=key: self._delete(g))
+            delbtn.pack(side="left", padx=2)
+            
             var.trace_add("write", lambda *_args, g=key: self._save_one(g))
+            
             self._gesture_vars[key] = var
             self._capture_buttons[key] = btn
 
