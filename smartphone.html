@@ -329,6 +329,7 @@ function connect(){
   // メッセージ受信時の処理
   ws.onmessage = (e)=>{
     let d; try{d=JSON.parse(e.data)}catch{return} // メッセージをjsonに変換
+    // 認証結果を受け取って処理
     if(d.type==='auth'){
       isAuthed=!!d.ok;
       setConn(isAuthed, isAuthed?'接続済み':'認証失敗');
@@ -344,21 +345,15 @@ function connect(){
       gesture_labels_jp = d.data || {}; 
     }
     // （初回接続時）アプリの設定値を受け取る（例: vibration_enabled）
-    if(d.type==='vibration_setting'){ 
-      vibrationEnabled = !!d.data; 
-      // 送り返す
-      reportVibrationStatus(true);
-
-    }
     // （随時）設定値の更新通知を受け取る（例: vibration_enabledの変更）
-    if(d.type==='vibration_setting_updated'){ 
+    if(d.type==='vibration_setting' || d.type==='vibration_setting_updated'){ 
       vibrationEnabled = !!d.data; 
-      // 送り返す
+      // スマホ側の振動対応可否を送り返す
       reportVibrationStatus(true);
     }
     // （随時）ジェスチャーのマッピングが更新された場合に新しいマッピングを反映する
     if (d.type == 'gesture_updated') {
-      if (d.gesture && d.cmd) {
+      if (d.data && d.cmd) {
         gestureMap[d.gesture] = d.cmd;
         updateTickers(); // ヒントテキストも更新
       }

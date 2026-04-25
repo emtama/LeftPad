@@ -155,6 +155,7 @@ def execute_keys(keys: list[str]) -> None:
 # ══════════════════════════════════════════════
 #  WebSocket ハンドラ
 # ══════════════════════════════════════════════
+# WebSocket通信での送信データは、JSON形式で、"type"フィールドでコマンドの種類を識別する。例: {"type": "auth", "token": "xxxx"}（認証メッセージ）や {"type": "gesture", "gesture": "swipe_up"}（ジェスチャーコマンド）など。
 async def ws_handler(websocket):
     # クライアント情報（IPアドレスとポート番号）を取得
     client = websocket.remote_address
@@ -199,7 +200,7 @@ async def ws_handler(websocket):
     await websocket.send(json.dumps({"type": "gesture_labels", "data": GESTURE_LABELS_JP}))
     await websocket.send(json.dumps({"type": "vibration_setting", "data": APP_SETTINGS.get("vibration_enabled")}))
     
-    # クライアントからのメッセージを待機して処理するループ。接続が切れるまで続く。
+    # （随時）クライアントからのメッセージを待機して処理するループ。接続が切れるまで続く。
     try:
         # クライアントからのメッセージを待機。メッセージの形式は全てJSONで、"type"フィールドで種類を判別する。
         async for message in websocket:# データが来るたびに一回実行するということ。
@@ -207,7 +208,7 @@ async def ws_handler(websocket):
             try:
                 data = json.loads(message)
             except json.JSONDecodeError:
-                await websocket.send(json.dumps({"ok": False, "error": "invalid json"}))
+                await websocket.send(json.dumps({"type": "error", "ok": False, "error": "invalid json"}))
                 continue
             msg_type = data.get("type", "")   # "get_shortcuts" / "update_shortcut" / ""
             # "vibration_status" → 端末のバイブレーション対応状況を受け取る
@@ -235,21 +236,21 @@ async def ws_handler(websocket):
             gesture_label = GESTURE_LABELS_JP.get(gesture_name, gesture_name)
 
             if not gesture_name or gesture_name not in gestures:
-                await websocket.send(json.dumps({"ok": False, "error": "no gesture"}))
+                await websocket.send(json.dumps({"type": "error", "ok": False, "error": "no gesture"}))
                 continue
             # ジェスチャーに対応するキー配列を取得。形式が不正ならエラーを返す
             keys = gestures[gesture_name]
             if not isinstance(keys, list) or not keys:
-                await websocket.send(json.dumps({"ok": False, "error": "invalid gesture"}))
+                await websocket.send(json.dumps({"type": "error", "ok": False, "error": "invalid gesture"}))
                 continue
             # キー実行。エラーが出たらクライアントに返す（例: 無効なキー指定）
             try:
                 execute_keys(keys)
                 log.info(f"[ジェスチャー:{gesture_label}] {gesture_name:30s} → {'+'.join(keys)}")
-                await websocket.send(json.dumps({"ok": True, "gesture": gesture_name, "keys": keys}))
+                await websocket.send(json.dumps({"type": "gesture_result", "ok": True, "gesture": gesture_name, "keys": keys}))
             except Exception as e:
                 log.error(f"キー実行エラー: {e}")
-                await websocket.send(json.dumps({"ok": False, "error": str(e)}))
+                await websocket.send(json.dumps({"type": "gesture_result", "ok": False, "error": str(e)}))
 
     except websockets.exceptions.ConnectionClosedOK:
         pass
