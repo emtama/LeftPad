@@ -5,9 +5,8 @@
     <!-- google font symbols & icons -->
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
     <style>
-        :root {
-            /* デフォルトカラーパレットの定義。通常はファイルから読み取ったものをサーバーから受け取り上書き */
-            --bg: #000000;
+        :root {            
+            /* カラーパレットはファイルから読み取ったものをサーバーから受け取る */
             --mx: 0;/* マウスの位置 */
             --my: 0;/* マウスの位置 */
         }
@@ -16,17 +15,17 @@
             height: 100vh;
             margin: 0;
             overflow: hidden;
-            color: var(--text);/* デフォルトテキストカラー */
+            color: var(--color_text);/* デフォルトテキストカラー */
         }
         /* サイドバー */
         .sidebar {
             width: 80px;
-            background: var(--surface);
+            background: var(--color_surface);
             display: flex;
             flex-direction: column;
             align-items: center;
             padding-top: 20px;
-            border-right: 1px solid var(--border);
+            border-right: 1px solid var(--color_border);
         }
         .nav-item {
             width: 60px;
@@ -38,12 +37,12 @@
             align-items: center;
             cursor: pointer;
             border-radius: 8px;
-            color: var(--border);
+            color: var(--color_border);
             transition: 0.3s;
             font-size: 12px;
         }
-        .nav-item:hover { background: var(--border); color: #fff; }
-        .nav-item.active { background: var(--accent2); color: var(--bg); }
+        .nav-item:hover { background: var(--color_border); color: #fff; }
+        .nav-item.active { background: var(--color_accent2); color: var(--color_bg); }
         .nav-item i { font-size: 24px; margin-bottom: 4px; }
 
         /* メインコンテンツ */
@@ -51,7 +50,7 @@
             flex: 1;
             padding: 30px;
             overflow-y: auto;
-            background: var(--bg);
+            background: var(--color_bg);
         }
         
         .panel { display: none; }
@@ -59,16 +58,16 @@
         
         /* 見出しの書式 */
         h1{
-            color: var(--accent)
+            color: var(--color_accent)
         }
         h2{
-            color: var(--text)
+            color: var(--color_text)
         }
         
         /* ログパネル専用 */
         #log-container {
-            background: var(--surface);
-            color: var(--text);
+            background: var(--color_surface);
+            color: var(--color_text);
             font-family: monospace;
             padding: 15px;
             height: 500px;
@@ -83,17 +82,17 @@
             flex-direction: column;
             align-items: center; /* 中央揃え */
             padding: 20px;
-            background: var(--surface);
+            background: var(--color_surface);
             border-radius: 12px;
             margin: 20px;
         }
         /* URLテキストのスタイル（追加） */
         .clickable-url {
             word-break: break-all; 
-            color: var(--accent2);
+            color: var(--color_accent2);
             cursor: pointer;
             padding: 10px;
-            background: var(--bg);
+            background: var(--color_bg);
             border-radius: 6px;
             border: 1px solid transparent;
             transition: all 0.2s;
@@ -105,8 +104,8 @@
 
         /* ホバー時に枠線と色を変える */
         .clickable-url:hover {
-            border-color: var(--accent2);
-            background: var(--border);
+            border-color: var(--color_accent2);
+            background: var(--color_border);
         }
 
         /* コピーした瞬間の視覚効果 */
@@ -122,8 +121,8 @@
             top: var(--my);
             left: var(--mx);
             transform: translate(-50%, -120%);
-            background: var(--accent2);
-            color: var(--text);
+            background: var(--color_accent2);
+            color: var(--color_text);
             padding: 2px 8px;
             border-radius: 4px;
             font-size: 14px;
@@ -140,37 +139,37 @@
             margin-right: auto;
             width: 250px;
             height: 250px;
-            background: var(--surface);
+            background: var(--color_surface);
             display: block;
         }
         
         /* ジェスチャー-ショートカット編集 */
         .gesture-row { display: flex; 
             align-items: center; 
-            background: var(--surface); 
+            background: var(--color_surface); 
             margin-bottom: 8px; 
             padding: 10px; 
             border-radius: 8px; }
         .gesture-label { width: 150px; 
             font-weight: bold; 
-            color: var(--text); }
-        .key-display { flex: 1; color: var(--accent2); background: var(--bg); padding: 8px; border-radius: 4px; margin: 0 10px; min-height: 20px; }
+            color: var(--color_text); }
+        .key-display { flex: 1; color: var(--color_accent2); background: var(--color_bg); padding: 8px; border-radius: 4px; margin: 0 10px; min-height: 20px; }
         
-        button { background: var(--border); color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; }
-        button.active { background: var(--accent2); color: var(--bg); font-weight: bold; }
+        button { background: var(--color_border); color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; }
+        button.active { background: var(--color_accent2); color: var(--color_bg); font-weight: bold; }
 
         /* 設定ラベル */
         .setting-row { 
             display: flex; 
             align-items: center; 
-            background: var(--surface); 
+            background: var(--color_surface); 
             margin-bottom: 8px; 
             padding: 10px; 
             border-radius: 8px;
         }
         .setting-label{
             padding: 10px; 
-            color: var(--text); 
+            color: var(--color_text); 
         }
         /* トグルスイッチ */
         .toggle-button-2 {/*スイッチの器*/
@@ -179,9 +178,9 @@
             --toggle-height: calc(var(--toggle-width) / 2); /* 高さは幅の半分 */
             --border-width: 3; /* 枠の太さ */
             --gap: calc(var(--toggle-width) / 20); /* 外枠とつまみの間の隙間 */
-            --color-off: var(--text);
-            --color-on: var(--accent2);
-            --color-bg: var(--bg);
+            --color-off: var(--color_text);
+            --color-on: var(--color_accent2);
+            --color-color_bg: var(--color_bg);
             --speed: .4s;
 
             /* --- 計算用の変数 --- */
@@ -197,7 +196,7 @@
             box-sizing: content-box;
             cursor: pointer;
             transition: border-color var(--speed);
-            background-color: var(--color-bg);
+            background-color: var(--color-color_bg);
         }
         .toggle-button-2:has(:checked) {/*チェック時の器*/
             border-color: var(--color-on);
@@ -226,28 +225,28 @@
 </head>
 <body>
     <div class="sidebar">
-    <div class="nav-item active" onclick="switchPanel('qr')">
-        <span class="material-symbols-outlined">devices</span>
+        <div class="nav-item active" onclick="switchPanel('qr')">
+            <span class="material-symbols-outlined">devices</span>
+        </div>
+        <div class="nav-item" onclick="switchPanel('key')">
+            <span class="material-symbols-outlined">keyboard</span>
+        </div>
+        <div class="nav-item" onclick="switchPanel('settings')">
+            <span class="material-symbols-outlined">settings</span>
+        </div>
+        <div class="nav-item" onclick="switchPanel('logs')">  
+            <span class="material-symbols-outlined">history</span>
+        </div>
     </div>
-    <div class="nav-item" onclick="switchPanel('key')">
-        <span class="material-symbols-outlined">keyboard</span>
-    </div>
-    <div class="nav-item" onclick="switchPanel('settings')">
-        <span class="material-symbols-outlined">settings</span>
-    </div>
-    <div class="nav-item" onclick="switchPanel('logs')">  
-        <span class="material-symbols-outlined">history</span>
-    </div>
-</div>
 
     <div class="main-content">
         <div id="panel-qr" class="panel active">
             <h1>スマホとの接続</h1>
             <img id="qr-img"/>
-            <div id="connection-status" style="text-align: center; margin-bottom: 20px; padding: 10px; background: var(--surface); border-radius: 8px;">
+            <div id="connection-status" style="text-align: center; margin-bottom: 20px; padding: 10px; background: var(--color_surface); border-radius: 8px;">
                 <h2>現在の接続数</h2>
                 <h1 id="client-count">0</h1>
-                <div id="client-list" style="font-size: 0.8em; color: var(--accent2); margin-top: 5px;">待機中...</div>
+                <div id="client-list" style="font-size: 0.8em; color: var(--color_accent2); margin-top: 5px;">待機中...</div>
             </div>
             <div class="url-container">
                 <h2 style="text-align: center;">HTTP URL</h2>
@@ -284,7 +283,8 @@
         // ══════════════════════════════════════════════
         // 初期化
         // ══════════════════════════════════════════════
-        let gestures = {};
+        let gesture_shortcuts = {};
+        let gesture_labels = {};
         let capturingKey = null;
         let pressedKeys = new Set(); // 現在押されているキーを保持
 
@@ -298,8 +298,9 @@
                 document.getElementById('http-url').innerText = data.http_url;
                 document.getElementById('ws-url').innerText = data.ws_url;
                 document.getElementById('vib-toggle').checked = data.vibration;
-                gestures = data.gestures;
-                renderGestures(data.labels);
+                gesture_shortcuts = data.gesture_shortcuts;
+                gesture_labels = data.gesture_labels;
+                renderGestures(gesture_labels);
 
                 // カラーパレットの適用
                 if (data.colors) {
@@ -314,31 +315,26 @@
             }
         }
         // 接続ステータスアップデート
-        function startStatsUpdate() {
-            setInterval(async () => {
-                try {
-                    const stats = await pywebview.api.get_connection_stats();
-                    
-                    // 端末数を更新
-                    document.getElementById('client-count').innerText = stats.count;
-                    
-                    // 端末IPリストを更新
-                    const listEl = document.getElementById('client-list');
-                    if (stats.count > 0) {
-                        listEl.innerText = "接続中: " + stats.ips.join(', ');
-                    } else {
-                        listEl.innerText = "接続されている端末はありません";
-                    }
-                } catch (e) {
-                    console.error("Stats update error:", e);
+        function connectionStatsUpdate(stats) {
+            try {                    
+                // 端末数を更新
+                document.getElementById('client-count').innerText = stats.count;
+                
+                // 端末IPリストを更新
+                const listEl = document.getElementById('client-list');
+                if (stats.count > 0) {
+                    listEl.innerText = "接続中: " + stats.ips.join(', ');
+                } else {
+                    listEl.innerText = "接続されている端末はありません";
                 }
-            }, 2000); // 2秒ごとに更新
+            } catch (e) {
+                console.error("Stats update error:", e);
+            }
         }
 
         // pywebviewready のタイミングで実行開始
         window.addEventListener('pywebviewready', () => {
             init();
-            startStatsUpdate(); // これを追加
         });
 
         // ══════════════════════════════════════════════
@@ -391,17 +387,17 @@
         // ジェスチャー・ショートカットタブ
         // ══════════════════════════════════════════════
         // ジェスチャーとショートカットの対応を表示する関数
-        function renderGestures(labels) {
+        function renderGestures(gesture_labels) {
             const container = document.getElementById('gesture-shortcut-editor');
             container.innerHTML = ''; // 再描画用
-            Object.keys(labels).forEach(id => {
+            Object.keys(gesture_labels).forEach(id => {
                 const row = document.createElement('div');
                 row.className = 'gesture-row';
                 row.innerHTML = `
-                    <div class="gesture-label">${labels[id]}</div>
-                    <div class="key-display" id="display-${id}">${(gestures[id] || []).join(' + ')}</div>
+                    <div class="gesture-label">${gesture_labels[id]}</div>
+                    <div class="key-display" id="display-${id}">${(gesture_shortcuts[id] || []).join(' + ')}</div>
                     <button onclick="startCapture('${id}')" id="btn-${id}">記録</button>
-                    <button onclick="deleteGesture('${id}')" id="btn-delete-${id}" style="margin-left:5px; background:#ff5c5c;">削除</button>
+                    <button onclick="deleteGesture('${id}')" id="btn-delete-${id}" style="margin-left:5px; background:var(--color_danger);">削除</button>
                 `;
                 container.appendChild(row);
             });
@@ -417,7 +413,7 @@
         }
         // ジェスチャーに対応するキーの削除
         async function deleteGesture(id) {
-            gestures[id] = []; // ローカルデータを空に
+            gesture_shortcuts[id] = []; // ローカルデータを空に
             document.getElementById(`display-${id}`).innerText = '';
             await pywebview.api.save_gesture_shortcut(id, []); // Python側へ空リストを送信
         }
@@ -450,7 +446,7 @@
         });
         // ジェスチャーに対応するキーの決定と保存
         async function saveAndFinish(id, keys) {
-            gestures[id] = keys;
+            gesture_shortcuts[id] = keys;
             await pywebview.api.save_gesture_shortcut(id, keys);
             
             const btn = document.getElementById(`btn-${id}`);

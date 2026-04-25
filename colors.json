@@ -1,9 +1,10 @@
 {
-    "bg": "#0d0e11",
-    "surface": "#16181e",
-    "accent": "#e8ff47",
-    "accent2": "#47c4ff",
-    "text": "#e4e6ee",
-    "border": "#2a2d36",
-    "danger": "#ff5c5c"
+    "color_bg": "#0d0e11",
+    "color_surface": "#16181e",
+    "color_accent": "#e8ff47",
+    "color_accent2": "#47c4ff",
+    "color_text": "#e4e6ee",
+    "color_border": "#2a2d36",
+    "color_danger": "#ff5c5c",
+    "color_safe": "#4dff91"
 }

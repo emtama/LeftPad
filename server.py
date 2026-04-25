@@ -115,7 +115,6 @@ def get_local_ip():
         # 失敗時はループバックアドレスを返す
         return "127.0.0.1"
 
-
 # ══════════════════════════════════════════════
 #  共通：UI関係I/O
 # ══════════════════════════════════════════════
@@ -160,11 +159,15 @@ def load_gesture_shortcuts(encoding="utf-8"):
             del data[key]
     return data
 
-GESTURE_SHORCUTS = load_gesture_shortcuts()
+# GESTURE_SHORTCUTSを初期化
+GESTURE_SHORTCUTS = load_gesture_shortcuts()
+
+
 # ══════════════════════════════════════════════
 # PC側GUIを作るpywebviewクラス-
 # ══════════════════════════════════════════════
 # server.html の JavaScript からは window.pywebview.api.関数名() で呼び出せます
+# 送信・受信メッセージはjson形式で必ずtype属性を含む必要があります。
 class JSApi:
     def __init__(self):
         self.ip = None  # IPアドレスは起動時に取得してURLを生成
@@ -181,8 +184,8 @@ class JSApi:
             "http_url": self.http_url,
             "ws_url": self.ws_url,
             "qr_image": self._generate_qr_base64(self.http_url),
-            "gesture_shorcuts": GESTURE_SHORTCUTS,
-            "labels": GESTURE_LABELS_JP,
+            "gesture_shortcuts": GESTURE_SHORTCUTS,
+            "gesture_labels": GESTURE_LABELS_JP,
             "vibration": APP_SETTINGS["vibration_enabled"],
             "colors": COLORS
         }
@@ -193,7 +196,7 @@ class JSApi:
         """
         qr = qrcode.QRCode(box_size=10, border=2)
         qr.add_data(url)
-        img = qr.make_image(fill_color="#0d0e11", back_color="#e8ff47")
+        img = qr.make_image(fill_color=COLORS['color_bg'], back_color=COLORS['color_accent'])
         buffered = io.BytesIO()
         img.save(buffered, format="PNG")
         return base64.b64encode(buffered.getvalue()).decode()
@@ -210,8 +213,7 @@ class JSApi:
             
             # PyAutoGUIで使いやすいよう、すべて小文字に変換して保存
             # (server_old.py の execute_keys ロジックに合わせる)
-            normalized_keys = [str(k).lower() for k in keys_list]
-            
+            normalized_keys = [str(k).lower() for k in keys_list]            
             
             # 2. ファイル保存
             GESTURE_SHORTCUTS[gesture_key] = normalized_keys
@@ -219,7 +221,7 @@ class JSApi:
                 json.dump(GESTURE_SHORTCUTS, f, ensure_ascii=False, indent=2)
             
             # 3. WebSocket経由でスマホにも即座に通知
-            msg = json.dumps({"type": "gesture_shorcuts", "data": GESTURE_SHORTCUTS})
+            msg = json.dumps({"type": "gesture_shortcuts", "data": GESTURE_SHORTCUTS})
             WS_BROADCAST_QUEUE.put(msg)
             
             LOGGER.info(f"更新: {gesture_key} -> {normalized_keys}")
@@ -243,12 +245,25 @@ class JSApi:
         except Exception as e:
             LOGGER.warning(f'URLのコピーに失敗しました: {text}, {e}')
             return False
-
+        
 # ══════════════════════════════════════════════
 # スマホ側とのWebSocket/http通信を行う
 # ══════════════════════════════════════════════
-# Websocketハンドラ（スマホ側との通信）
+
+def inform_ui_connection_stats():
+    """現在の接続状況をUIに通知する"""
+    stats = {
+        "count": len(CONNECTED_CLIENTS),
+        "ips": list(CONNECTED_CLIENTS_INFOS.values())
+    }
+    # windowオブジェクトを介してJSを実行
+    window.evaluate_js(f"connectionStatsUpdate({json.dumps(stats)})")
+
 async def ws_handler(websocket):
+    """
+    Websocketハンドラ（スマホ側との通信）
+    送信・受信メッセージはjson形式で必ずtype属性を含む必要があります。
+    """
     # クライアント情報（IPアドレスとポート番号）を取得
     client_ip, client_port = websocket.remote_address
 
@@ -286,35 +301,42 @@ async def ws_handler(websocket):
     # クライアントを記録
     CONNECTED_CLIENTS.add(websocket)
     CONNECTED_CLIENTS_INFOS[websocket] = f"{client_ip}:{client_port}"
-    LOGGER.info(f"デバイスが接続されました: {CONNECTED_CLIENTS_INFOS[websocket]}")
+    inform_ui_connection_stats()
 
     # （初回接続時）基本情報送信
-    await websocket.send(json.dumps({"type": "gesture_shorcuts", "data": GESTURE_SHORCUTS}))
-    await websocket.send(json.dumps({"type": "gesture_labels", "data": GESTURE_LABELS_JP}))
-    await websocket.send(json.dumps({"type": "vibration_setting", "data": APP_SETTINGS.get("vibration_enabled")}))
-    await websocket.send(json.dumps({"type": "colors", "data":COLORS}))
+    await websocket.send(json.dumps({"type": "initial_auth_setup", 
+                                    "gesture_shortcuts": GESTURE_SHORTCUTS,
+                                    "gesture_labels": GESTURE_LABELS_JP,
+                                    "vibration_setting": APP_SETTINGS.get("vibration_enabled"),
+                                    "colors": COLORS
+                                    }))
     
     # （随時）クライアントからのメッセージを待機して処理するループ。接続が切れるまで続く。
     try:
-        # クライアントからのメッセージを待機。メッセージの形式は全てJSONで、"type"フィールドで種類を判別する。
         async for message in websocket:# データが来るたびに一回実行するということ。
             # 受信メッセージは全てJSON形式を想定。コマンドの種類は "type" フィールドで判別する。
             try:
                 data = json.loads(message)
-            except json.JSONDecodeError:
+                if "type" not in data.keys():
+                    LOGGER.warning(f'受信メッセージにtypeが含まれません: {data}')
+                    await websocket.send(json.dumps({"type": "error", "ok": False, "error": "invalid json"}))
+                    continue
+            except json.JSONDecodeError as e:
+                LOGGER.warning(f'受信メッセージのJSONが不正です: {e}')
                 await websocket.send(json.dumps({"type": "error", "ok": False, "error": "invalid json"}))
                 continue
-            msg_type = data.get("type", "")   # "get_shortcuts" / "update_shortcut" / ""
-            # スマホ側のバイブレーション対応状況を受け取る
+            # 
+            msg_type = data.get("type")
+            # スマホ側の振動対応状況を受け取る
             if msg_type == "vibration_status":
                 supported = bool(data.get("supported", False))
                 allowed = bool(data.get("allowed", False))
                 if not supported or not allowed:
-                    LOGGER.warning(f"端末バイブレーション警告: {client_ip} (supported={supported}, allowed={allowed})")
+                    LOGGER.warning(f"端末振動警告: {client_ip} (supported={supported}, allowed={allowed})")
                 else:
-                    LOGGER.info(f"端末バイブレーション状態: {client_ip} 利用可能")
+                    LOGGER.info(f"端末振動状態: {client_ip} 利用可能")
                 continue          
-            # "update_setting" → アプリの設定値を更新する（例: vibration_enabled）
+            # アプリの設定値を更新する（例: vibration_enabled）
             elif msg_type == "update_setting":
                 key = data.get("key")
                 value = data.get("value")
@@ -324,27 +346,26 @@ async def ws_handler(websocket):
                 else:
                     await websocket.send(json.dumps({"type": "setting_updated", "ok": False}))
                 continue
-
-            # ジェスチャーコマンド実行
-            gesture_name = data.get("gesture", "").strip()
-            gesture_label = GESTURE_LABELS_JP.get(gesture_name, gesture_name)
-            # ジェスチャー名が不正 
-            if not gesture_name or gesture_name not in GESTURE_SHORCUTS:
-                await websocket.send(json.dumps({"type": "error", "ok": False, "error": "no gesture"}))
-                continue
-            # ジェスチャーに対応するキー配列を取得。形式が不正ならエラーを返す
-            keys = GESTURE_SHORCUTS[gesture_name]
-            if not isinstance(keys, list) or not keys:
-                await websocket.send(json.dumps({"type": "error", "ok": False, "error": "invalid gesture"}))
-                continue
-            # キー実行。エラーが出たらクライアントに返す（例: 無効なキー指定）
-            try:
-                execute_keys(keys)
-                LOGGER.info(f"[ジェスチャー:{gesture_label}] {gesture_name:30s} → {'+'.join(keys)}")
-                await websocket.send(json.dumps({"type": "gesture_result", "ok": True, "gesture": gesture_name, "keys": keys}))
-            except Exception as e:
-                LOGGER.error(f"キー実行エラー: {e}")
-                await websocket.send(json.dumps({"type": "gesture_result", "ok": False, "error": str(e)}))
+            # ジェスチャーを実行する
+            elif msg_type == "gesture_detected":
+                gesture_name = data.get("gesture_name")
+                if not gesture_name or gesture_name not in GESTURE_SHORTCUTS:    # ジェスチャー名が不正 
+                    await websocket.send(json.dumps({"type": "error", "ok": False, "error": "no gesture"}))
+                    continue
+                # ジェスチャーに対応するキー配列を取得。形式が不正ならエラーを返す
+                keys = GESTURE_SHORTCUTS[gesture_name]
+                if not isinstance(keys, list) or not keys:
+                    await websocket.send(json.dumps({"type": "error", "ok": False, "error": "invalid gesture"}))
+                    continue
+                # キー実行。エラーが出たらクライアントに返す（例: 無効なキー指定）
+                try:
+                    execute_keys(keys)
+                    gesture_label = GESTURE_LABELS_JP.get(gesture_name)
+                    LOGGER.info(f"[ジェスチャー:{gesture_label}] {gesture_name:30s} → {'+'.join(keys)}")
+                    await websocket.send(json.dumps({"type": "gesture_result", "ok": True, "gesture": gesture_name, "keys": keys}))
+                except Exception as e:
+                    LOGGER.error(f"キー実行エラー: {e}")
+                    await websocket.send(json.dumps({"type": "gesture_result", "ok": False, "error": str(e)}))
 
     except websockets.exceptions.ConnectionClosedOK:
         pass
@@ -355,6 +376,7 @@ async def ws_handler(websocket):
         CONNECTED_CLIENTS.discard(websocket)
         CONNECTED_CLIENTS_INFOS.pop(websocket, None)
         LOGGER.info(f"デバイスが切断されました: {client_ip}")
+        inform_ui_connection_stats()
 
 # websocketサーバーはasyncioで動かす必要があるため、専用のイベントループを作成して実行します
 def run_ws():
@@ -404,8 +426,8 @@ if __name__ == '__main__':
        'LeftPad Server', 
         url='server.html', 
         js_api=api,
+        background_color=COLORS['color_bg'],
         width=1100, height=750,
-        background_color=COLORS['bg'],
         maximized=True,
         fullscreen=False
     )
