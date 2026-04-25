@@ -13,7 +13,7 @@ echo ============================================
 
 :: ── ライブラリインストール ─────────────────────────────────
 echo.
-echo [2/3] ライブラリをインストール中...
+echo [1/2] ライブラリをインストール中...
 pip install -r requirements.txt
 if %errorlevel% neq 0 (
     echo.
@@ -25,7 +25,7 @@ if %errorlevel% neq 0 (
 
 :: ── サーバー起動 ───────────────────────────────────────────
 echo.
-echo [3/3] サーバーGUIを起動中...
+echo [2/2] サーバーGUIを起動中...
 echo.
 start "" pythonw "server.py"
 echo GUIを起動した。 このウィンドウは閉じてよい。

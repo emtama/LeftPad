@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        :root {
+            --bg: #0d0e11; --surface: #16181e; --accent: #e8ff47;
+            --accent2: #47c4ff; --text: #e4e6ee; --border: #2a2d36;
+        }
+        body { background: var(--bg); color: var(--text); font-family: sans-serif; margin: 0; display: flex; height: 100vh; }
+        
+        /* 左パネル */
+        .left-panel { flex: 1; padding: 40px; border-right: 2px solid var(--border); display: flex; flex-direction: column; align-items: center; }
+        .qr-card { background: var(--accent); padding: 20px; border-radius: 20px; margin: 20px 0; }
+        .info-box { background: var(--surface); width: 100%; border-radius: 10px; padding: 15px; margin-bottom: 20px; }
+        
+        /* 右パネル（エディタ） */
+        .right-panel { flex: 1.5; padding: 40px; overflow-y: auto; }
+        .gesture-row { display: flex; align-items: center; background: var(--surface); margin-bottom: 8px; padding: 10px; border-radius: 8px; }
+        .gesture-label { width: 150px; font-weight: bold; }
+        .key-display { flex: 1; color: var(--accent2); background: var(--bg); padding: 8px; border-radius: 4px; margin: 0 10px; min-height: 20px; }
+        
+        button { background: var(--border); color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; }
+        button.active { background: var(--accent2); color: var(--bg); font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="left-panel">
+        <h1 style="color: var(--accent)">LEFTPAD</h1>
+        <div class="qr-card">
+            <img id="qr-img" width="240">
+        </div>
+        <div class="info-box">
+            <div>URL: <span id="http-url" style="color: var(--accent)">---</span></div>
+            <div style="margin-top:10px">Vibration: <input type="checkbox" id="vib-toggle" onchange="toggleVib()"></div>
+        </div>
+    </div>
+
+    <div class="right-panel">
+        <h3>ジェスチャー割り当て</h3>
+        <div id="gesture-list"></div>
+    </div>
+
+    <script>
+        let gestures = {};
+        let capturingKey = null;
+
+        // 起動時にPythonからデータを取得
+        window.addEventListener('pywebviewready', async () => {
+            const data = await pywebview.api.get_init_data();
+            document.getElementById('qr-img').src = 'data:image/png;base64,' + data.qr_image;
+            document.getElementById('http-url').innerText = data.http_url;
+            document.getElementById('vib-toggle').checked = data.vibration;
+            gestures = data.gestures;
+            renderGestures(data.labels);
+        });
+
+        function renderGestures(labels) {
+            const container = document.getElementById('gesture-list');
+            Object.keys(labels).forEach(id => {
+                const row = document.createElement('div');
+                row.className = 'gesture-row';
+                row.innerHTML = `
+                    <div class="gesture-label">${labels[id]}</div>
+                    <div class="key-display" id="display-${id}">${(gestures[id] || []).join(' + ')}</div>
+                    <button onclick="startCapture('${id}')" id="btn-${id}">記録</button>
+                `;
+                container.appendChild(row);
+            });
+        }
+
+        function startCapture(id) {
+            if(capturingKey) return;
+            capturingKey = id;
+            document.getElementById(`btn-${id}`).innerText = "記録中...";
+            document.getElementById(`btn-${id}`).classList.add('active');
+        }
+
+        // キーボードイベントのキャプチャ
+        window.addEventListener('keydown', (e) => {
+            if(!capturingKey) return;
+            e.preventDefault();
+            
+            // 修飾キーなどの判定ロジックを入れ、配列として取得
+            const keys = [];
+            if(e.ctrlKey) keys.push('Ctrl');
+            if(e.shiftKey) keys.push('Shift');
+            if(e.altKey) keys.push('Alt');
+            if(!['Control','Shift','Alt'].includes(e.key)) keys.push(e.key.toUpperCase());
+
+            document.getElementById(`display-${capturingKey}`).innerText = keys.join(' + ');
+            pywebview.api.save_shortcut(capturingKey, keys);
+            
+            // 記録終了
+            const btn = document.getElementById(`btn-${capturingKey}`);
+            btn.innerText = "記録";
+            btn.classList.remove('active');
+            capturingKey = null;
+        });
+
+        async function toggleVib() {
+            const val = document.getElementById('vib-toggle').checked;
+            await pywebview.api.toggle_vibration(val);
+        }
+    </script>
+</body>
+</html>

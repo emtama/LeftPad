@@ -1,4 +1,5 @@
+pywebview
 websockets 
 pyautogui
-qrcode[pil] 
+qrcode
 Pillow

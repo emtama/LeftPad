@@ -26,7 +26,7 @@
     "z"
   ],
   "single_finger_double_tap_bottom": [
-    "ctrl", 
+    "ctrl",
     "y"
   ],
   "single_finger_double_tap_left": [],
@@ -37,22 +37,26 @@
   "single_finger_triple_tap_right": [],
   "single_finger_long_press_top": [],
   "single_finger_long_press_bottom": [],
-  "single_finger_long_press_left": [],
-  "single_finger_long_press_right": [],
+  "single_finger_long_press_left": [
+    "A"
+  ],
+  "single_finger_long_press_right": [
+    "Shift"
+  ],
   "two_finger_tap_top": [
-    "ctrl", 
+    "ctrl",
     "0"
   ],
   "two_finger_tap_bottom": [
-    "ctrl", 
+    "ctrl",
     "0"
   ],
-  "two_finger_tap_left":[
-    "ctrl", 
+  "two_finger_tap_left": [
+    "ctrl",
     "0"
   ],
   "two_finger_tap_right": [
-    "ctrl", 
+    "ctrl",
     "0"
   ],
   "two_finger_double_tap_top": [],
