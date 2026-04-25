@@ -311,13 +311,12 @@
   let longPressTimer = null;  // 長押し判定用タイマー
   let lastTapTime  = 0; // 連続タップの判定用
 
-  const SWIPE_THRESHOLD  = 40;  // スワイプと判定する最小移動距離（ピクセル）
+  const SWIPE_THRESHOLD_RATIO  = 0.15;  // スワイプと判定する最小移動距離の画面幅・高さに対する比率
+  const PINCH_OUT_THRESHOLD_RATIO  = 1.5; // ピンチアウトと判定する最小の距離の増大比率
+  const PINCH_IN_THRESHOLD_RATIO  = 0.7; // ピンチインと判定する最大の距離の減少比率
   const LONG_PRESS_MS    = 600; // 長押しと判定するための最小時間（ミリ秒）
   const DOUBLE_TAP_MS    = 300; // ダブルタップと判定する最大間隔（ミリ秒）
   const TAP_SEQUENCE_MS  = 250;  // 指が増えても一連のジェスチャーに含める最大間隔（ミリ秒）
-  const PINCH_OUT_THRESHOLD_RATE  = 1.5; // ratio change threshold
-  const PINCH_IN_THRESHOLD_RATE  = 0.7; // ratio change threshold
-
   const canvas = document.getElementById('gesture-canvas');
   let gesture = null; // 現在進行中のジェスチャー状態を保持するオブジェクト
   const touchIndicators = new Map();// タッチIDとインジケーター要素のマップ
@@ -361,50 +360,23 @@
     return Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
   }
 
-  /*
-  ジェスチャーの分類とコマンド送信
 
-  */
-  function classifyGesture(gesture){
-    const dt = Date.now() - gesture.startAt;
+  // ピンチジェスチャーの検出
+  function detectPinch(gesture){
+    // ピンチは2本指のみで判定
+    if(gesture.maxTouches !== 2) return '';
 
-    const first = Object.values(gesture.starts)[0];
-    if(!first) return '';
-
-    const dx = gesture.last.x - first.x;
-    const dy = gesture.last.y - first.y;
-    const adx = Math.abs(dx);
-    const ady = Math.abs(dy);
-    const dist = Math.hypot(dx, dy);
-
-    const finger = getFingerPrefix(gesture);
-
-    // --- スワイプ ---
-    if(dist > SWIPE_THRESHOLD){
-      const dir = adx > ady
-        ? (dx > 0 ? 'right' : 'left')
-        : (dy > 0 ? 'down' : 'up');
-
-      return `${finger}_swipe_${dir}`;
+    const startDist = gesture.startDist;
+    const lastDist   = gesture.lastDist;  
+    const delta = lastDist - startDist;
+    const delta_ratio = lastDist/startDist;
+    
+    if (delta > 0){// 指の間の距離の最初と最後で何倍になったか？の比率が閾値を超えるか
+      if (delta_ratio > PINCH_OUT_THRESHOLD_RATIO) return "pinch_out"
+    }else{
+      if (delta_ratio < PINCH_IN_THRESHOLD_RATIO) return 'pinch_in';
     }
-
-    // --- 長押し ---
-    if(dt > LONG_PRESS_MS){
-      const region = getTapRegion(gesture.last.x, gesture.last.y);
-      return `${finger}_long_press_${region}`;
-    }
-
-    // --- タップ（回数管理） ---
-    return handleTapSequence(gesture, finger);
-  }
-
-  // 指の本数に応じたプレフィックスを取得
-  function getFingerPrefix(gesture){
-    const count = Math.max(gesture.count, gesture.maxTouches);
-    if(count === 1) return 'single_finger';
-    if(count === 2) return 'two_finger';
-    if(count === 3) return 'three_finger';
-    return '';
+    return ''
   }
 
   // タップ回数管理
@@ -449,23 +421,64 @@
     });
   }
 
-  // ピンチジェスチャーの検出
-  function detectPinch(gesture){
-    // ピンチは2本指のみで判定
-    if(gesture.maxTouches !== 2) return '';
+  /*
+  ジェスチャーの分類とコマンド送信
+  */
+  function classifyGesture(gesture){
+    const dt = Date.now() - gesture.startAt;
 
-    const startDist = gesture.startDist;
-    const lastDist   = gesture.lastDist;  
-    const delta = lastDist - startDist;
-    const delta_ratio = lastDist/startDist;
+    const first = Object.values(gesture.starts)[0];
+    if(!first) return '';
+
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+
+    const dx = gesture.last.x - first.x;
+    const dy = gesture.last.y - first.y;
+    const adx = Math.abs(dx);
+    const ady = Math.abs(dy);
+    const dist = Math.hypot(dx, dy);
+
+    const finger = getFingerPrefix(gesture);
     
-    if (delta > 0){// ピンチアウトの場合、距離が最初と最後で何倍になったか？
-      if (delta_ratio < PINCH_OUT_THRESHOLD_RATE) return '';
-    }else{
-      if (delta_ratio > PINCH_IN_THRESHOLD_RATE) return '';
+    // ピンチを優先に判定する
+    //
+    const pinch = detectPinch(gesture);
+    if(pinch){
+      return pinch;
     }
 
-    return delta > 0 ? 'pinch_out' : 'pinch_in';
+    // --- スワイプ ---
+    if (adx > w * SWIPE_THRESHOLD_RATIO){
+      if (adx > ady) {
+        const dir = dx > 0 ? 'right' : 'left';
+        return `${finger}_swipe_${dir}`;
+      }
+    }
+    if (ady > h * SWIPE_THRESHOLD_RATIO){
+      if(ady < adx){
+        const dir = dy > 0 ? 'up' : 'down';
+        return `${finger}_swipe_${dir}`;
+      }      
+    }    
+    
+    // --- 長押し ---
+    if(dt > LONG_PRESS_MS){
+      const region = getTapRegion(gesture.last.x, gesture.last.y);
+      return `${finger}_long_press_${region}`;
+    }
+
+    // --- タップ（回数管理） ---
+    return handleTapSequence(gesture, finger);
+  }
+
+  // 指の本数に応じたプレフィックスを取得
+  function getFingerPrefix(gesture){
+    const count = Math.max(gesture.count, gesture.maxTouches);
+    if(count === 1) return 'single_finger';
+    if(count === 2) return 'two_finger';
+    if(count === 3) return 'three_finger';
+    return '';
   }
 
   /* 
@@ -498,12 +511,13 @@
       // ごく短い時間に本数が増えた場合、「開始時の本数」を現在の本数で上書きする
       if (e.touches.length > gesture.count && (Date.now() - gesture.startAt) < TAP_SEQUENCE_MS) {
         gesture.count = e.touches.length;
+        // もし２本に増えた場合、startDist, lastDistを計算する（ピンチアウト、ピンチイン計算のため）
+        if (gesture.count == 2){
+          gesture.startDist = distance(e.touches[0], e.touches[1]);
+          gesture.lastDist = distance(e.touches[0], e.touches[1]);
+        }
       }
-      // もし１本から２本に増えた場合、startDist, lastDistを計算する（ピンチアウト、ピンチイン計算のため）
-      if (e.touches.length >= 2 && gesture.count == 1){
-        gesture.startDist = distance(e.touches[0], e.touches[1]);
-        gesture.lastDist = distance(e.touches[0], e.touches[1]);
-      }
+      
     }
     // ジェスチャー状態の更新
     for (const t of e.touches){// 各指の開始位置と最新位置を更新
@@ -544,7 +558,9 @@
     if(gesture && (gesture.maxTouches > 1 || e.touches.length > 1)) clearTimeout(longPressTimer);
   }, {passive:true});
 
-  // タッチ終了イベント
+  /* 
+  タッチ終了イベント 
+  */
   canvas.addEventListener('touchend', async (e)=>{
     // 
     updateTouchIndicators(e.touches);
@@ -553,14 +569,6 @@
     if(!gesture) return;// ジェスチャー状態がない場合は何もしない
     if(e.touches.length > 0) return;// まだ指が残っている場合はジェスチャーを確定しない
 
-    // ピンチを優先に判定する
-    const pinch = detectPinch(gesture);
-    if(pinch){
-      sendCommand(pinch);
-      gesture = null; // ジェスチャーを空にする
-      return;
-    }
-    // その他のジェスチャー
     const result = classifyGesture(gesture);
 
     if(result instanceof Promise){
