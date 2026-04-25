@@ -34,10 +34,11 @@
     /* IDセレクタ */
     #gesture-canvas { 
       position:fixed; inset:0; background:var(--surface); touch-action:none; overflow:hidden; 
-    }/* ジェスチャーエリアとフィードバックスタイル */
+    }/* ジェスチャーエリアの位置ヒントテキスト */
     .hint { position:absolute; color:var(--muted); font-size:11px; letter-spacing:1px; }
-    .top{top:56px;left:50%;transform:translateX(-50%)} .bottom{bottom:12px;left:50%;transform:translateX(-50%)}
+    .top{top:12px;left:50%;transform:translateX(-50%)} .bottom{bottom:12px;left:50%;transform:translateX(-50%)}
     .left{left:12px;top:50%;transform:translateY(-50%)} .right{right:12px;top:50%;transform:translateY(-50%)}
+    /* フィードバック表示 */
     #feedback { 
       position:absolute; 
       top:50%; left:50%; 
@@ -52,13 +53,14 @@
       z-index: 3;
      }
     #feedback.show { opacity:1; transform:translate(-50%,-50%) scale(1); }
+    /* 対角線キャンバススタイル */
     #diagonal-canvas {
       position: absolute;/* ジェスチャーエリア全体を覆うキャンバス */
       inset: 0; /* 全面に広げる */
       z-index: 1;           /* split-line(=2)より下 */
       pointer-events: none; /* タッチを邪魔しない */
     }
-    /* クラスセレクタ */
+    /* タッチインジケータ */
     .touch-indicator {
       position: absolute;
       width: 44px; height: 44px; margin-left: -22px; margin-top: -22px;
@@ -77,41 +79,25 @@
     }
 
     /* ジェスチャーのヒントテキスト */
-    .ticker {
-      position: absolute;
-      overflow: hidden;
-      white-space: nowrap;
-      font-size: 12px;
-      color: var(--accent2);
-      opacity: 0.8;
-      pointer-events: none;
+    #hint-display{
+      position:absolute;/* ジェスチャーのヒントテキストを画面中央に配置 */
+      top:50%;/*  */
+      left:50%;
+      transform:translate(-50%,-50%);
+      background:var(--accent2);
+      color:var(--text);
+      padding:6px 12px;
+      border-radius:10px;
+      font-size:12px;
+      opacity:0;
+      transition:opacity .2s, transform .2s;
+      pointer-events:none;
+      z-index:3;
     }
-    .ticker-item {
-      display: inline-block;  /* インラインブロックで横並びに */
-      border: 2px solid var(--border); /* 枠線 */
-      padding: 2px 8px;
-      margin: 0 6px;
-      border-radius: 4px; /* 角丸 */
-      background: rgba(0,0,0,0.2);  /* 半透明の背景 */
-        color: var(--accent2);
-        box-shadow: 0 0 0 1px var(--border);
-      white-space: nowrap;
+    #hint-display.show{
+      opacity:1;  /* 表示中は少し拡大して目立たせる */
+      transform:translate(-50%,-50%) scale(1.05); /* 少し拡大して目立たせる */
     }
-    .ticker span {
-      display: inline-block;
-      padding-left: 100%;
-      animation: ticker-scroll 10s linear infinite;
-    }
-    @keyframes ticker-scroll {
-      0% { transform: translateX(0); }
-      100% { transform: translateX(-100%); }
-    }
-    /* 配置 */
-    #ticker-top    { top: 32px; left:0; right:0; }
-    #ticker-bottom { bottom: 0; left:0; right:0; }
-    #ticker-left   { left:0; top:50%; transform:translateY(-50%) rotate(-90deg); transform-origin:left top; width:100vh;}
-    #ticker-right  { right:0; top:50%; transform:translateY(-50%) rotate(90deg); transform-origin:right top; width:100vh;}
-    #ticker-center { top:50%; left:50%; transform:translate(-50%,-50%); text-align:center; }
   
   </style>
 </head>
@@ -133,11 +119,7 @@
       <span class="hint right">RIGHT</span>
 
       <!-- ジェスチャーのヒントテキスト -->
-      <div id="ticker-top" class="ticker"></div>
-      <div id="ticker-bottom" class="ticker"></div>
-      <div id="ticker-left" class="ticker vertical"></div>
-      <div id="ticker-right" class="ticker vertical"></div>
-      <div id="ticker-center" class="ticker center"></div>
+      <div id="hint-display"></div>
 
       <div id="feedback"></div><!-- フィードバック表示 -->
     </section>
@@ -148,14 +130,14 @@
 // 対角線の描画
 const diagCanvas = document.getElementById("diagonal-canvas");
 const diagCtx = diagCanvas.getContext("2d");
-
+// 画面サイズに合わせてキャンバスをリサイズして対角線を描画する関数
 function resizeDiagonal() {
   const parent = document.getElementById("gesture-canvas");
   diagCanvas.width = parent.clientWidth;
   diagCanvas.height = parent.clientHeight;
   drawDiagonal();
 }
-
+// 対角線を描画する関数
 function drawDiagonal() {
   const w = diagCanvas.width;
   const h = diagCanvas.height;
@@ -175,7 +157,7 @@ function drawDiagonal() {
   diagCtx.lineWidth = 6;
   diagCtx.stroke();
 }
-
+// 画面サイズに合わせて対角線キャンバスをリサイズして再描画
 window.addEventListener("resize", resizeDiagonal);
 resizeDiagonal();
 
@@ -186,46 +168,51 @@ function formatKeys(keys){
   if(!Array.isArray(keys)) return '';
   return keys.filter(k=>k).map(k=>k.toUpperCase()).join(' + ');
 }
-// gestureKey → 表示文字列
-function buildDisplayText(gestureKey){
-  const label = gesture_labels_jp[gestureKey] || gestureKey;
-  const keys  = formatKeys(gestureMap[gestureKey]);
-  if(!keys) return '';
-  return `${label}：${keys}`;
-}
-// 各位置のヒントテキストを構築
-function buildTickerContent(position){
+// 
+function buildHintList(){
+
+  function buildDisplayText(gestureKey){
+    const label = gesture_labels_jp[gestureKey] || gestureKey || 'unknown';
+    const keys  = formatKeys(gestureMap[gestureKey]);
+    if(!keys) return '';
+    return `${label}（${keys}）`;
+  }
+
   const list = [];
 
   for(const key in gestureMap){
     const txt = buildDisplayText(key);
     if(!txt) continue;
 
-    // ピンチは中央
-    if((key === 'pinch_in' || key === 'pinch_out') && position === 'center'){
-      list.push(txt);
-      continue;
-    }
-
-    // 位置一致チェック
-    if(key.endsWith(`_${position}`)){
-      list.push(txt);
-    }
+    list.push(txt);
   }
-  return list.map(t => `<span class="ticker-item">${t}</span>`).join('');
+
+  return list;
 }
 
-function updateTickers(){
-  const positions = ['top','bottom','left','right','center'];
+let hintIndex = 0;
+let hintList = [];
 
-  for(const pos of positions){
-    const el = document.getElementById(`ticker-${pos}`);
-    if(!el) continue;
-
-    const text = buildTickerContent(pos);
-    el.innerHTML = text ? `<span>${text}</span>` : '';
+const hintEl = document.getElementById("hint-display");
+// 定期的にヒントテキストを更新して表示する関数
+function showNextHint(){
+  if(hintList.length === 0){
+    hintList = buildHintList();
   }
+
+  if(hintList.length === 0) return;
+
+  const item = hintList[hintIndex % hintList.length];
+  hintIndex++;
+
+  hintEl.textContent = item;
+  hintEl.classList.add("show");
+
+  setTimeout(()=>{
+    hintEl.classList.remove("show");
+  }, 1200); // 表示時間
 }
+setInterval(showNextHint, 1600);
 
 // WebSocket接続とジェスチャー処理の実装
 const token = new URLSearchParams(location.search).get('token') || '';
@@ -239,8 +226,7 @@ const feedbackEl = document.getElementById('feedback');
 
 // gestureのラベル（後でサーバーから受け取る）
 let gesture_labels_jp = {};
-
-// ジェスチャーとコマンドの対応表
+// ジェスチャーとコマンドの対応表（後でサーバーから受け取る）
 let gestureMap = {};
 
 // 接続状態表示の更新
@@ -349,7 +335,8 @@ function connect(){
     // （初回接続時）ジェスチャーのマッピング情報を受け取る
     if(d.type==='gestures'){ 
       gestureMap = d.data || {};
-      updateTickers(); // ジェスチャーのマッピングが更新されたらヒントテキストも更新 
+      hintList = buildHintList();
+      hintIndex = 0;
     }
     // （初回接続時）ジェスチャーのラベルを受け取る
     if(d.type==='gesture_labels'){ 
@@ -365,7 +352,8 @@ function connect(){
     // （随時）ジェスチャーのマッピングが更新された場合に新しいマッピングを反映する
     if (d.type == 'gesture_updated') {
       gestureMap = d.data || {};
-      updateTickers(); // ヒントテキストも更新
+      hintList = buildHintList();
+      hintIndex = 0;
     }
   };
   ws.onclose = ()=>{ isAuthed=false; setConn(false,'未接続'); setTimeout(connect, 1500); };
