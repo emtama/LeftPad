@@ -24,6 +24,16 @@ GESTURES_FILE = os.path.join(BASE_DIR, "gesture_shortcuts.json")
 ACCESS_TOKEN = secrets.token_urlsafe(16)
 WS_BROADCAST_QUEUE = queue.Queue()
 
+# ══════════════════════════════════════════════
+#  ログ設定（ここを追加）
+# ══════════════════════════════════════════════
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    datefmt="%H:%M:%S",
+)
+log = logging.getLogger("leftpad")
+
 # 接続クライアント管理
 connected_clients = set()
 APP_SETTINGS = {"vibration_enabled": True}
@@ -100,12 +110,26 @@ async def ws_handler(websocket):
     finally:
         connected_clients.discard(websocket)
 
+# websocketサーバーはasyncioで動かす必要があるため、専用のイベントループを作成して実行します
 def run_ws():
+    # 1. 新しいイベントループを作成
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
-    start_server = websockets.serve(ws_handler, HOST, WS_PORT)
-    loop.run_until_complete(start_server)
-    loop.run_forever()
+
+    # 2. サーバーを非同期でセットアップする内部関数
+    async def main():
+        # websockets.serve は async with で使うか、await する必要があります
+        async with websockets.serve(ws_handler, HOST, WS_PORT):
+            log.info(f"WebSocket サーバー起動: ポート {WS_PORT}")
+            await asyncio.Future()  # 永久に待機
+
+    # 3. ループを実行
+    try:
+        loop.run_until_complete(main())
+    except Exception as e:
+        log.error(f"WebSocketサーバーエラー: {e}")
+    finally:
+        loop.close()
 
 def run_http():
     server = HTTPServer((HOST, HTTP_PORT), SimpleHTTPRequestHandler)
@@ -126,6 +150,9 @@ if __name__ == '__main__':
         js_api=api,
         width=1200, 
         height=800,
-        background_color='#0d0e11'
+        background_color='#0d0e11',
+        maximized=True,
+        fullscreen=False,
     )
-    webview.start(debug=True) # 開発中はdebug=Trueで右クリック検証が使える
+
+    webview.start(debug=False) # 開発中はdebug=Trueで右クリック検証が使える
