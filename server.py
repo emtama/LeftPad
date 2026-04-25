@@ -560,9 +560,41 @@ class QRWindow:
         split = tk.Frame(root, bg=self.BG)
         split.pack(fill="both", expand=True)
         left = tk.Frame(split, bg=self.BG)
-        right = tk.Frame(split, bg=self.BG)
-        left.pack(side="left", fill="both", expand=True, padx=(12, 6), pady=12)
-        right.pack(side="left", fill="both", expand=True, padx=(6, 12), pady=12)
+        # 左右のフレームを配置。左はQRコードやURL、接続情報などの表示。右はジェスチャーショートカット編集ウィンドウ。
+        right = tk.Frame(split, bg=self.BG, width=int(self.root.winfo_screenwidth() * 0.5))
+        right.pack(side="left", fill="y", padx=(6, 12), pady=12)
+        right.pack_propagate(False) # 右フレームのサイズを固定して、子ウィジェットに合わせて縮まないようにする
+        # 右パネルサイズ変更用のスプリッター
+        splitter = tk.Frame(split, bg="#2a2d36", width=6, cursor="sb_h_double_arrow")
+        splitter.pack(side="left", fill="y")
+        #
+        def _make_resizer(self, left, right, splitter):
+            dragging = {"active": False}
+
+            def start(e):
+                dragging["active"] = True
+
+            def stop(e):
+                dragging["active"] = False
+
+            def move(e):
+                if not dragging["active"]:
+                    return
+
+                total = self.root.winfo_width()
+                new_right = total - e.x_root
+
+                min_w = 300
+                max_w = total - 300
+
+                new_right = max(min_w, min(max_w, new_right))
+
+                right.config(width=new_right)
+                right.update()
+
+            splitter.bind("<Button-1>", start)
+            splitter.bind("<ButtonRelease-1>", stop)
+            splitter.bind("<B1-Motion>", move)
 
         # ロゴ
         tk.Label(
@@ -627,7 +659,7 @@ class QRWindow:
             command=self._toggle_vibration,
             bg=self.BG, fg=self.TEXT, selectcolor=self.SURFACE,
             activebackground=self.BG, activeforeground=self.ACCENT2,
-            font=("Courier New", 14), highlightthickness=0, bd=0
+            font=("Courier New", 14), highlightthickness=0, bd=0,
         ).pack(anchor="w")
 
         tk.Frame(left, bg=self.BORDER, height=1).pack(fill="x", padx=PAD)
@@ -677,6 +709,10 @@ class QRWindow:
             font=("Courier New", 7), pady=6,
         ).pack()
 
+        # 右パネルのサイズをドラッグで変更できるようにする
+        self._make_resizer(left, right, splitter)
+
+        # ウィンドウを閉じるときの処理を設定。サーバーを停止してからウィンドウを破棄する。
         root.protocol("WM_DELETE_WINDOW", self._on_close)
 
     def _url_row(self, parent, label: str, value: str, color: str):
