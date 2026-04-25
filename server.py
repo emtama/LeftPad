@@ -552,10 +552,11 @@ class QRWindow:
         self._start_status_update()
         self._start_log_update()
         self._maximize_window()
+
     # UI構築。左側にQRコードとURL、接続デバイス情報、設定項目などを配置。右側はジェスチャーショートカット編集ウィンドウ。
     def _build_ui(self):
-        root = self.root
-        PAD  = 24
+        root = self.root    #
+        PAD  = 24 # 全体の余白
         split = tk.Frame(root, bg=self.BG)
         split.pack(fill="both", expand=True)
         left = tk.Frame(split, bg=self.BG)
@@ -626,8 +627,7 @@ class QRWindow:
             command=self._toggle_vibration,
             bg=self.BG, fg=self.TEXT, selectcolor=self.SURFACE,
             activebackground=self.BG, activeforeground=self.ACCENT2,
-            font=("Courier New", 14), highlightthickness=0, bd=0,
-            width=40, height=40
+            font=("Courier New", 14), highlightthickness=0, bd=0
         ).pack(anchor="w")
 
         tk.Frame(left, bg=self.BORDER, height=1).pack(fill="x", padx=PAD)
