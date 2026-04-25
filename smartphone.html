@@ -182,8 +182,9 @@ function buildDisplayText(gestureKey){
   if(!keys) return '';
   return `${label}：${keys}`;
 }
+// 各位置のヒントテキストを構築
 function buildTickerContent(position){
-  const list = [];
+  const list =a [];
 
   for(const key in gestureMap){
     const txt = buildDisplayText(key);
@@ -353,10 +354,8 @@ function connect(){
     }
     // （随時）ジェスチャーのマッピングが更新された場合に新しいマッピングを反映する
     if (d.type == 'gesture_updated') {
-      if (d.data && d.cmd) {
-        gestureMap[d.gesture] = d.cmd;
-        updateTickers(); // ヒントテキストも更新
-      }
+      gestureMap = d.data || {};
+      updateTickers(); // ヒントテキストも更新
     }
   };
   ws.onclose = ()=>{ isAuthed=false; setConn(false,'未接続'); setTimeout(connect, 1500); };
