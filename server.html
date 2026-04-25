@@ -2,61 +2,356 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
+    <!-- google font symbols & icons -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
     <style>
         :root {
-            --bg: #0d0e11; --surface: #16181e; --accent: #e8ff47;
-            --accent2: #47c4ff; --text: #e4e6ee; --border: #2a2d36;
+            /* デフォルトカラーパレットの定義。通常はファイルから読み取ったものをサーバーから受け取り上書き */
+            --bg: #000000;
         }
-        body { background: var(--bg); color: var(--text); font-family: sans-serif; margin: 0; display: flex; height: 100vh; }
+        body {
+            display: flex; /* 横並びにする */
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+            color: var(--text);/* デフォルトテキストカラー */
+        }
+        /* サイドバー */
+        .sidebar {
+            width: 80px;
+            background: var(--surface);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-top: 20px;
+            border-right: 1px solid var(--border);
+        }
+        .nav-item {
+            width: 60px;
+            height: 60px;
+            margin-bottom: 15px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            border-radius: 8px;
+            color: var(--border);
+            transition: 0.3s;
+            font-size: 12px;
+        }
+        .nav-item:hover { background: var(--border); color: #fff; }
+        .nav-item.active { background: var(--accent2); color: var(--bg); }
+        .nav-item i { font-size: 24px; margin-bottom: 4px; }
+
+        /* メインコンテンツ */
+        .main-content {
+            flex: 1;
+            padding: 30px;
+            overflow-y: auto;
+            background: var(--bg);
+        }
         
-        /* 左パネル */
-        .left-panel { flex: 1; padding: 40px; border-right: 2px solid var(--border); display: flex; flex-direction: column; align-items: center; }
-        .qr-card { background: var(--accent); padding: 20px; border-radius: 20px; margin: 20px 0; }
-        .info-box { background: var(--surface); width: 100%; border-radius: 10px; padding: 15px; margin-bottom: 20px; }
+        .panel { display: none; }
+        .panel.active { display: block; }
         
-        /* 右パネル（エディタ） */
-        .right-panel { flex: 1.5; padding: 40px; overflow-y: auto; }
-        .gesture-row { display: flex; align-items: center; background: var(--surface); margin-bottom: 8px; padding: 10px; border-radius: 8px; }
-        .gesture-label { width: 150px; font-weight: bold; }
+        /* 見出しの書式 */
+        h1{
+            color: var(--accent)
+        }
+        
+        /* ログパネル専用 */
+        #log-container {
+            background: var(--surface);
+            color: var(--text);
+            font-family: monospace;
+            padding: 15px;
+            height: 500px;
+            overflow-y: scroll;
+            border-radius: 8px;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+        /* 接続設定タブ */
+        .url-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center; /* 中央揃え */
+            padding: 20px;
+            background: var(--surface);
+            border-radius: 12px;
+            margin: 20px;
+        }
+        /* URLテキストのスタイル（追加） */
+        .clickable-url {
+            word-break: break-all; 
+            color: var(--accent2);
+            cursor: pointer;
+            padding: 10px;
+            background: var(--bg);
+            border-radius: 6px;
+            border: 1px solid transparent;
+            transition: all 0.2s;
+            position: relative;
+            display: block;
+            width: 90%;
+            text-align: center;
+        }
+
+        /* ホバー時に枠線と色を変える */
+        .clickable-url:hover {
+            border-color: var(--accent2);
+            background: var(--border);
+        }
+
+        /* コピーした瞬間の視覚効果 */
+        .clickable-url:active {
+            transform: scale(0.98);/*  */
+            opacity: 0.8;
+        }
+
+        /* コピー完了通知（ツールチップ風） */
+        .clickable-url.copied::after {
+            content: "Copied!";
+            position: absolute;
+            top: -30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--accent2);
+            color: var(--bg);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        /* QRカード */
+        #qr-img { 
+            padding: 20px; 
+            border-radius: 20px; 
+            margin: 20px 0; 
+            margin-left: auto;
+            margin-right: auto;
+            width: 250px;
+            height: 250px;
+            background: var(--surface);
+            display: block;
+        }
+        
+        /* ジェスチャー-ショートカット編集 */
+        .gesture-row { display: flex; 
+            align-items: center; 
+            background: var(--surface); 
+            margin-bottom: 8px; 
+            padding: 10px; 
+            border-radius: 8px; }
+        .gesture-label { width: 150px; 
+            font-weight: bold; 
+            color: var(--text); }
         .key-display { flex: 1; color: var(--accent2); background: var(--bg); padding: 8px; border-radius: 4px; margin: 0 10px; min-height: 20px; }
         
         button { background: var(--border); color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; }
         button.active { background: var(--accent2); color: var(--bg); font-weight: bold; }
+
+        /* 設定ラベル */
+        .setting-row { 
+            display: flex; 
+            align-items: center; 
+            background: var(--surface); 
+            margin-bottom: 8px; 
+            padding: 10px; 
+            border-radius: 8px;
+        }
+        .setting-label{
+            padding: 10px; 
+            color: var(--text); 
+        }
+        /* トグルスイッチ */
+        .toggle-button-2 {/*スイッチの器*/
+            /* --- カスタマイズ用の定数 --- */
+            --toggle-width: 50px; /* 全体の幅 */
+            --toggle-height: calc(var(--toggle-width) / 2); /* 高さは幅の半分 */
+            --border-width: 3; /* 枠の太さ */
+            --gap: calc(var(--toggle-width) / 20); /* 外枠とつまみの間の隙間 */
+            --color-off: var(--text);
+            --color-on: var(--accent2);
+            --color-bg: var(--bg);
+            --speed: .4s;
+
+            /* --- 計算用の変数 --- */
+            --circle-size: calc(var(--toggle-height) - (var(--gap) * 2)); /* つまみのサイズ */
+            --move-distance: calc(var(--toggle-width) - var(--circle-size) - (var(--gap) * 2));
+
+            display: inline-block;
+            position: relative;
+            width: var(--toggle-width);
+            height: var(--toggle-height);
+            border-radius: var(--toggle-height);
+            border: var(--border-width) solid var(--color-off);
+            box-sizing: content-box;
+            cursor: pointer;
+            transition: border-color var(--speed);
+            background-color: var(--color-bg);
+        }
+        .toggle-button-2:has(:checked) {/*チェック時の器*/
+            border-color: var(--color-on);
+        }
+        .toggle-button-2::after {/*つまみ*/
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: var(--gap);
+            transform: translateY(-50%);
+            width: var(--circle-size);
+            height: var(--circle-size);
+            border-radius: 50%;
+            background-color: var(--color-off);
+            transition: left var(--speed);
+        }
+        .toggle-button-2:has(:checked)::after {/*チェック時のつまみ(移動)*/
+            left: calc(var(--gap) + var(--move-distance));
+            background-color: var(--color-on);
+        }
+        .toggle-button-2 input {/*標準のチェックボックスを非表示*/
+            display: none;
+        }
+
     </style>
 </head>
 <body>
-    <div class="left-panel">
-        <h1 style="color: var(--accent)">LEFTPAD</h1>
-        <div class="qr-card">
-            <img id="qr-img" width="240">
-        </div>
-        <div class="info-box">
-            <div>URL: <span id="http-url" style="color: var(--accent)">---</span></div>
-            <div style="margin-top:10px">Vibration: <input type="checkbox" id="vib-toggle" onchange="toggleVib()"></div>
-        </div>
+    <div class="sidebar">
+    <div class="nav-item active" onclick="switchPanel('qr')">
+        <span class="material-symbols-outlined">devices</span>
     </div>
+    <div class="nav-item" onclick="switchPanel('key')">
+        <span class="material-symbols-outlined">keyboard</span>
+    </div>
+    <div class="nav-item" onclick="switchPanel('settings')">
+        <span class="material-symbols-outlined">settings</span>
+    </div>
+    <div class="nav-item" onclick="switchPanel('logs')">  
+        <span class="material-symbols-outlined">history</span>
+    </div>
+</div>
 
-    <div class="right-panel">
-        <h3>ジェスチャー割り当て</h3>
-        <div id="gesture-list"></div>
+    <div class="main-content">
+        <div id="panel-qr" class="panel active">
+            <h1>接続設定</h1>
+            <img id="qr-img"/>
+            <label style="text-align: center";>
+            QRコードをスマホで読み込んで接続してください。↓のURLでも接続できます。
+            </label>
+            <div class="url-container">
+                <h2 style="text-align: center;">HTTP URL</h2>
+                <code id="http-url" class="clickable-url" onclick="copyHTTPURL()">読み込み中...</code>
+                <h2 style="text-align: center; margin-top: 20px;">WebSocket URL</h2>
+                <code id="ws-url" class="clickable-url" onclick="copyWSURL()">読み込み中...</code>
+            </div>
+        </div>
+
+        <div id="panel-key" class="panel">
+            <h1>ジェスチャー-ショートカット編集</h1>
+            <div id="gesture-shortcut-editor"></div>
+        </div>
+
+        <div id="panel-settings" class="panel">
+            <h1>アプリ設定</h1>
+            <label class = "setting-row">
+                <label class="toggle-button-2">
+                    <input type="checkbox" id="vib-toggle" onchange="toggleVib()"/>
+                </label>
+                <label class="setting-label">タップ時の振動</label>
+            </label>
+
+        </div>
+
+        <div id="panel-logs" class="panel">
+            <h1>通信ログ</h1>
+            <div id="log-container"></div>
+            <button onclick="document.getElementById('log-container').innerHTML=''" style="margin-top:10px;">ログをクリア</button>
+        </div>
     </div>
 
     <script>
         let gestures = {};
         let capturingKey = null;
+        let pressedKeys = new Set(); // 現在押されているキーを保持
 
-        // 起動時にPythonからデータを取得
-        window.addEventListener('pywebviewready', async () => {
-            const data = await pywebview.api.get_init_data();
-            document.getElementById('qr-img').src = 'data:image/png;base64,' + data.qr_image;
-            document.getElementById('http-url').innerText = data.http_url;
-            document.getElementById('vib-toggle').checked = data.vibration;
-            gestures = data.gestures;
-            renderGestures(data.labels);
-        });
+        // 初期化処理（サーバーから基本情報を受け取って設定）
+        async function init() {
+            try {
+                //
+                const data = await pywebview.api.get_init_data();
+                //
+                document.getElementById('qr-img').src = 'data:image/png;base64,' + data.qr_image;
+                document.getElementById('http-url').innerText = data.http_url;
+                document.getElementById('ws-url').innerText = data.ws_url;
+                document.getElementById('vib-toggle').checked = data.vibration;
+                gestures = data.gestures;
+                renderGestures(data.labels);
 
+                // カラーパレットの適用
+                if (data.colors) {
+                    const root = document.documentElement;
+                    for (const [key, value] of Object.entries(data.colors)) {
+                        root.style.setProperty(`--${key}`, value);
+                    }
+                }
+
+            } catch (e) {
+                console.error("Init error:", e);
+            }
+        }
+        // 初期化処理はpywebiew
+        window.addEventListener('pywebviewready', init);
+
+        // パネルを切り替える
+        function switchPanel(panelId) {
+            // 全パネルとナビボタンをリセット
+            document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+
+            // 選択されたものだけアクティブ化
+            document.getElementById(`panel-${panelId}`).classList.add('active');
+            event.currentTarget.classList.add('active');
+        }
+
+        // URLをクリップボードにコピーする関数
+        async function copyHTTPURL() {
+            const el = document.getElementById('http_url');
+            const success = await pywebview.api.copy_to_clipboard(el.innerText);
+            if (success) showCopyFeedback(el);
+        }
+
+        async function copyWSURL() {
+            const el = document.getElementById('ws-url');
+            const success = await pywebview.api.copy_to_clipboard(el.innerText);
+            if (success) showCopyFeedback(el);
+        }
+
+        // 2秒間だけ「Copied!」を表示する視覚演出
+        function showCopyFeedback(element) {
+            const wait_time = 500;
+            element.classList.add('Copied!');
+            setTimeout(() => {
+                element.classList.remove('Copied!');
+            }, wait_time);
+        }
+
+        // Python側からログを受け取って表示する関数
+        function addLog(message) {
+            const container = document.getElementById('log-container');
+            const entry = document.createElement('div');
+            entry.textContent = message;
+            container.appendChild(entry);            
+            // 常に最新（一番下）にスクロール
+            container.scrollTop = container.scrollHeight;
+        }
+
+        // ジェスチャーとショートカットタブ
+        // ジェスチャーとショートカットの対応を表示する関数
         function renderGestures(labels) {
-            const container = document.getElementById('gesture-list');
+            const container = document.getElementById('gesture-shortcut-editor');
+            container.innerHTML = ''; // 再描画用
             Object.keys(labels).forEach(id => {
                 const row = document.createElement('div');
                 row.className = 'gesture-row';
@@ -64,40 +359,66 @@
                     <div class="gesture-label">${labels[id]}</div>
                     <div class="key-display" id="display-${id}">${(gestures[id] || []).join(' + ')}</div>
                     <button onclick="startCapture('${id}')" id="btn-${id}">記録</button>
+                    <button onclick="deleteGesture('${id}')" id="btn-delete-${id}" style="margin-left:5px; background:#ff5c5c;">削除</button>
                 `;
                 container.appendChild(row);
             });
         }
-
+        // ジェスチャーに対応するキーの記録を開始する関数
         function startCapture(id) {
             if(capturingKey) return;
             capturingKey = id;
-            document.getElementById(`btn-${id}`).innerText = "記録中...";
-            document.getElementById(`btn-${id}`).classList.add('active');
+            pressedKeys.clear();
+            const btn = document.getElementById(`btn-${id}`);
+            btn.innerText = "キーを離して確定...";
+            btn.classList.add('active');
         }
-
-        // キーボードイベントのキャプチャ
+        // ジェスチャーに対応するキーの削除
+        async function deleteGesture(id) {
+            gestures[id] = []; // ローカルデータを空に
+            document.getElementById(`display-${id}`).innerText = '';
+            await pywebview.api.save_shortcut(id, []); // Python側へ空リストを送信
+        }
+        // 複数キー記録のロジック (keydown で蓄積、keyup で送信)
         window.addEventListener('keydown', (e) => {
             if(!capturingKey) return;
             e.preventDefault();
-            
-            // 修飾キーなどの判定ロジックを入れ、配列として取得
-            const keys = [];
-            if(e.ctrlKey) keys.push('Ctrl');
-            if(e.shiftKey) keys.push('Shift');
-            if(e.altKey) keys.push('Alt');
-            if(!['Control','Shift','Alt'].includes(e.key)) keys.push(e.key.toUpperCase());
 
-            document.getElementById(`display-${capturingKey}`).innerText = keys.join(' + ');
-            pywebview.api.save_shortcut(capturingKey, keys);
+            // 修飾キーの正規化
+            let key = e.key;
+            if (key === "Control") key = "Ctrl";
+            if (key === "Meta") key = "Win"; // Windowsキーなど
+
+            pressedKeys.add(key);
             
-            // 記録終了
-            const btn = document.getElementById(`btn-${capturingKey}`);
+            // リアルタイム表示用
+            const display = Array.from(pressedKeys);
+            document.getElementById(`display-${capturingKey}`).innerText = display.join(' + ');
+        });
+        
+        window.addEventListener('keyup', (e) => {
+            if(!capturingKey) return;
+            
+            // 全てのキーが離されたら確定して保存
+            const finalKeys = Array.from(pressedKeys);
+            if (finalKeys.length > 0) {
+                saveAndFinish(capturingKey, finalKeys);
+            }
+            pressedKeys.clear();
+        });
+        // ジェスチャーに対応するキーの決定と保存
+        async function saveAndFinish(id, keys) {
+            gestures[id] = keys;
+            await pywebview.api.save_shortcut(id, keys);
+            
+            const btn = document.getElementById(`btn-${id}`);
             btn.innerText = "記録";
             btn.classList.remove('active');
             capturingKey = null;
-        });
-
+        }
+        
+        // 設定
+        // 振動の設定
         async function toggleVib() {
             const val = document.getElementById('vib-toggle').checked;
             await pywebview.api.toggle_vibration(val);

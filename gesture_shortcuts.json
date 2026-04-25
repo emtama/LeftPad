@@ -94,7 +94,9 @@
   "two_finger_swipe_up": [],
   "two_finger_swipe_down": [],
   "two_finger_swipe_left": [],
-  "two_finger_swipe_right": [],
+  "two_finger_swipe_right": [
+    " "
+  ],
   "three_finger_swipe_up": [],
   "three_finger_swipe_down": [],
   "three_finger_swipe_left": [],

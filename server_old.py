@@ -503,6 +503,7 @@ class InlineGestureEditor(tk.Frame):
                 b.configure(text="確定", bg=COLOR_ACCENT2, fg=COLOR_BG)
             else:
                 b.configure(state="無効", bg=COLOR_MUTED, fg=COLOR_BG)
+                
     # キーイベント処理。キャプチャ中のキーセットを更新して候補表示に反映。キャプチャ対象外のキーは無視。
     def _on_key_press(self, event):
         if not self._capture_target:
