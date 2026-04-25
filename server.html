@@ -8,6 +8,8 @@
         :root {
             /* デフォルトカラーパレットの定義。通常はファイルから読み取ったものをサーバーから受け取り上書き */
             --bg: #000000;
+            --mx: 0;/* マウスの位置 */
+            --my: 0;/* マウスの位置 */
         }
         body {
             display: flex; /* 横並びにする */
@@ -58,6 +60,9 @@
         /* 見出しの書式 */
         h1{
             color: var(--accent)
+        }
+        h2{
+            color: var(--text)
         }
         
         /* ログパネル専用 */
@@ -111,19 +116,21 @@
         }
 
         /* コピー完了通知（ツールチップ風） */
-        .clickable-url.copied::after {
-            content: "Copied!";
-            position: absolute;
-            top: -30px;
-            left: 50%;
-            transform: translateX(-50%);
+       .clickable-url.copied_tooltip::after {
+            content: "コピーしました！";
+            position: fixed;
+            top: var(--my);
+            left: var(--mx);
+            transform: translate(-50%, -120%);
             background: var(--accent2);
-            color: var(--bg);
+            color: var(--text);
             padding: 2px 8px;
             border-radius: 4px;
             font-size: 14px;
             font-weight: bold;
+            pointer-events: none;
         }
+
         /* QRカード */
         #qr-img { 
             padding: 20px; 
@@ -235,11 +242,13 @@
 
     <div class="main-content">
         <div id="panel-qr" class="panel active">
-            <h1>接続設定</h1>
+            <h1>スマホとの接続</h1>
             <img id="qr-img"/>
-            <label style="text-align: center";>
-            QRコードをスマホで読み込んで接続してください。↓のURLでも接続できます。
-            </label>
+            <div id="connection-status" style="text-align: center; margin-bottom: 20px; padding: 10px; background: var(--surface); border-radius: 8px;">
+                <h2>現在の接続数</h2>
+                <h1 id="client-count">0</h1>
+                <div id="client-list" style="font-size: 0.8em; color: var(--accent2); margin-top: 5px;">待機中...</div>
+            </div>
             <div class="url-container">
                 <h2 style="text-align: center;">HTTP URL</h2>
                 <code id="http-url" class="clickable-url" onclick="copyHTTPURL()">読み込み中...</code>
@@ -272,6 +281,9 @@
     </div>
 
     <script>
+        // ══════════════════════════════════════════════
+        // 初期化
+        // ══════════════════════════════════════════════
         let gestures = {};
         let capturingKey = null;
         let pressedKeys = new Set(); // 現在押されているキーを保持
@@ -301,9 +313,42 @@
                 console.error("Init error:", e);
             }
         }
-        // 初期化処理はpywebiew
-        window.addEventListener('pywebviewready', init);
+        // 接続ステータスアップデート
+        function startStatsUpdate() {
+            setInterval(async () => {
+                try {
+                    const stats = await pywebview.api.get_connection_stats();
+                    
+                    // 端末数を更新
+                    document.getElementById('client-count').innerText = stats.count;
+                    
+                    // 端末IPリストを更新
+                    const listEl = document.getElementById('client-list');
+                    if (stats.count > 0) {
+                        listEl.innerText = "接続中: " + stats.ips.join(', ');
+                    } else {
+                        listEl.innerText = "接続されている端末はありません";
+                    }
+                } catch (e) {
+                    console.error("Stats update error:", e);
+                }
+            }, 2000); // 2秒ごとに更新
+        }
 
+        // pywebviewready のタイミングで実行開始
+        window.addEventListener('pywebviewready', () => {
+            init();
+            startStatsUpdate(); // これを追加
+        });
+
+        // ══════════════════════════════════════════════
+        // 共通
+        // ══════════════════════════════════════════════
+        // マウスの位置を追跡
+        document.addEventListener("mousemove", (e) => {
+            document.documentElement.style.setProperty("--mx", e.clientX + "px");
+            document.documentElement.style.setProperty("--my", e.clientY + "px");
+            });
         // パネルを切り替える
         function switchPanel(panelId) {
             // 全パネルとナビボタンをリセット
@@ -315,9 +360,21 @@
             event.currentTarget.classList.add('active');
         }
 
+        // ══════════════════════════════════════════════
+        // スマホ接続タブ
+        // ══════════════════════════════════════════════
+        
+        // 2秒間だけ「Copied!」を表示する視覚演出
+        function showCopyFeedback(element) {
+            const wait_time = 500;
+            element.classList.add('copied_tooltip');// "copied_tooltip"の名前の要素を::afterとして追加。
+            setTimeout(() => {
+                element.classList.remove('copied_tooltip');// "copied_tooltip"の名前の要素を::afterとして追加。
+            }, wait_time);
+        }
         // URLをクリップボードにコピーする関数
         async function copyHTTPURL() {
-            const el = document.getElementById('http_url');
+            const el = document.getElementById('http-url');
             const success = await pywebview.api.copy_to_clipboard(el.innerText);
             if (success) showCopyFeedback(el);
         }
@@ -328,26 +385,11 @@
             if (success) showCopyFeedback(el);
         }
 
-        // 2秒間だけ「Copied!」を表示する視覚演出
-        function showCopyFeedback(element) {
-            const wait_time = 500;
-            element.classList.add('Copied!');
-            setTimeout(() => {
-                element.classList.remove('Copied!');
-            }, wait_time);
-        }
+        
 
-        // Python側からログを受け取って表示する関数
-        function addLog(message) {
-            const container = document.getElementById('log-container');
-            const entry = document.createElement('div');
-            entry.textContent = message;
-            container.appendChild(entry);            
-            // 常に最新（一番下）にスクロール
-            container.scrollTop = container.scrollHeight;
-        }
-
-        // ジェスチャーとショートカットタブ
+        // ══════════════════════════════════════════════
+        // ジェスチャー・ショートカットタブ
+        // ══════════════════════════════════════════════
         // ジェスチャーとショートカットの対応を表示する関数
         function renderGestures(labels) {
             const container = document.getElementById('gesture-shortcut-editor');
@@ -377,7 +419,7 @@
         async function deleteGesture(id) {
             gestures[id] = []; // ローカルデータを空に
             document.getElementById(`display-${id}`).innerText = '';
-            await pywebview.api.save_shortcut(id, []); // Python側へ空リストを送信
+            await pywebview.api.save_gesture_shortcut(id, []); // Python側へ空リストを送信
         }
         // 複数キー記録のロジック (keydown で蓄積、keyup で送信)
         window.addEventListener('keydown', (e) => {
@@ -409,19 +451,32 @@
         // ジェスチャーに対応するキーの決定と保存
         async function saveAndFinish(id, keys) {
             gestures[id] = keys;
-            await pywebview.api.save_shortcut(id, keys);
+            await pywebview.api.save_gesture_shortcut(id, keys);
             
             const btn = document.getElementById(`btn-${id}`);
             btn.innerText = "記録";
             btn.classList.remove('active');
             capturingKey = null;
         }
-        
-        // 設定
+        // ══════════════════════════════════════════════
+        // 設定タブ
+        // ══════════════════════════════════════════════
         // 振動の設定
         async function toggleVib() {
             const val = document.getElementById('vib-toggle').checked;
             await pywebview.api.toggle_vibration(val);
+        }
+        // ══════════════════════════════════════════════
+        // ログタブ
+        // ══════════════════════════════════════════════
+        // Python側からログを受け取って表示する関数
+        function addLog(message) {
+            const container = document.getElementById('log-container');
+            const entry = document.createElement('div');
+            entry.textContent = message;
+            container.appendChild(entry);            
+            // 常に最新（一番下）にスクロール
+            container.scrollTop = container.scrollHeight;
         }
     </script>
 </body>

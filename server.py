@@ -15,38 +15,52 @@ import qrcode
 import io
 import base64
 
-# --- 設定 (元コードを継承) ---
+# ══════════════════════════════════════════════
+#  グローバル変数の初期化
+# ══════════════════════════════════════════════
 HOST = "0.0.0.0"
 WS_PORT = 8765
 HTTP_PORT = 8080
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-GESTURE_LABELS_FILE = os.path.join(BASE_DIR, "gesture_labels.json")
-GESTURES_FILE = os.path.join(BASE_DIR, "gesture_shortcuts.json")
 ACCESS_TOKEN = secrets.token_urlsafe(16)
+
 WS_BROADCAST_QUEUE = queue.Queue()  # WebSocketブロードキャスト用のスレッドセーフなキュー
 
-# 色の設定ファイル（UIのテーマカラーなどを定義）
-def load_colors():
-    if os.path.exists(COLORS_FILE):
-        with open(COLORS_FILE, 'r', encoding='utf-8') as f:
-            return json.load(f)
-    # ファイルがない場合のデフォルト値
-    return {
-        "bg": "#0d0e11", "surface": "#16181e", "accent": "#e8ff47",
-        "accent2": "#47c4ff", "text": "#e4e6ee", "border": "#2a2d36", "danger": "#ff5c5c"
-    }
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+GESTURE_LABELS_JP_PATH = os.path.join(BASE_DIR, "gesture_labels.json")
+GESTURE_SHORTCUTS_PATH = os.path.join(BASE_DIR, "gesture_shortcuts.json")
+COLORS_PATH = os.path.join(BASE_DIR, "colors.json")
 
-COLORS_FILE = os.path.join(BASE_DIR, "colors.json")
-COLORS = load_colors()
+LOGGER = None
+COLORS = {}
+GESTURE_LABELS_JP = {}
+GESTURE_KEYS = []
+GESTURE_SHORTCUTS = {}
+CONNECTED_CLIENTS: set = set()
+CONNECTED_CLIENTS_INFOS: dict = {}
+APP_SETTINGS = {
+    "vibration_enabled": True,
+}
+
 
 # ══════════════════════════════════════════════
-#  ログ設定（ここを追加）
+#  ローカル：ユーティリティ
 # ══════════════════════════════════════════════
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(message)s",
-    datefmt="%H:%M:%S",
-)
+# jsonファイルを読んで返す関数
+def load_json(path, encoding="utf-8") -> dict:
+    try:
+        with open(path, "r", encoding=encoding) as f:
+            data = json.load(f)
+        if not isinstance(data, dict):
+            raise ValueError(f"{path} must be object")
+        return data
+    except Exception as e:
+        LOGGER.error(f"{path} の読み込みに失敗: {e}")
+        return {}
+    
+# ══════════════════════════════════════════════
+#  ローカル：ログ設定
+# ══════════════════════════════════════════════
+
 LOGGER = logging.getLogger("leftpad")
 # WebSocketサーバーのログをUIに表示するためのロガーハンドラー
 class WebviewLogHandler(logging.Handler):
@@ -64,22 +78,9 @@ class WebviewLogHandler(logging.Handler):
         except:
             pass
 
-
-# ═════════════════════════════════════════════
-# ジェスチャーの日本語ラベル（UI表示用）
-# ═════════════════════════════════════════════
-with open(GESTURE_LABELS_FILE, "r", encoding="utf-8") as f:
-    GESTURE_LABELS_JP = json.load(f)
-GESTURE_KEYS = list(GESTURE_LABELS_JP.keys())
-
-# デフォルトのジェスチャー・ショートカット対応（全てからっぽ）
-DEFAULT_GESTURES = {
-    key: "" for key in GESTURE_KEYS
-}
-
-# --------------------------------------------------
-# キーの実行
-# --------------------------------------------------
+# ══════════════════════════════════════════════
+# ローカル：キーの実行
+# ══════════════════════════════════════════════
 def execute_keys(keys: list[str]) -> None:
     pyautogui.PAUSE = 0.02  # 20ミリ秒待つ
     
@@ -93,36 +94,76 @@ def execute_keys(keys: list[str]) -> None:
         else:
             # 複数キーの同時押し (例: ["ctrl", "c"])
             pyautogui.hotkey(*keys)
+
     except Exception as e:
         LOGGER.error(f"キー入力実行エラー: {e}")
 
 # ══════════════════════════════════════════════
-#  接続クライアント
+#  ネットワーク：ローカルIP
 # ══════════════════════════════════════════════
-connected_clients: set = set()
-connected_client_infos: dict = {}
-APP_SETTINGS = {
-    "vibration_enabled": True,
-}
-
-# --- ロジック関数 ---
+# 自身のローカルIPアドレスを取得する関数。
 def get_local_ip():
     try:
+        # IPv4, UDPのソケットを作成
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        # GoogleのDNSサーバに雪像
         s.connect(("8.8.8.8", 80))
-        ip = s.getsockname()[0]
+        ip, port = s.getsockname()
         s.close()
         return ip
-    except: return "127.0.0.1"
+    except: 
+        # 失敗時はループバックアドレスを返す
+        return "127.0.0.1"
 
-def load_json(path):
-    if not os.path.exists(path): return {}
-    with open(path, "r", encoding="utf-8") as f:
-        return json.load(f)
 
-# ===========================================
-# PC側UIを作るpywebviewクラス-
-# ===========================================
+# ══════════════════════════════════════════════
+#  共通：UI関係I/O
+# ══════════════════════════════════════════════
+
+# 色の設定ファイル（UIのテーマカラーなどを定義）
+def load_colors() -> dict:
+    return load_json(COLORS_PATH)
+COLORS = load_colors()
+
+# ═════════════════════════════════════════════
+# 共通：ジェスチャーの日本語ラベル（UI表示用）
+# ═════════════════════════════════════════════
+GESTURE_LABELS_JP = load_json(GESTURE_LABELS_JP_PATH)
+GESTURE_KEYS = list(GESTURE_LABELS_JP.keys())
+
+# ══════════════════════════════════════════════
+#  共通：ジェスチャー/ショートカット I/O
+# ══════════════════════════════════════════════
+        
+# ジェスチャー/ショートカットの一覧をファイル保存する。
+def save_gesture_shortcuts(data: dict) -> bool:
+    try:
+        with open(GESTURE_SHORTCUTS_PATH, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+        LOGGER.info("gesture_shortcuts.json を保存した")
+        return True
+    except Exception as e:
+        LOGGER.error(f"gesture_shortcuts.json の保存に失敗: {e}")
+        return False
+    
+# ジェスチャーの日本語ラベルの読み込み
+def load_gesture_labels_jp(encoding="utf-8"):
+    data = load_json(GESTURE_LABELS_JP_PATH, encoding)
+    return data
+
+# ジェスチャー/ショートカットファイルの読み込み
+def load_gesture_shortcuts(encoding="utf-8"):
+    data = load_json(GESTURE_SHORTCUTS_PATH, encoding)
+    for key in list(data.keys()):
+        if key not in GESTURE_LABELS_JP:
+            LOGGER.warning(f"不明なジェスチャーがショートカットに存在したので削除しました: {key: data[key]}")
+            del data[key]
+    return data
+
+GESTURE_SHORCUTS = load_gesture_shortcuts()
+# ══════════════════════════════════════════════
+# PC側GUIを作るpywebviewクラス-
+# ══════════════════════════════════════════════
 # server.html の JavaScript からは window.pywebview.api.関数名() で呼び出せます
 class JSApi:
     def __init__(self):
@@ -140,14 +181,16 @@ class JSApi:
             "http_url": self.http_url,
             "ws_url": self.ws_url,
             "qr_image": self._generate_qr_base64(self.http_url),
-            "gestures": load_json(GESTURES_FILE),
-            "labels": load_json(GESTURE_LABELS_FILE),
+            "gesture_shorcuts": GESTURE_SHORTCUTS,
+            "labels": GESTURE_LABELS_JP,
             "vibration": APP_SETTINGS["vibration_enabled"],
             "colors": COLORS
         }
     
-    # QRコードを生成してBase64エンコードする関数
     def _generate_qr_base64(self, url):
+        """
+        QRコードを生成してBase64エンコードする関数
+        """
         qr = qrcode.QRCode(box_size=10, border=2)
         qr.add_data(url)
         img = qr.make_image(fill_color="#0d0e11", back_color="#e8ff47")
@@ -155,16 +198,13 @@ class JSApi:
         img.save(buffered, format="PNG")
         return base64.b64encode(buffered.getvalue()).decode()
 
-    # server.html から呼び出される。ジェスチャーとキーの対応を保存する。
     def save_shortcut(self, gesture_key, keys_list):
         """
-        JavaScript側から送られてきたキーの配列を保存する。
+        PC側UIから送られてきたジェスチャー・ショートカットキーの配列を保存する。
         空配列 [] が送られてきた場合は削除として扱う。
         """
-        try:
-            data = load_json(GESTURES_FILE)
-            
-            # 1. データのバリデーションと正規化
+        try:            
+            # keys_listがlistでない場合も削除として扱う。
             if not isinstance(keys_list, list):
                 keys_list = []
             
@@ -172,14 +212,14 @@ class JSApi:
             # (server_old.py の execute_keys ロジックに合わせる)
             normalized_keys = [str(k).lower() for k in keys_list]
             
-            data[gesture_key] = normalized_keys
             
             # 2. ファイル保存
-            with open(GESTURES_FILE, "w", encoding="utf-8") as f:
-                json.dump(data, f, ensure_ascii=False, indent=2)
+            GESTURE_SHORTCUTS[gesture_key] = normalized_keys
+            with open(GESTURE_SHORTCUTS_PATH, "w", encoding="utf-8") as f:
+                json.dump(GESTURE_SHORTCUTS, f, ensure_ascii=False, indent=2)
             
             # 3. WebSocket経由でスマホにも即座に通知
-            msg = json.dumps({"type": "gestures", "data": data})
+            msg = json.dumps({"type": "gesture_shorcuts", "data": GESTURE_SHORTCUTS})
             WS_BROADCAST_QUEUE.put(msg)
             
             LOGGER.info(f"更新: {gesture_key} -> {normalized_keys}")
@@ -196,55 +236,64 @@ class JSApi:
 
     # 指定されたテキストをクリップボードにコピーする関数
     def copy_to_clipboard(self, text):
-        # pyperclipを使うのが確実ですが、pyautoguiでも代用可能です
-        # ここではより一般的なpyperclipを想定（または標準のtkinter経由）
-        pyperclip.copy(text)
-        LOGGER.info(f"URLをコピーしました: {text}")
-        return True
+        try:
+            pyperclip.copy(text)
+            LOGGER.info(f"URLをコピーしました: {text}")
+            return True
+        except Exception as e:
+            LOGGER.warning(f'URLのコピーに失敗しました: {text}, {e}')
+            return False
 
-# =============================================
+# ══════════════════════════════════════════════
 # スマホ側とのWebSocket/http通信を行う
-# ================================================
+# ══════════════════════════════════════════════
 # Websocketハンドラ（スマホ側との通信）
 async def ws_handler(websocket):
-
     # クライアント情報（IPアドレスとポート番号）を取得
-    client = websocket.remote_address
+    client_ip, client_port = websocket.remote_address
 
-    # ── 認証メッセージ検証（接続直後） ─────────────
+    #　認証メッセージ検証（接続直後） 
+    TIMEOUT_SEC = 8
     try:
-        raw = await asyncio.wait_for(websocket.recv(), timeout=8)
+        raw = await asyncio.wait_for(websocket.recv(), timeout=TIMEOUT_SEC)
         data = json.loads(raw)
     except asyncio.TimeoutError:
-        LOGGER.warning(f"認証タイムアウト: {client[0]}")
+        LOGGER.warning(f"認証タイムアウト: {client_ip}")
         await websocket.close(4001, "Unauthorized")
         return
     except json.JSONDecodeError:
-        LOGGER.warning(f"認証失敗(JSON不正): {client[0]}")
+        LOGGER.warning(f"認証失敗(JSON不正): {client_ip}")
         await websocket.close(4001, "Unauthorized")
         return
     except websockets.exceptions.ConnectionClosed:
         return
     # -- 認証メッセージの形式を検査 --
     if data.get("type") != "auth":
-        LOGGER.warning(f"認証失敗(type不正): {client[0]}")
+        LOGGER.warning(f"認証失敗(type不正): {client_ip}")
         await websocket.close(4001, "Unauthorized")
         return
     # -- トークンを検査 --
     token = data.get("token", "")
     if token != ACCESS_TOKEN:
-        LOGGER.warning(f"不正アクセス拒否: {client[0]} (token不一致)")
+        LOGGER.warning(f"不正アクセス拒否: {client_ip} (token不一致)")
         await websocket.send(json.dumps({"type": "auth", "ok": False}))
         await websocket.close(4001, "Unauthorized")
         return
 
+    # 認証成功    
     await websocket.send(json.dumps({"type": "auth", "ok": True}))
     
-    # ── 認証成功 ─────────────
-    LOGGER.info(f"WS 接続: {client[0]}:{client[1]}")
-    connected_clients.add(websocket)
-    connected_client_infos[websocket] = f"{client[0]}:{client[1]}"
+    # クライアントを記録
+    CONNECTED_CLIENTS.add(websocket)
+    CONNECTED_CLIENTS_INFOS[websocket] = f"{client_ip}:{client_port}"
+    LOGGER.info(f"デバイスが接続されました: {CONNECTED_CLIENTS_INFOS[websocket]}")
 
+    # （初回接続時）基本情報送信
+    await websocket.send(json.dumps({"type": "gesture_shorcuts", "data": GESTURE_SHORCUTS}))
+    await websocket.send(json.dumps({"type": "gesture_labels", "data": GESTURE_LABELS_JP}))
+    await websocket.send(json.dumps({"type": "vibration_setting", "data": APP_SETTINGS.get("vibration_enabled")}))
+    await websocket.send(json.dumps({"type": "colors", "data":COLORS}))
+    
     # （随時）クライアントからのメッセージを待機して処理するループ。接続が切れるまで続く。
     try:
         # クライアントからのメッセージを待機。メッセージの形式は全てJSONで、"type"フィールドで種類を判別する。
@@ -261,9 +310,9 @@ async def ws_handler(websocket):
                 supported = bool(data.get("supported", False))
                 allowed = bool(data.get("allowed", False))
                 if not supported or not allowed:
-                    LOGGER.warning(f"端末バイブレーション警告: {client[0]} (supported={supported}, allowed={allowed})")
+                    LOGGER.warning(f"端末バイブレーション警告: {client_ip} (supported={supported}, allowed={allowed})")
                 else:
-                    LOGGER.info(f"端末バイブレーション状態: {client[0]} 利用可能")
+                    LOGGER.info(f"端末バイブレーション状態: {client_ip} 利用可能")
                 continue          
             # "update_setting" → アプリの設定値を更新する（例: vibration_enabled）
             elif msg_type == "update_setting":
@@ -276,15 +325,15 @@ async def ws_handler(websocket):
                     await websocket.send(json.dumps({"type": "setting_updated", "ok": False}))
                 continue
 
-            # ── ジェスチャーコマンド実行 ────────────────
+            # ジェスチャーコマンド実行
             gesture_name = data.get("gesture", "").strip()
             gesture_label = GESTURE_LABELS_JP.get(gesture_name, gesture_name)
             # ジェスチャー名が不正 
-            if not gesture_name or gesture_name not in gestures:
+            if not gesture_name or gesture_name not in GESTURE_SHORCUTS:
                 await websocket.send(json.dumps({"type": "error", "ok": False, "error": "no gesture"}))
                 continue
             # ジェスチャーに対応するキー配列を取得。形式が不正ならエラーを返す
-            keys = gestures[gesture_name]
+            keys = GESTURE_SHORCUTS[gesture_name]
             if not isinstance(keys, list) or not keys:
                 await websocket.send(json.dumps({"type": "error", "ok": False, "error": "invalid gesture"}))
                 continue
@@ -302,9 +351,10 @@ async def ws_handler(websocket):
     except websockets.exceptions.ConnectionClosedError as e:
         LOGGER.warning(f"WS 異常切断: {e}")
     finally:
-        connected_clients.discard(websocket)
-        connected_client_infos.pop(websocket, None)
-        LOGGER.info(f"WS 切断: {client[0]}")
+        # クライアントを記録から削除
+        CONNECTED_CLIENTS.discard(websocket)
+        CONNECTED_CLIENTS_INFOS.pop(websocket, None)
+        LOGGER.info(f"デバイスが切断されました: {client_ip}")
 
 # websocketサーバーはasyncioで動かす必要があるため、専用のイベントループを作成して実行します
 def run_ws():
@@ -327,20 +377,27 @@ def run_ws():
     finally:
         loop.close()
 
-# HTTP
+# HTTPサーバー
 def run_http():
     server = HTTPServer((HOST, HTTP_PORT), SimpleHTTPRequestHandler)
     server.serve_forever()
 
 # ウィンドウが表示された後に実行される関数
-# ここでサーバーを起動することで、UIが先に表示されてログも見えるようになる
-def initialize(window):
+def initialize_servers(window):
     threading.Thread(target=run_ws, daemon=True).start()
     threading.Thread(target=run_http, daemon=True).start()
     LOGGER.info("各サーバーを開始しました")
 
-# --- メイン ---
+# ══════════════════════════════════════════════
+# メイン
+# ══════════════════════════════════════════════
 if __name__ == '__main__':
+    logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    datefmt="%H:%M:%S",
+    )
+    
     api = JSApi()
     
     window = webview.create_window(
@@ -359,4 +416,5 @@ if __name__ == '__main__':
     handler.setFormatter(logging.Formatter('%(asctime)s - %(message)s', datefmt='%H:%M:%S'))
     LOGGER.addHandler(handler)
 
-    webview.start(initialize, window, debug=True)
+    # debug=Trueにするとhtmlの調査機能が使える。
+    webview.start(initialize_servers, window, debug=False)
