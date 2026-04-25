@@ -47,6 +47,20 @@ ACCESS_TOKEN   = secrets.token_urlsafe(16)   # 起動ごとに再生成
 WS_BROADCAST_QUEUE = queue.Queue()  # WebSocketブロードキャスト用のキュー。UIスレッドからこのキューにメッセージを入れると、broadcaster()が全クライアントに送信する。
 
 COMBO_CONNECTOR_STRING:str = " + "  # ジェスチャーのキーコンボを結合する文字列（例: "Ctrl + Shift + a"）
+DEFAULT_FONT_NAME = "Noto Sans CJK JP"  # デフォルトの日本語対応フォント名。環境によっては存在しない可能性があるので、適宜変更してください。
+
+# ===============================================
+# カラーテーマ
+# -----------------------------------------------0
+COLOR_BG      = "#0d0e11"
+COLOR_SURFACE = "#3e424f"
+COLOR_BORDER  = "#2a2d36"
+COLOR_ACCENT  = "#e8ff47"
+COLOR_ACCENT2 = "#47c4ff"
+COLOR_MUTED   = "#5a5f72"
+COLOR_TEXT    = "#e4e6ee"
+COLOR_DANGER  = "#ff5c5c"
+
 
 # ═════════════════════════════════════════════
 # ジェスチャーの日本語ラベル（UI表示用）
@@ -340,18 +354,12 @@ def make_qr_image(url: str, size: int = 260) -> ImageTk.PhotoImage:
 #  ジェスチャーショートカット編集ウィンドウ
 # ══════════════════════════════════════════════
 class InlineGestureEditor(tk.Frame):
-    BG      = "#0d0e11"
-    SURFACE = "#3e424f"
-    BORDER  = "#2a2d36"
-    ACCENT  = "#e8ff47"
-    ACCENT2 = "#47c4ff"
-    MUTED   = "#5a5f72"
-    TEXT    = "#e4e6ee"
-    DANGER  = "#ff5c5c"
     MODIFIERS = {"Ctrl", "Shift", "Alt", "Meta"}
 
+    ROW_FONTSIZE = 12
+
     def __init__(self, parent):
-        super().__init__(parent, bg=self.SURFACE, padx=8, pady=8)
+        super().__init__(parent, bg=COLOR_BG, padx=8, pady=8)
         self._gestures = load_gestures()
         self._gesture_vars = {}
         self._capture_buttons = {}
@@ -364,13 +372,19 @@ class InlineGestureEditor(tk.Frame):
 
     # UI構築。ジェスチャーごとに行を作り、ラベル・エントリー・記録ボタン・削除ボタンを配置。エントリーは現在の割り当てを表示し、変更を保存するためのもの。記録ボタンは押すとキーキャプチャモードになり、押されたキーをリアルタイムでエントリーに反映。削除ボタンは割り当てを消す。
     def _build(self):
+
         # タイトル
-        tk.Label(self, text="ジェスチャー割り当て", bg=self.SURFACE, fg=self.ACCENT2, font=("Courier New", 14, "bold")).pack(anchor="w")
+        tk.Label(self, text="ジェスチャー割り当て", 
+                 bg=COLOR_BG, 
+                 fg=COLOR_ACCENT2, 
+                 font=(DEFAULT_FONT_NAME, int(self.ROW_FONTSIZE * 1.2), "bold"),
+                 ).pack(anchor="c")
         
-        body = tk.Frame(self, bg=self.SURFACE)
+        # スクロール可能なジェスチャー一覧
+        body = tk.Frame(self, bg=COLOR_BG)
         body.pack(fill="both", expand=True, pady=(6, 0))
         
-        canvas = tk.Canvas(body, bg=self.SURFACE, highlightthickness=0, bd=0)
+        canvas = tk.Canvas(body, bg=COLOR_BG, highlightthickness=0, bd=0)
         scrollbar = tk.Scrollbar(body, orient="vertical", command=canvas.yview)        
         canvas.configure(yscrollcommand=scrollbar.set)
         canvas.pack(side="left", fill="both", expand=True)        
@@ -384,27 +398,57 @@ class InlineGestureEditor(tk.Frame):
         canvas.bind_all("<MouseWheel>", lambda e: self._on_mousewheel(e, canvas))
         canvas.bind_all("<Button-4>", lambda e: self._on_mousewheel_linux(e, canvas))
         canvas.bind_all("<Button-5>", lambda e: self._on_mousewheel_linux(e, canvas))
-
-        box = tk.Frame(canvas, bg=self.SURFACE)
+        # Canvas内にフレームを配置して、ジェスチャーの行をそのフレームに入れる。Canvasはスクロール可能で、フレームは内容に合わせてサイズが変わるようにする。
+        box = tk.Frame(canvas, bg=COLOR_BG)
         win = canvas.create_window((0, 0), window=box, anchor="nw")
         box.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
         canvas.bind("<Configure>", lambda e: canvas.itemconfigure(win, width=e.width))
 
         for key in GESTURE_KEYS:
-            row = tk.Frame(box, bg=self.SURFACE, pady=2)
+            row = tk.Frame(box, bg=COLOR_BG, pady=2)
             row.pack(fill="x")
-            tk.Label(row, text=GESTURE_LABELS_JP.get(key, key), width=16, anchor="w", bg=self.SURFACE, fg=self.TEXT, font=("Courier New", 10)).pack(side="left")
+
+            tk.Label(row, 
+                     text=GESTURE_LABELS_JP.get(key, key), 
+                     width=25, 
+                     anchor="w",
+                    bg=COLOR_BG,    # 背景色 
+                    fg=COLOR_TEXT, # テキスト色
+                    relief="solid",   # 枠線
+                    borderwidth=2,
+                    font=(DEFAULT_FONT_NAME, self.ROW_FONTSIZE)
+                    ).pack(side="left")
+            
             cmd = self._gestures.get(key, "")
             combo = COMBO_CONNECTOR_STRING.join(cmd) if isinstance(cmd, list) else str(cmd)
             var = tk.StringVar(value=combo)
 
-            ent = tk.Entry(row, textvariable=var, width=18, bg=self.BG, fg=self.ACCENT2, relief="flat", font=("Courier New", 10))
+            ent = tk.Entry(row, 
+                           textvariable=var, 
+                           width=18, 
+                           bg=COLOR_BG, 
+                           fg=COLOR_ACCENT2, 
+                           relief="flat", 
+                           font=(DEFAULT_FONT_NAME, self.ROW_FONTSIZE)
+                           )
             ent.pack(side="left", padx=(4, 6))
 
-            btn = tk.Button(row, text="記録", bg=self.BORDER, fg=self.TEXT, relief="flat", font=("Courier New", 9), command=lambda g=key: self._start_capture(g))
+            btn = tk.Button(row, 
+                            text="記録", 
+                            bg=COLOR_BORDER, 
+                            fg=COLOR_TEXT, 
+                            relief="flat", 
+                            font=(DEFAULT_FONT_NAME, self.ROW_FONTSIZE), 
+                            command=lambda g=key: self._start_capture(g))
             btn.pack(side="left", padx=2)
             
-            delbtn = tk.Button(row, text="削除", bg=self.DANGER, fg=self.BG, relief="flat", font=("Courier New", 9), command=lambda g=key: self._delete(g))
+            delbtn = tk.Button(row, 
+                               text="削除", 
+                               bg=COLOR_DANGER, 
+                               fg=COLOR_BG, 
+                               relief="flat", 
+                               font=(DEFAULT_FONT_NAME, self.ROW_FONTSIZE), 
+                               command=lambda g=key: self._delete(g))
             delbtn.pack(side="left", padx=2)
 
             # エントリーの内容が変更されたときに呼ばれるコールバックを設定。入力されたキーコンボをジェスチャーに保存するためのもの。形式は "Ctrl+Shift+a" → ["Ctrl", "Shift", "a"] のように変換して保存。
@@ -455,9 +499,9 @@ class InlineGestureEditor(tk.Frame):
         # UI更新: 対象のキーのボタンを「確定」にして強調、他のボタンは無効化して薄くする
         for k, b in self._capture_buttons.items():
             if k == key:
-                b.configure(text="確定", bg=self.ACCENT2, fg=self.BG)
+                b.configure(text="確定", bg=COLOR_ACCENT2, fg=COLOR_BG)
             else:
-                b.configure(state="無効", bg=self.MUTED, fg=self.BG)
+                b.configure(state="無効", bg=COLOR_MUTED, fg=COLOR_BG)
     # キーイベント処理。キャプチャ中のキーセットを更新して候補表示に反映。キャプチャ対象外のキーは無視。
     def _on_key_press(self, event):
         if not self._capture_target:
@@ -493,7 +537,7 @@ class InlineGestureEditor(tk.Frame):
         self._capture_candidate = []
         # UIリセット
         for b in self._capture_buttons.values():
-            b.configure(text="キーを記録", state="normal", bg=self.BORDER, fg=self.TEXT)        
+            b.configure(text="キーを記録", state="normal", bg=COLOR_BORDER, fg=COLOR_TEXT)        
     # 削除ボタン。対応するジェスチャーのキー割り当てを空にして保存。UIも空にする。
     def _delete(self, key):
         self._gesture_vars[key].set([])
@@ -539,7 +583,7 @@ class QRWindow:
 
         self.root = tk.Tk()
         self.root.title("LeftPad Server")
-        self.root.configure(bg=self.BG)
+        self.root.configure(bg=COLOR_BG)
         self.root.resizable(True, True)
         self.log_queue: "queue.Queue[str]" = queue.Queue()
         self._log_handler = UILogHandler(self.log_queue)
@@ -553,103 +597,110 @@ class QRWindow:
         self._start_log_update()
         self._maximize_window()
 
+    # 右パネルサイズ変更用のスプリッター
+    def _make_resizer(self, left, right, splitter):
+        dragging = {"active": False}
+
+        def start(e):
+            dragging["active"] = True
+
+        def stop(e):
+            dragging["active"] = False
+
+        def move(e):
+            if not dragging["active"]:
+                return
+
+            total = self.root.winfo_width()
+            new_w = total - e.x_root
+
+            min_w = 300
+            max_w = total - 300
+            
+            new_w = max(min_w, min(max_w, new_w))
+
+            right.config(width=new_w)
+            right.update()
+
+        splitter.bind("<Button-1>", start)
+        splitter.bind("<ButtonRelease-1>", stop)
+        splitter.bind("<B1-Motion>", move)
+
     # UI構築。左側にQRコードとURL、接続デバイス情報、設定項目などを配置。右側はジェスチャーショートカット編集ウィンドウ。
     def _build_ui(self):
         root = self.root    #
         PAD  = 24 # 全体の余白
-        split = tk.Frame(root, bg=self.BG)
+        # 
+        split = tk.Frame(root, bg=COLOR_BG)
         split.pack(fill="both", expand=True)
-        left = tk.Frame(split, bg=self.BG)
-        # 左右のフレームを配置。左はQRコードやURL、接続情報などの表示。右はジェスチャーショートカット編集ウィンドウ。
-        right = tk.Frame(split, bg=self.BG, width=int(self.root.winfo_screenwidth() * 0.5))
-        right.pack(side="left", fill="y", padx=(6, 12), pady=12)
-        right.pack_propagate(False) # 右フレームのサイズを固定して、子ウィジェットに合わせて縮まないようにする
+
+        # splitパネルの子ウィジェット
+        # 左のパネル
+        left = tk.Frame(split, bg=COLOR_BG)
+        left.pack(side="left", fill="both", expand=True, padx=(12, 6), pady=12)
         # 右パネルサイズ変更用のスプリッター
         splitter = tk.Frame(split, bg="#2a2d36", width=6, cursor="sb_h_double_arrow")
         splitter.pack(side="left", fill="y")
-        #
-        def _make_resizer(self, left, right, splitter):
-            dragging = {"active": False}
+        # 右パネル
+        right = tk.Frame(split, bg=COLOR_BG, width=int(self.root.winfo_screenwidth() * 0.5))
+        right.pack(side="left",fill="y", padx=(6, 12), pady=12)
+        right.pack_propagate(False) # 右フレームのサイズを固定して、子ウィジェットに合わせて縮まないようにする
 
-            def start(e):
-                dragging["active"] = True
-
-            def stop(e):
-                dragging["active"] = False
-
-            def move(e):
-                if not dragging["active"]:
-                    return
-
-                total = self.root.winfo_width()
-                new_right = total - e.x_root
-
-                min_w = 300
-                max_w = total - 300
-
-                new_right = max(min_w, min(max_w, new_right))
-
-                right.config(width=new_right)
-                right.update()
-
-            splitter.bind("<Button-1>", start)
-            splitter.bind("<ButtonRelease-1>", stop)
-            splitter.bind("<B1-Motion>", move)
-
+        # splitパネルの孫ウィジェット
         # ロゴ
-        tk.Label(
+        logo = tk.Label(
             left, text="LEFTPAD",
-            bg=self.BG, fg=self.ACCENT,
-            font=("Courier New", 22, "bold"), pady=8,
+            bg=COLOR_BG, fg=COLOR_ACCENT,
+            font=(DEFAULT_FONT_NAME, 22, "bold"), pady=8,
         ).pack()
 
         # QRコード
-        qr_outer = tk.Frame(left, bg=self.ACCENT, padx=10, pady=10)
+        qr_outer = tk.Frame(left, bg=COLOR_ACCENT, padx=10, pady=10)
         qr_outer.pack(padx=PAD)
 
         self.qr_photo = make_qr_image(self.http_url, size=260)
-        tk.Label(qr_outer, image=self.qr_photo, bg=self.ACCENT).pack()
+        tk.Label(qr_outer, image=self.qr_photo, bg=COLOR_ACCENT).pack()
 
         tk.Label(
             left, text="スマホのカメラでQRコードを読み込む",
-            bg=self.BG, fg=self.MUTED,
-            font=("Courier New", 9), pady=10,
+            bg=COLOR_BG, fg=COLOR_MUTED,
+            font=(DEFAULT_FONT_NAME, 9), pady=10,
         ).pack()
 
-        tk.Frame(left, bg=self.BORDER, height=1).pack(fill="x", padx=PAD)
+        tk.Frame(left, bg=COLOR_BORDER, height=1).pack(fill="x", padx=PAD)
 
         # URLパネル
-        info = tk.Frame(left, bg=self.SURFACE, padx=18, pady=14)
+        info = tk.Frame(left, bg=COLOR_SURFACE, padx=18, pady=14)
         info.pack(fill="x", padx=PAD, pady=10)
-        self._url_row(info, "PWA",       self.http_url, self.ACCENT)
-        self._url_row(info, "WebSocket", self.ws_url,   self.ACCENT2)
+        self._url_row(info, "PWA",       self.http_url, COLOR_ACCENT)
+        self._url_row(info, "WebSocket", self.ws_url,   COLOR_ACCENT2)
 
-        tk.Frame(left, bg=self.BORDER, height=1).pack(fill="x", padx=PAD)
+        tk.Frame(left, bg=COLOR_BORDER, height=1).pack(fill="x", padx=PAD)
 
         # ステータス行
-        st = tk.Frame(left, bg=self.BG, padx=PAD, pady=10)
+        st = tk.Frame(left, bg=COLOR_BG, padx=PAD, pady=10)
         st.pack(fill="x")
         # 接続クライアント数表示
         tk.Label(
             st, text="接続中のデバイス : ",
-            bg=self.BG, fg=self.MUTED, font=("Courier New", 10),
+            bg=COLOR_BG, fg=COLOR_MUTED, font=(DEFAULT_FONT_NAME, 10),
         ).pack(side="left")
         # 接続クライアント数表示とランプ
         self.client_count_var = tk.StringVar(value="0")
         tk.Label(
             st, textvariable=self.client_count_var,
-            bg=self.BG, fg=self.ACCENT2,
-            font=("Courier New", 14, "bold"),
+            bg=COLOR_BG, fg=COLOR_ACCENT2,
+            font=(DEFAULT_FONT_NAME, 14, "bold"),
         ).pack(side="left")
         # 接続ランプ（緑が1台以上、灰色が0台）
-        self.lamp = tk.Canvas(st, width=14, height=14, bg=self.BG, highlightthickness=0)
+        self.lamp = tk.Canvas(st, width=14, height=14, bg=COLOR_BG, highlightthickness=0)
         self.lamp.pack(side="left", padx=(8, 0))
-        self.lamp_circle = self.lamp.create_oval(2, 2, 12, 12, fill=self.MUTED, outline="")
+        self.lamp_circle = self.lamp.create_oval(2, 2, 12, 12, fill=COLOR_MUTED, outline="")
         
-        tk.Frame(left, bg=self.BORDER, height=1).pack(fill="x", padx=PAD)
+        tk.Frame(left, bg=COLOR_BORDER, height=1).pack(fill="x", padx=PAD)
 
         # スマホ振動設定
-        vib_row = tk.Frame(left, bg=self.BG, padx=PAD, pady=8)
+        vib_row = tk.Frame(left, bg=COLOR_BG, padx=PAD, pady=8)
         vib_row.pack(fill="x")
         self.vibration_var = tk.BooleanVar(value=APP_SETTINGS.get("vibration_enabled", True))
         tk.Checkbutton(
@@ -657,40 +708,40 @@ class QRWindow:
             text="タップ振動",
             variable=self.vibration_var,
             command=self._toggle_vibration,
-            bg=self.BG, fg=self.TEXT, selectcolor=self.SURFACE,
-            activebackground=self.BG, activeforeground=self.ACCENT2,
-            font=("Courier New", 14), highlightthickness=0, bd=0,
+            bg=COLOR_BG, fg=COLOR_TEXT, selectcolor=COLOR_SURFACE,
+            activebackground=COLOR_BG, activeforeground=COLOR_ACCENT2,
+            font=(DEFAULT_FONT_NAME, 14), highlightthickness=0, bd=0,
         ).pack(anchor="w")
 
-        tk.Frame(left, bg=self.BORDER, height=1).pack(fill="x", padx=PAD)
+        tk.Frame(left, bg=COLOR_BORDER, height=1).pack(fill="x", padx=PAD)
 
         # 接続デバイス情報
-        device_panel = tk.Frame(left, bg=self.SURFACE, padx=10, pady=8)
+        device_panel = tk.Frame(left, bg=COLOR_SURFACE, padx=10, pady=8)
         device_panel.pack(fill="x", padx=PAD, pady=(10, 0))
         tk.Label(
             device_panel, text="接続デバイス",
-            bg=self.SURFACE, fg=self.MUTED, font=("Courier New", 9, "bold"),
+            bg=COLOR_SURFACE, fg=COLOR_MUTED, font=(DEFAULT_FONT_NAME, 9, "bold"),
         ).pack(anchor="w", pady=(0, 4))
         self.device_list_var = tk.StringVar(value=("未接続",))
         tk.Listbox(
             device_panel,
             listvariable=self.device_list_var,
-            bg=self.BG, fg=self.TEXT, height=3,
+            bg=COLOR_BG, fg=COLOR_TEXT, height=3,
             highlightthickness=0, borderwidth=0, font=("Consolas", 9),
         ).pack(fill="x")
 
-        tk.Frame(left, bg=self.BORDER, height=1).pack(fill="x", padx=PAD)
+        tk.Frame(left, bg=COLOR_BORDER, height=1).pack(fill="x", padx=PAD)
 
         # ログ表示（コマンドプロンプトを見なくても状態確認できる）
-        log_panel = tk.Frame(left, bg=self.SURFACE, padx=10, pady=8)
+        log_panel = tk.Frame(left, bg=COLOR_SURFACE, padx=10, pady=8)
         log_panel.pack(fill="both", expand=True, padx=PAD, pady=10)
         tk.Label(
             log_panel, text="サーバーログ",
-            bg=self.SURFACE, fg=self.MUTED, font=("Courier New", 9, "bold"),
+            bg=COLOR_SURFACE, fg=COLOR_MUTED, font=(DEFAULT_FONT_NAME, 9, "bold"),
         ).pack(anchor="w", pady=(0, 6))
         self.log_text = tk.Text(
             log_panel, height=10,
-            bg=self.BG, fg=self.TEXT, insertbackground=self.TEXT,
+            bg=COLOR_BG, fg=COLOR_TEXT, insertbackground=COLOR_TEXT,
             font=("Consolas", 9), relief="flat", wrap="none",
         )
         log_scroll = tk.Scrollbar(log_panel, orient="vertical", command=self.log_text.yview)
@@ -699,14 +750,16 @@ class QRWindow:
         log_scroll.pack(side="right", fill="y")
 
         # 右半分: インライン編集
+        
+        # 左右のフレームを配置。左はQRコードやURL、接続情報などの表示。右はジェスチャーショートカット編集ウィンドウ。
         inline_editor = InlineGestureEditor(right)
         inline_editor.pack(fill="both", expand=True)
 
         # フッター
         tk.Label(
             left, text="ウィンドウを閉じるとサーバーが停止する",
-            bg=self.BG, fg=self.BORDER,
-            font=("Courier New", 7), pady=6,
+            bg=COLOR_BG, fg=COLOR_BORDER,
+            font=(DEFAULT_FONT_NAME, 7), pady=6,
         ).pack()
 
         # 右パネルのサイズをドラッグで変更できるようにする
@@ -716,27 +769,27 @@ class QRWindow:
         root.protocol("WM_DELETE_WINDOW", self._on_close)
 
     def _url_row(self, parent, label: str, value: str, color: str):
-        row = tk.Frame(parent, bg=self.SURFACE)
+        row = tk.Frame(parent, bg=COLOR_SURFACE)
         row.pack(fill="x", pady=3)
 
         tk.Label(
             row, text=f"{label:<10}",
-            bg=self.SURFACE, fg=self.MUTED,
-            font=("Courier New", 9), anchor="w",
+            bg=COLOR_SURFACE, fg=COLOR_MUTED,
+            font=(DEFAULT_FONT_NAME, 9), anchor="w",
         ).pack(side="left")
 
         tk.Label(
             row, text=value,
-            bg=self.SURFACE, fg=color,
-            font=("Courier New", 10, "bold"), anchor="w",
+            bg=COLOR_SURFACE, fg=color,
+            font=(DEFAULT_FONT_NAME, 10, "bold"), anchor="w",
         ).pack(side="left", padx=(4, 8))
 
         tk.Button(
             row, text="copy",
-            bg=self.BORDER, fg=self.TEXT,
-            font=("Courier New", 8),
+            bg=COLOR_BORDER, fg=COLOR_TEXT,
+            font=(DEFAULT_FONT_NAME, 8),
             relief="flat", padx=6, pady=1, cursor="hand2",
-            activebackground=self.ACCENT2, activeforeground=self.BG,
+            activebackground=COLOR_ACCENT2, activeforeground=COLOR_BG,
             command=lambda v=value: self._copy(v),
         ).pack(side="right")
     # クリップボードにテキストをコピーする。URLの横の「copy」ボタンから呼ばれる。引数のテキストをクリップボードにセットする。
@@ -764,7 +817,7 @@ class QRWindow:
             n = len(connected_clients)
             self.client_count_var.set(str(n))
             self.lamp.itemconfig(self.lamp_circle,
-                                 fill=self.ACCENT2 if n > 0 else self.MUTED)
+                                 fill=COLOR_ACCENT2 if n > 0 else COLOR_MUTED)
             infos = sorted(connected_client_infos.values()) if n > 0 else ["未接続"]
             self.device_list_var.set(infos)
             self.root.after(1000, update)
