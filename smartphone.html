@@ -145,6 +145,48 @@
   window.addEventListener("resize", resizeDiagonal);
   resizeDiagonal();
 
+
+  // ══════════════════════════════════════════════
+  // 機能：画面向き固定
+  // ══════════════════════════════════════════════
+
+  async function lockOrientation() {
+    try {
+        if (screen.orientation && screen.orientation.lock) {
+            // 縦向きに固定したい場合: 'portrait'
+            // 横向きに固定したい場合: 'landscape'
+            await screen.orientation.lock('portrait');
+            console.log("画面を縦向きに固定しました");
+        }
+    } catch (e) {
+        console.warn("画面の向きロックに失敗しました:", e);
+    }
+  }
+  // ページ読み込み時に実行
+  window.addEventListener('load', lockOrientation);
+
+  // ══════════════════════════════════════════════
+  // 機能：フルスクリーン
+  // 戻る・ホーム・タスクボタンブロック
+  // ══════════════════════════════════════════════
+
+  function requestFullScreen() {
+    const doc = document.documentElement;
+    if (doc.requestFullscreen) {
+        doc.requestFullscreen();
+    } else if (doc.webkitRequestFullscreen) { /* Safari */
+        doc.webkitRequestFullscreen();
+    }
+  }
+
+  // ユーザーが画面のどこかを触った瞬間にフルスクリーン化
+  // （ブラウザの仕様で、ユーザーの操作を起点にする必要があります）
+  window.addEventListener('touchstart', () => {
+      if (!document.fullscreenElement) {
+          requestFullScreen();
+      }
+  }, { once: true });
+
   // ══════════════════════════════════════════════
   // WebSocket通信
   // ══════════════════════════════════════════════
