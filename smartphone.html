@@ -356,6 +356,7 @@
   const SWIPE_THRESHOLD_RATIO  = 0.15;  // スワイプと判定する最小移動距離の画面幅・高さに対する比率
   const PINCH_OUT_THRESHOLD_RATIO  = 1.5; // ピンチアウトと判定する最小の距離の増大比率
   const PINCH_IN_THRESHOLD_RATIO  = 0.7; // ピンチインと判定する最大の距離の減少比率
+  const PINCH_THRESHOLD_DIST_RATIO = 0.1;// ピンチ判定を入れる最小の距離の画面幅・高さに対する比率
   const LONG_PRESS_MS    = 600; // 長押しと判定するための最小時間（ミリ秒）
   const DOUBLE_TAP_MS    = 300; // ダブルタップと判定する最大間隔（ミリ秒）
   const TAP_SEQUENCE_MS  = 250;  // 指が増えても一連のジェスチャーに含める最大間隔（ミリ秒）
@@ -408,16 +409,19 @@
     // ピンチは2本指のみで判定
     if(gesture.maxTouches !== 2) return '';
 
+    const w = window.innerWidth;
     const startDist = gesture.startDist;
     const lastDist   = gesture.lastDist;  
     const delta = lastDist - startDist;
     const delta_ratio = lastDist/startDist;
     
-    if (delta > 0){// 指の間の距離の最初と最後で何倍になったか？の比率が閾値を超えるか
-      if (delta_ratio > PINCH_OUT_THRESHOLD_RATIO) return "pinch_out"
-    }else{
-      if (delta_ratio < PINCH_IN_THRESHOLD_RATIO) return 'pinch_in';
-    }
+    if (Math.abs(delta) > w * PINCH_THRESHOLD_DIST_RATIO){
+      if (delta > 0){// 指の間の距離の最初と最後で何倍になったか？の比率が閾値を超えるか
+        if (delta_ratio > PINCH_OUT_THRESHOLD_RATIO) return "pinch_out"
+      }else{
+        if (delta_ratio < PINCH_IN_THRESHOLD_RATIO) return 'pinch_in';
+      }
+   }
     return ''
   }
 
@@ -473,8 +477,6 @@
     if(!first) return '';
 
     const w = window.innerWidth;
-    const h = window.innerHeight;
-
     const dx = gesture.last.x - first.x;
     const dy = gesture.last.y - first.y;
     const adx = Math.abs(dx);
@@ -491,14 +493,14 @@
     }
 
     // --- スワイプ ---
-    if (adx > w * SWIPE_THRESHOLD_RATIO){
+    if (adx > w * SWIPE_THRESHOLD_RATIO){// ある程度移動している
       if (adx > ady) {
         const dir = dx > 0 ? 'right' : 'left';
         return `${finger}_swipe_${dir}`;
       }
     }
-    if (ady > h * SWIPE_THRESHOLD_RATIO){
-      if(ady < adx){
+    if (ady > w * SWIPE_THRESHOLD_RATIO){
+      if(ady > adx){
         const dir = dy > 0 ? 'up' : 'down';
         return `${finger}_swipe_${dir}`;
       }      
