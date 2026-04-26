@@ -25,20 +25,16 @@
 
     <script src="https://unpkg.com/html5-qrcode">
 
-        window.onload = () => {
-            const params = new URLSearchParams(window.location.search);
-            const ip = params.get('ip') || localStorage.getItem('server_ip');
-            const token = params.get('token') || localStorage.getItem('auth_token');
+        let serverIp = localStorage.getItem('server_ip');
+        let authToken = localStorage.getItem('auth_token');
 
-            if (ip && token) {
-                // パラメータ経由で来た場合は保存
-                localStorage.setItem('server_ip', ip);
-                localStorage.setItem('auth_token', token);
-                location.href = 'smartphone.html';
-            } else {
-                location.href = 'pairing.html';
+        // 起動時のチェック
+        window.addEventListener('load', () => {
+            if (serverIp && authToken) {
+                document.getElementById('pairing-overlay').style.display = 'none';
+                connectWebSocket(serverIp, authToken);
             }
-        };
+        });
 
         // QRスキャン開始
         function startQRScan() {

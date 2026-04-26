@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <!-- スタイルシートを読みこむ -->
+    <link rel="stylesheet" href="stylesheet.css">
+</head>
+<body>
+    <!-- UI表示はしない -->
+</body>
+    <script>
+        // swの登録
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/service_worker.js')
+                .then(reg => console.log('SW registered!', reg))
+                .catch(err => console.err('SW registration failed:', err));
+            });
+        }
+        // 2. 振り分けロジック
+        window.addEventListener('load', () => {
+            const params = new URLSearchParams(window.location.search);
+            const ip = params.get('ip') || localStorage.getItem('server_ip');
+            const token = params.get('token') || localStorage.getItem('auth_token');
+
+            if (ip && token) {
+                // QRスキャン経由（URLパラメータ）で来た場合は、次回以降のために保存
+                localStorage.setItem('server_ip', ip);
+                localStorage.setItem('auth_token', token);
+                
+                // 操作画面へ
+                location.href = `smartphone.html?token=${token}`; // smartphone.html側でURLからトークンを拾うロジックに合わせて
+            } else {
+                // 未ペアリングならスキャン画面へ
+                location.href = 'pairing.html';
+            }
+        });
+    </script>
+</body>
+</html>
