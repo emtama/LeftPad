@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <!-- スタイルシートを読みこむ -->
+    <link rel="stylesheet" href="stylesheet.css">
+</head>
+<body>
+    <!-- UI表示はしない -->
+</body>
+<script>
+    window.onload = () => {
+        // localStorage
+        const ip = localStorage.getItem('server_ip');
+        const token = localStorage.getItem('auth_token');
+        
+        if 
+        if (ip && token) {
+            // ペアリング済みなら操作画面へ
+            location.href = 'smartphone.html';
+        } else {
+            // 未設定ならペアリング画面へ
+            location.href = 'pairing.html';
+        }
+    };
+</script>
+</html>

@@ -6,15 +6,27 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />  
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
   <title>LeftPad gesture_stat</title>
+  <!-- スタイルシートを読みこむ -->
+  <link rel="stylesheet" href="../../config/stylesheet.css">
+  <!--  -->
   <style>
     :root {
-      /* カラーパレットはファイルから読み取ったものをサーバーから受け取る */
-      --mx: 0;/* マウスの位置 */
-      --my: 0;/* マウスの位置 */
+      --dummy: 0;
     }
+
     /* レイアウトとインタラクションスタイル */
-    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-    body { margin:0; background:var(--color_bg); color:var(--color_text); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; overflow:hidden; }
+    * { 
+      -webkit-tap-highlight-color: transparent; /* タップ時のグレーや青のハイライトが表示されなくなる */
+      /*テキストの選択を禁止 */
+      -webkit-user-select: none; /* Safari / iOS */
+      -ms-user-select: none;     /* 旧Edge */
+      user-select: none;         /* 標準 */
+    }
+    body { 
+      margin: 0; /* 余白０ */
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace; 
+      overflow:hidden; /* はみ出したコンテンツを非表示にして、スクロールバーも非表示 */
+    }
     /* タイトルと接続表示関係 */
     #overlay-ui {
       position: fixed;
@@ -31,7 +43,7 @@
     .title { color:var(--color_accent); font-weight:700; font-size:22px; letter-spacing:1px; }
     .status { display:flex; gap:8px; align-items:center; color:var(--color_muted); font-size:12px; }
     .dot { width:10px; height:10px; border-radius:999px; background:var(--color_muted); }
-    .dot.on { background:var(--color_safe); box-shadow:0 0 8px var(--color_safe)20%; }
+    .dot.on { background:var(--color_success); box-shadow:0 0 8px var(--color_success)20%; }
 
     /* メインエリアとジェスチャーUIスタイル */
     main { padding:0; }
@@ -501,7 +513,7 @@
     }
     if (ady > w * SWIPE_THRESHOLD_RATIO){
       if(ady > adx){
-        const dir = dy > 0 ? 'up' : 'down';
+        const dir = dy > 0 ? 'down' : 'up';
         return `${finger}_swipe_${dir}`;
       }      
     }    
@@ -560,6 +572,9 @@
           gesture_stat.startDist = distance(e.touches[0], e.touches[1]);
           gesture_stat.lastDist = distance(e.touches[0], e.touches[1]);
         }
+        // とにかく本数が増えた場合
+        gesture_stat.startCenter = calcCenterFromTouches(e.touches);
+        gesture_stat.lastCenter = calcCenterFromTouches(e.touches);
       }
       
     }

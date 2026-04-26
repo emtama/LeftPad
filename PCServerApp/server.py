@@ -26,12 +26,10 @@ ACCESS_TOKEN = secrets.token_urlsafe(16)
 WS_BROADCAST_QUEUE = queue.Queue()  # WebSocketブロードキャスト用のスレッドセーフなキュー
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-GESTURE_LABELS_JP_PATH = os.path.join(BASE_DIR, "gesture_labels.json")
-GESTURE_SHORTCUTS_PATH = os.path.join(BASE_DIR, "gesture_shortcuts.json")
-COLORS_PATH = os.path.join(BASE_DIR, "colors.json")
+GESTURE_LABELS_JP_PATH = os.path.join(BASE_DIR, "../share/gesture_labels.json")
+GESTURE_SHORTCUTS_PATH = os.path.join(BASE_DIR, "../share/gesture_shortcuts.json")
 
 LOGGER = None
-COLORS = {}
 GESTURE_LABELS_JP = {}
 GESTURE_KEYS = []
 GESTURE_SHORTCUTS = {}
@@ -119,10 +117,6 @@ def get_local_ip():
 #  共通：UI関係I/O
 # ══════════════════════════════════════════════
 
-# 色の設定ファイル（UIのテーマカラーなどを定義）
-def load_colors() -> dict:
-    return load_json(COLORS_PATH)
-COLORS = load_colors()
 
 # ═════════════════════════════════════════════
 # 共通：ジェスチャーの日本語ラベル（UI表示用）
@@ -169,34 +163,34 @@ GESTURE_SHORTCUTS = load_gesture_shortcuts()
 # server.html の JavaScript からは window.pywebview.api.関数名() で呼び出せます
 # 送信・受信メッセージはjson形式で必ずtype属性を含む必要があります。
 class JSApi:
+    PWA_START_HTML_PATH = r"../SmartPhonePWA/frontend/index.html"
     def __init__(self):
         self.ip = None  # IPアドレスは起動時に取得してURLを生成
-        self.http_url = f"http://{self.ip}:{HTTP_PORT}/smartphone.html?token={ACCESS_TOKEN}"
+        self.http_url = f"http://{self.ip}:{HTTP_PORT}/{JSApi.PWA_START_HTML_PATH}?token={ACCESS_TOKEN}"
         self.ws_url = f"ws://{self.ip}:{WS_PORT}"
 
     # 起動時にUIへ必要な情報を渡す関数
-    def get_init_data(self):
+    def get_init_data(self, qr_fill_color, qr_back_color):
         if self.ip is None:
             self.ip = get_local_ip()
-            self.http_url = f"http://{self.ip}:{HTTP_PORT}/smartphone.html?token={ACCESS_TOKEN}"
+            self.http_url = f"http://{self.ip}:{HTTP_PORT}/{JSApi.PWA_START_HTML_PATH}?token={ACCESS_TOKEN}"
             self.ws_url = f"ws://{self.ip}:{WS_PORT}"
         return {
             "http_url": self.http_url,
             "ws_url": self.ws_url,
-            "qr_image": self._generate_qr_base64(self.http_url),
+            "qr_image": self._generate_qr_base64(self.http_url, qr_fill_color, qr_back_color),
             "gesture_shortcuts": GESTURE_SHORTCUTS,
             "gesture_labels": GESTURE_LABELS_JP,
-            "vibration": APP_SETTINGS["vibration_enabled"],
-            "colors": COLORS
+            "vibration": APP_SETTINGS["vibration_enabled"]
         }
     
-    def _generate_qr_base64(self, url):
+    def _generate_qr_base64(self, url, fill_color, back_color):
         """
         QRコードを生成してBase64エンコードする関数
         """
         qr = qrcode.QRCode(box_size=10, border=2)
         qr.add_data(url)
-        img = qr.make_image(fill_color=COLORS['color_bg'], back_color=COLORS['color_accent'])
+        img = qr.make_image(fill_color=fill_color, back_color=back_color)
         buffered = io.BytesIO()
         img.save(buffered, format="PNG")
         return base64.b64encode(buffered.getvalue()).decode()
@@ -307,8 +301,7 @@ async def ws_handler(websocket):
     await websocket.send(json.dumps({"type": "initial_auth_setup", 
                                     "gesture_shortcuts": GESTURE_SHORTCUTS,
                                     "gesture_labels": GESTURE_LABELS_JP,
-                                    "vibration_setting": APP_SETTINGS.get("vibration_enabled"),
-                                    "colors": COLORS
+                                    "vibration_setting": APP_SETTINGS.get("vibration_enabled")
                                     }))
     
     # （随時）クライアントからのメッセージを待機して処理するループ。接続が切れるまで続く。
@@ -426,7 +419,6 @@ if __name__ == '__main__':
        'LeftPad Server', 
         url='server.html', 
         js_api=api,
-        background_color=COLORS['color_bg'],
         width=1100, height=750,
         maximized=True,
         fullscreen=False

@@ -1,0 +1,27 @@
+{
+  "manifest_version": "1", 
+  "name": "LeftPad",   // アプリ名称
+  "short_name": "LP", // 
+  "version": "0.1.0", 
+  "description": "スマホを左手デバイスとして使えるようにするアプリです。",
+  "icons": [
+    {
+      "src": "images/icon-128x128.png",
+      "sizes": "128x128",
+      "type": "image/png"
+    }
+  ],
+  "actions":{
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "images/icon-16x16.png",
+      "48": "images/icon-48x48.png",
+      "128": "images/icon-128x128.png"
+    }
+  },
+  "permissions": [// 権限
+    "storage",
+    "vibration"
+  ]
+
+}

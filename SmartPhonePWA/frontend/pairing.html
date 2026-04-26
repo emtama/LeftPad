@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8" />
+    <link rel="stylesheet" href="../../config/stylesheet.css">
+</head>
+<body>
+    <div id="pairing-overlay" style="position:fixed; inset:0; background:var(--color_bg); z-index:100; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:20px;">
+        <h1 style="color:var(--color_accent);">LeftPad</h1>
+            <p style="text-align:center; color:var(--color_text_dim);">
+                サーバーのQRコードをスキャンして<br>ペアリングを開始してください
+            </p>        
+        <div id="reader" style="width:100%; max-width:300px; border-radius:10px; overflow:hidden; margin:20px 0;"></div>
+        
+        <button id="scan-btn" onclick="startQRScan()" style="padding:15px 30px; background:var(--color_accent); color:var(--color_bg); border:none; border-radius:5px; font-weight:bold;">
+            QRスキャン開始
+        </button>
+        
+        <div style="margin-top:20px; font-size:0.8em; color:var(--color_text_dim);">
+            またはIPを手入力: <br>
+            <input type="text" id="manual-ip" placeholder="192.168.x.x" style="background:var(--color_surface); border:1px solid var(--color_border); color:white; padding:5px; margin-top:5px;">
+            <button onclick="manualConnect()" style="background:none; border:1px solid var(--color_accent); color:var(--color_accent); padding:5px 10px;">接続</button>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/html5-qrcode">
+
+        window.onload = () => {
+            const params = new URLSearchParams(window.location.search);
+            const ip = params.get('ip') || localStorage.getItem('server_ip');
+            const token = params.get('token') || localStorage.getItem('auth_token');
+
+            if (ip && token) {
+                // パラメータ経由で来た場合は保存
+                localStorage.setItem('server_ip', ip);
+                localStorage.setItem('auth_token', token);
+                location.href = 'smartphone.html';
+            } else {
+                location.href = 'pairing.html';
+            }
+        };
+
+        // QRスキャン開始
+        function startQRScan() {
+            const html5QrCode = new Html5Qrcode("reader");
+            const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+
+            html5QrCode.start({ facingMode: "environment" }, config, (decodedText) => {
+                // QRの内容が http://192.168.1.5:8080/smartphone.html?ip=192.168.1.5&token=... 形式と想定
+                try {
+                    const url = new URL(decodedText);
+                    const ip = url.searchParams.get("ip");
+                    const token = url.searchParams.get("token");
+                    
+                    if (ip && token) {
+                        html5QrCode.stop();
+                        saveAndConnect(ip, token);
+                    }
+                } catch (e) {
+                    alert("無効なQRコードです");
+                }
+            });
+        }
+
+        function saveAndConnect(ip, token) {
+            localStorage.setItem('server_ip', ip);
+            localStorage.setItem('auth_token', token);
+            
+            // UIを隠して接続
+            document.getElementById('pairing-overlay').style.display = 'none';
+            connectWebSocket(ip, token);
+        }
+
+        // 手動入力の場合
+        function manualConnect() {
+            const ip = document.getElementById('manual-ip').value;
+            const token = prompt("認証トークンを入力してください（サーバー画面に表示されています）");
+            if (ip && token) saveAndConnect(ip, token);
+        }
+
+        function connectWebSocket(ip, token) {
+            const wsUrl = `ws://${ip}:8765`;
+            // 接続時にトークンを送信するなどの認証処理をここに追加
+            socket = new WebSocket(wsUrl);
+            
+            socket.onopen = () => {
+                // 最初にトークンを送って認証
+                socket.send(JSON.stringify({ type: 'auth', token: token }));
+                updateStatus(true);
+            };
+            
+            socket.onclose = () => {
+                // 切断されたらペアリング画面を再表示するか、再試行
+                updateStatus(false);
+            };
+    }
+
+    </script>
+</body>
+</html>

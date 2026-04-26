@@ -4,11 +4,11 @@
     <meta charset="UTF-8">
     <!-- google font symbols & icons -->
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+    <!-- スタイルシートを読みこむ -->
+    <link rel="stylesheet" href="../../config/stylesheet.css">
     <style>
         :root {            
-            /* カラーパレットはファイルから読み取ったものをサーバーから受け取る */
-            --mx: 0;/* マウスの位置 */
-            --my: 0;/* マウスの位置 */
+            --dummy: 0;
         }
         body {
             display: flex; /* 横並びにする */
@@ -16,6 +16,13 @@
             margin: 0;
             overflow: hidden;
             color: var(--color_text);/* デフォルトテキストカラー */
+        }
+         /* 見出しの書式 */
+        h1{
+            color: var(--color_accent)
+        }
+        h2{
+            color: var(--color_text)
         }
         /* サイドバー */
         .sidebar {
@@ -55,14 +62,6 @@
         
         .panel { display: none; }
         .panel.active { display: block; }
-        
-        /* 見出しの書式 */
-        h1{
-            color: var(--color_accent)
-        }
-        h2{
-            color: var(--color_text)
-        }
         
         /* ログパネル専用 */
         #log-container {
@@ -291,8 +290,13 @@
         // 初期化処理（サーバーから基本情報を受け取って設定）
         async function init() {
             try {
+                
+                const root = document.documentElement;  // :root 要素（html要素）を取得
+                const styles = getComputedStyle(root);  // :root に適用されているすべてのスタイル計算値を取得
+                const qr_fillcolor = "#000000";//styles.getPropertyValue('--color_accent').trim();// 特定の変数名（例: --value）の値を抜き出す
+                const qr_backcolor = "#ffffff";//styles.getPropertyValue('--color_surface').trim();// 特定の変数名（例: --value）の値を抜き出す
                 //
-                const data = await pywebview.api.get_init_data();
+                const data = await pywebview.api.get_init_data(qr_fillcolor, qr_backcolor);
                 //
                 document.getElementById('qr-img').src = 'data:image/png;base64,' + data.qr_image;
                 document.getElementById('http-url').innerText = data.http_url;
