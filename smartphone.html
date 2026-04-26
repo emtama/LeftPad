@@ -5,7 +5,7 @@
   <!-- google font symbols & icons -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />  
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-  <title>LeftPad Gesture</title>
+  <title>LeftPad gesture_stat</title>
   <style>
     :root {
       /* カラーパレットはファイルから読み取ったものをサーバーから受け取る */
@@ -37,7 +37,7 @@
     main { padding:0; }
     
     /* IDセレクタ */
-    #gesture-canvas { 
+    #gesture_stat-canvas { 
       position:fixed; inset:0; background:var(--color_surfaces); touch-action:none; overflow:hidden; 
     }/* ジェスチャーエリアの位置ヒントテキスト */
     .hint { position:absolute; color:var(--color_muted); font-size:11px; letter-spacing:1px; }
@@ -93,7 +93,7 @@
   </div>
   </div>
   <main>
-    <section id="gesture-canvas">
+    <section id="gesture_stat-canvas">
       <canvas id="diagonal-canvas"></canvas> <!-- 対角線を描画するキャンバス -->
 
       <span class="hint top">UP</span>
@@ -116,7 +116,7 @@
   const diagCtx = diagCanvas.getContext("2d");
   // 画面サイズに合わせてキャンバスをリサイズして対角線を描画する関数
   function resizeDiagonal() {
-    const parent = document.getElementById("gesture-canvas");
+    const parent = document.getElementById("gesture_stat-canvas");
     diagCanvas.width = parent.clientWidth;
     diagCanvas.height = parent.clientHeight;
     drawDiagonal();
@@ -353,15 +353,15 @@
   let longPressTimer = null;  // 長押し判定用タイマー
   let lastTapTime  = 0; // 連続タップの判定用
 
-  const SWIPE_THRESHOLD_RATIO  = 0.15;  // スワイプと判定する最小移動距離の画面幅・高さに対する比率
+  const SWIPE_THRESHOLD_RATIO  = 0.20;  // スワイプと判定する最小移動距離の画面幅・高さに対する比率
   const PINCH_OUT_THRESHOLD_RATIO  = 1.5; // ピンチアウトと判定する最小の距離の増大比率
   const PINCH_IN_THRESHOLD_RATIO  = 0.7; // ピンチインと判定する最大の距離の減少比率
   const PINCH_THRESHOLD_DIST_RATIO = 0.1;// ピンチ判定を入れる最小の距離の画面幅・高さに対する比率
   const LONG_PRESS_MS    = 600; // 長押しと判定するための最小時間（ミリ秒）
   const DOUBLE_TAP_MS    = 300; // ダブルタップと判定する最大間隔（ミリ秒）
   const TAP_SEQUENCE_MS  = 250;  // 指が増えても一連のジェスチャーに含める最大間隔（ミリ秒）
-  const canvas = document.getElementById('gesture-canvas');
-  let gesture = null; // 現在進行中のジェスチャー状態を保持するオブジェクト
+  const canvas = document.getElementById('gesture_stat-canvas');
+  let gesture_stat = null; // 現在進行中のジェスチャー状態を保持するオブジェクト
   const touchIndicators = new Map();// タッチIDとインジケーター要素のマップ
 
   // タップ位置から上下左右のどの領域かを判定
@@ -405,13 +405,13 @@
 
 
   // ピンチジェスチャーの検出
-  function detectPinch(gesture){
+  function detectPinch(gesture_stat){
     // ピンチは2本指のみで判定
-    if(gesture.maxTouches !== 2) return '';
+    if(gesture_stat.maxTouches !== 2) return '';
 
     const w = window.innerWidth;
-    const startDist = gesture.startDist;
-    const lastDist   = gesture.lastDist;  
+    const startDist = gesture_stat.startDist;
+    const lastDist   = gesture_stat.lastDist;  
     const delta = lastDist - startDist;
     const delta_ratio = lastDist/startDist;
     
@@ -434,9 +434,9 @@
   };
 
   // タップの連続性を管理して、シングルタップ、ダブルタップ、トリプルタップを判定
-  function handleTapSequence(gesture, finger){
+  function handleTapSequence(gesture_stat, finger){
     const now = Date.now();
-    const pos = gesture.last;
+    const pos = gesture_stat.last;
     // 前回のタップ位置と今回のタップ位置が近いかどうかを判定（40px以内）
     const near = tapState.pos &&
       Math.hypot(pos.x - tapState.pos.x, pos.y - tapState.pos.y) < 40;
@@ -470,24 +470,24 @@
   /*
   ジェスチャーの分類とコマンド送信
   */
-  function classifyGesture(gesture){
-    const dt = Date.now() - gesture.startAt;
+  function classifyGesture(gesture_stat){
+    const dt = Date.now() - gesture_stat.startAt;
 
-    const first = Object.values(gesture.starts)[0];
+    const first = Object.values(gesture_stat.starts)[0];
     if(!first) return '';
 
     const w = window.innerWidth;
-    const dx = gesture.last.x - first.x;
-    const dy = gesture.last.y - first.y;
+    const dx = gesture_stat.lastCenter.x - gesture_stat.startCenter.x;
+    const dy = gesture_stat.lastCenter.y - gesture_stat.startCenter.y;
     const adx = Math.abs(dx);
     const ady = Math.abs(dy);
     const dist = Math.hypot(dx, dy);
 
-    const finger = getFingerPrefix(gesture);
+    const finger = getFingerPrefix(gesture_stat);
     
     // ピンチを優先に判定する
     //
-    const pinch = detectPinch(gesture);
+    const pinch = detectPinch(gesture_stat);
     if(pinch){
       return pinch;
     }
@@ -508,17 +508,17 @@
     
     // --- 長押し ---
     if(dt > LONG_PRESS_MS){
-      const region = getTapRegion(gesture.last.x, gesture.last.y);
+      const region = getTapRegion(gesture_stat.last.x, gesture_stat.last.y);
       return `${finger}_long_press_${region}`;
     }
 
     // --- タップ（回数管理） ---
-    return handleTapSequence(gesture, finger);
+    return handleTapSequence(gesture_stat, finger);
   }
 
   // 指の本数に応じたプレフィックスを取得
-  function getFingerPrefix(gesture){
-    const count = Math.max(gesture.count, gesture.maxTouches);
+  function getFingerPrefix(gesture_stat){
+    const count = Math.max(gesture_stat.count, gesture_stat.maxTouches);
     if(count === 1) return 'single_finger';
     if(count === 2) return 'two_finger';
     if(count === 3) return 'three_finger';
@@ -534,10 +534,10 @@
     updateTouchIndicators(e.touches);
     vibrateTap(); // 振動させる
     // 現在ジェスチャーがなく、かつ指の本数が1〜3本の場合に新しいジェスチャーを開始
-    if(!gesture && (e.touches.length===1 || e.touches.length===2 || e.touches.length===3)){
+    if(!gesture_stat && (e.touches.length===1 || e.touches.length===2 || e.touches.length===3)){
       const starts = {};
       for (const t of e.touches) starts[t.identifier] = {x:t.clientX, y:t.clientY};
-      gesture = {// ジェスチャー状態の初期化
+      gesture_stat = {// ジェスチャー状態の初期化
         count: e.touches.length,// 開始時の指の本数
         maxTouches: e.touches.length,// ジェスチャー中に増えた指の本数（長押し誤判定回避用）
         startAt: Date.now(),// ジェスチャー開始時刻
@@ -549,16 +549,16 @@
         startDist: e.touches.length>=2 ? distance(e.touches[0], e.touches[1]) : 0,  // ピンチイン、ピンチアウト計算用。第１指と第２指との距離（初めて２本の指で触れた時）
         lastDist: e.touches.length>=2 ? distance(e.touches[0], e.touches[1]) : 0, // ピンチイン、ピンチアウト計算用。第１指と第２指との距離（最後に２本の指で触れた時）
       };
-    } else if(gesture) {// 本数が増えた場合
+    } else if(gesture_stat) {// 本数が増えた場合
       // 最大の本数を更新
-      gesture.maxTouches = Math.max(gesture.maxTouches, e.touches.length);
+      gesture_stat.maxTouches = Math.max(gesture_stat.maxTouches, e.touches.length);
       // ごく短い時間に本数が増えた場合、「開始時の本数」を現在の本数で上書きする
-      if (e.touches.length > gesture.count && (Date.now() - gesture.startAt) < TAP_SEQUENCE_MS) {
-        gesture.count = e.touches.length;
+      if (e.touches.length > gesture_stat.count && (Date.now() - gesture_stat.startAt) < TAP_SEQUENCE_MS) {
+        gesture_stat.count = e.touches.length;
         // もし２本に増えた場合、startDist, lastDistを計算する（ピンチアウト、ピンチイン計算のため）
-        if (gesture.count == 2){
-          gesture.startDist = distance(e.touches[0], e.touches[1]);
-          gesture.lastDist = distance(e.touches[0], e.touches[1]);
+        if (gesture_stat.count == 2){
+          gesture_stat.startDist = distance(e.touches[0], e.touches[1]);
+          gesture_stat.lastDist = distance(e.touches[0], e.touches[1]);
         }
       }
       
@@ -566,16 +566,16 @@
     // ジェスチャー状態の更新
     for (const t of e.touches){// 各指の開始位置と最新位置を更新
       // 未登録の指の場合、開始位置として記録
-      if(!gesture.starts[t.identifier]) gesture.starts[t.identifier] = {x:t.clientX, y:t.clientY};
+      if(!gesture_stat.starts[t.identifier]) gesture_stat.starts[t.identifier] = {x:t.clientX, y:t.clientY};
       // 最新の指の位置を記録
-      gesture.lastPositions[t.identifier] = {x:t.clientX, y:t.clientY};// 各指の最後の位置
+      gesture_stat.lastPositions[t.identifier] = {x:t.clientX, y:t.clientY};// 各指の最後の位置
     }
     // 最後に触れた指の位置
-    gesture.last = {x:e.touches[e.touches.length-1].clientX, y:e.touches[e.touches.length-1].clientY};
+    gesture_stat.last = {x:e.touches[e.touches.length-1].clientX, y:e.touches[e.touches.length-1].clientY};
     // 
-    gesture.lastCenter = calcCenterFromTouches(e.touches) || gesture.lastCenter;
+    gesture_stat.lastCenter = calcCenterFromTouches(e.touches) || gesture_stat.lastCenter;
     // 指が二本以上ならlastDistを更新
-    if(e.touches.length>=2) gesture.lastDist = distance(e.touches[0], e.touches[1]);
+    if(e.touches.length>=2) gesture_stat.lastDist = distance(e.touches[0], e.touches[1]);
   }
   , {passive:true});
 
@@ -586,20 +586,20 @@
     // インジケータの更新
     updateTouchIndicators(e.touches);
     // 指が１本以上ついていて、ジェスチャーが継続している
-    if(gesture && e.touches.length > 0){
+    if(gesture_stat && e.touches.length > 0){
       const t = e.touches[0];
-      gesture.last = {x:t.clientX, y:t.clientY};
-      gesture.maxTouches = Math.max(gesture.maxTouches, e.touches.length);
+      gesture_stat.last = {x:t.clientX, y:t.clientY};
+      gesture_stat.maxTouches = Math.max(gesture_stat.maxTouches, e.touches.length);
       // 全ての指について、最後の位置を更新
       for (const tt of e.touches){
-        gesture.lastPositions[tt.identifier] = {x:tt.clientX, y:tt.clientY};
+        gesture_stat.lastPositions[tt.identifier] = {x:tt.clientX, y:tt.clientY};
       }
       // lastCensetを更新
-      gesture.lastCenter = calcCenterFromTouches(e.touches) || gesture.lastCenter;
+      gesture_stat.lastCenter = calcCenterFromTouches(e.touches) || gesture_stat.lastCenter;
       // 二本以上ならlastDistを更新
-      if(e.touches.length>=2) gesture.lastDist = distance(e.touches[0], e.touches[1]);
+      if(e.touches.length>=2) gesture_stat.lastDist = distance(e.touches[0], e.touches[1]);
     }
-    if(gesture && (gesture.maxTouches > 1 || e.touches.length > 1)) clearTimeout(longPressTimer);
+    if(gesture_stat && (gesture_stat.maxTouches > 1 || e.touches.length > 1)) clearTimeout(longPressTimer);
   }, {passive:true});
 
   /* 
@@ -610,10 +610,10 @@
     updateTouchIndicators(e.touches);
     clearTimeout(longPressTimer);
 
-    if(!gesture) return;// ジェスチャー状態がない場合は何もしない
+    if(!gesture_stat) return;// ジェスチャー状態がない場合は何もしない
     if(e.touches.length > 0) return;// まだ指が残っている場合はジェスチャーを確定しない
 
-    const result = classifyGesture(gesture);
+    const result = classifyGesture(gesture_stat);
 
     if(result instanceof Promise){
       const key = await result;
@@ -622,14 +622,14 @@
       sendCommand(result);
     }
     // ジェスチャーを空にする
-    gesture = null;
+    gesture_stat = null;
   }, {passive:true});
 
   // タッチキャンセルイベント（例: システムによる割り込みなど）
   canvas.addEventListener('touchcancel', (e)=>{
     updateTouchIndicators(e.touches);
     clearTimeout(longPressTimer);
-    gesture = null;
+    gesture_stat = null;
   }, {passive:true});
 
   // ══════════════════════════════════════════════
