@@ -38,6 +38,9 @@
             margin-top:20px; 
             color:var(--color-text-dim);
         }
+        .qr-camera-window{
+            width: 60vw;
+        }
     </style>
 </head>
 <body>
@@ -47,6 +50,9 @@
         <h2>ペアリング</h2>
         <div class="panel"> 
             <p>PC側アプリのQRコードをスキャンしてペアリング</p> 
+            <div class="qr-camera-window">
+                <!-- カメラ画面を移すためのdiv -->
+            </div>
             <button id="scan-btn" class="btn btn-primary" onclick="startQRScan()">
                 QRスキャン開始
             </button>
@@ -63,7 +69,8 @@
         </div>
     </div>
 
-    <script src="https://unpkg.com/html5-qrcode">
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <script>
 
         let serverIp = localStorage.getItem('server_ip');
         let authToken = localStorage.getItem('auth_token');
