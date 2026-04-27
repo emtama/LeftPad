@@ -4,6 +4,12 @@
     <meta charset="UTF-8" />
     <link rel="stylesheet" href="./css/stylesheet.css">
     <style>
+        *{
+            /*テキストの選択を禁止 */
+            -webkit-user-select: none; /* Safari / iOS */
+            -ms-user-select: none;     /* 旧Edge */
+            user-select: none;         /* 標準 */
+        }
         body{
             display:flex; 
             flex-direction:column; 
@@ -11,13 +17,6 @@
             justify-content:center;
         }
         /* 全体のコンテナ */
-        .main-content{
-            position:fixed;
-            inset:0; /*  */
-            margin: 0;/* */
-            background:var(--color-bg); 
-            z-index:100; 
-        }
         .panel{
             margin: 10px;
             padding: 10px;
@@ -35,7 +34,7 @@
             display: flex;
             flex-direction: row;
             align-items: center;
-            margin-top:20px; 
+            margin: auto; 
             color:var(--color-text-dim);
         }
         .qr-camera-window{
@@ -44,7 +43,7 @@
     </style>
 </head>
 <body>
-    <div class="main-content">
+    <div class="container">
         <h1>LEFTPAD</h1>
         
         <h2>ペアリング</h2>
@@ -60,7 +59,7 @@
 
         <div class="panel">
             <p>PC側アプリのURLを入力してペアリング</p>
-            <div class="cnnect-box">
+            <div class="connect-box">
                 <input type="text" id="manual-url" class="txtbox" placeholder="テキストボックスの例"/>
                 <button id="connect-btn" class="btn btn-primary" onclick="manualConnect()">
                     接続
@@ -69,6 +68,7 @@
         </div>
     </div>
 
+    <!-- qrコード読み取り用のライブラリ -->
     <script src="https://unpkg.com/html5-qrcode"></script>
     <script>
 

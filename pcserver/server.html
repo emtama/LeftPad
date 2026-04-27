@@ -10,6 +10,12 @@
         :root {            
             --dummy: 0;
         }
+        *{
+            /*テキストの選択を禁止 */
+            -webkit-user-select: none; /* Safari / iOS */
+            -ms-user-select: none;     /* 旧Edge */
+            user-select: none;         /* 標準 */
+        }
         body {
             display: flex; /* 横並びにする */
             height: 100vh; /*  */

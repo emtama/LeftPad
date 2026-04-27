@@ -18,11 +18,11 @@ Noto Sans JP の全ウェイトをインポート
 
     /* フォントサイズ */
     /* clamp(最小値, 推奨値(可変), 最大値) */
-    /* 1.5vw は画面幅の1.5% */
-    --font-size-base: clamp(1rem, 1rem + 0.5vw, 10rem);
-    --font-size-h1:   clamp(1.8rem, 1rem + 2.0vw, 10rem);
-    --font-size-h2:   clamp(1.5rem, 1rem + 1.5vw, 10rem);
-    --font-size-h3:   clamp(1.2rem, 1rem + 1.0vw, 10rem);
+    /* 1.5vw/vh は画面幅・高さの1.5% */
+    --font-size-base: clamp(1rem, 1rem + 1vh, 10rem);
+    --font-size-h1:   clamp(2.0rem, calc(var(--font-size-base) * 2.0), 10rem);
+    --font-size-h2:   clamp(1.75rem, calc(var(--font-size-base) * 1.75), 10rem);
+    --font-size-h3:   clamp(1.5rem, calc(var(--font-size-base) * 1.5), 10rem);
 
     /* dark */
     --color-bg: #0d0e11;/* ベースカラー。背景色でもある。画面の70% */
@@ -76,6 +76,18 @@ h3{
     color: var(--color-text-dim);
     font-size: var(--font-size-h3);
 }
+
+/* コンテナのスタイル */
+.container{
+    position:static;
+    width: 100%;
+    max-width: 85vw;
+    margin-right: auto;
+    margin-left: auto;
+    background:var(--color-bg);
+}
+
+
 /* ボタンのスタイル */
 button { 
     /* ブラウザ標準スタイルを消去 */
@@ -197,8 +209,7 @@ button {
 
 .txtbox{
     color: var(--color-text-light); /* 文字色 */
-    width: 100%; /* 横幅を親要素に対して100%（いっぱい）にする */
-    padding: 2% 3%; /* 内側に上下8px、左右10pxの余白を作る */
+    padding: 2% 3%; /* 内側余白を作る */
     margin: 0.5em;
     border: 1px solid var(--color-border); /* 1pxの太さでCSS変数 --color-border 色の枠線を引く */
     border-radius: var(--border-radius-rc); /* 角を丸め、角丸に */
@@ -214,5 +225,5 @@ button {
 
 /* 入力欄のプレースホルダ（未入力時の案内文字）に適用 */
 .txtbox::placeholder {
-    color: var(--color-text_dim); /* 案内文字の色をグレー（#666）にする */
+    color: var(--color-border); /* 案内文字は淵と同じ */
 }
