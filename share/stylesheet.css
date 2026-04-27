@@ -16,6 +16,12 @@ Noto Sans JP の全ウェイトをインポート
     /**/
     --border-radius-rc: 8px;
 
+    /* フォントサイズ */
+    --font-size-base: clamp(1rem, 1rem + 1vw, 1.25rem); /*  */
+    --font-size-h1:   clamp(1.8rem, 1rem + 4vw, 3rem);
+    --font-size-h2:   clamp(1.5rem, 1rem + 3vw, 2.5rem);
+    --font-size-h3:   clamp(1.2rem, 1rem + 3vw, 2.5rem);
+
     /* dark */
     --color-bg: #0d0e11;/* ベースカラー。背景色でもある。画面の70% */
     --color-main: #e8ff47;/* メインカラー。画面の25% */
@@ -48,19 +54,25 @@ body {
     background: var(--color-bg); 
     color:      var(--color-text-dim); 
     font-family: "Noto Sans JP", sans-serif;
+    font-size: var(--font-size-base);
 }
 /* 見出しの書式 */
-h1{
-    color: var(--color-main);
+h1,h2,h3{
     font-weight: bold;
     letter-spacing: -0.03em; /* 見出しは少し詰める */
     margin-bottom: 0.5rem;
+}
+h1{
+    color: var(--color-main);
+    font-size: var(--font-size-h1);
 }
 h2{
     color: var(--color-text-dim);
-    font-weight: bold;
-    letter-spacing: -0.03em; /* 見出しは少し詰める */
-    margin-bottom: 0.5rem;
+    font-size: var(--font-size-h2);
+}
+h3{
+    color: var(--color-text-dim);
+    font-size: var(--font-size-h3);
 }
 /* ボタンのスタイル */
 button { 

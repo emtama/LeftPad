@@ -17,8 +17,6 @@
             margin: 0;/* */
             background:var(--color-bg); 
             z-index:100; 
-            width: fit-content;
-            height: fit-content;
         }
         .panel{
             margin: 10px;
@@ -33,25 +31,31 @@
             justify-content:center;
 
         }
+        .connect-box{
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            margin-top:20px; 
+            color:var(--color-text-dim);
+        }
     </style>
 </head>
 <body>
     <div class="main-content">
         <h1>LEFTPAD</h1>
         
+        <h2>ペアリング</h2>
         <div class="panel"> 
-            <h2>PC側アプリのQRコードをスキャンしてペアリング</h2> 
+            <p>PC側アプリのQRコードをスキャンしてペアリング</p> 
             <button id="scan-btn" class="btn btn-primary" onclick="startQRScan()">
                 QRスキャン開始
             </button>
         </div>
 
         <div class="panel">
-            <h2>PC側アプリのURLを入力してペアリング</h2>
-            <div style="margin-top:20px; font-size:1.em; color:var(--color-text-dim);">
-                <label>
-                    <input type="text" id="manual-url" class="txtbox" placeholder="テキストボックスの例"/>
-                </label>
+            <p>PC側アプリのURLを入力してペアリング</p>
+            <div class="cnnect-box">
+                <input type="text" id="manual-url" class="txtbox" placeholder="テキストボックスの例"/>
                 <button id="connect-btn" class="btn btn-primary" onclick="manualConnect()">
                     接続
                 </button>
