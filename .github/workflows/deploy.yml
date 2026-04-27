@@ -6,7 +6,7 @@ name: Deploy GitHub Pages
 # 実行されるタイミングの設定
 on:
   push:
-    branches: [main] # ブランチにソースコードが送り込まれた（push）時に実行
+    branches: ["main"] # ブランチにソースコードが送り込まれた（push）時に実行
   workflow_dispatch:   # 手動実行ボタンを有効化（これでデプロイのラグをショートカット可能！）
 
 env:
