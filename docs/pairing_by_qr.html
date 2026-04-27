@@ -17,26 +17,6 @@
             justify-content:center;
         }
         /* 全体のコンテナ */
-        .panel{
-            margin: 10px;
-            padding: 10px;
-            inset: 0px;
-            border: 0;
-            border-radius: 10px;
-            background-color: var(--color-surface);
-            display: flex;
-            flex-direction:column; 
-            align-items:center; 
-            justify-content:center;
-
-        }
-        .connect-box{
-            display: flex;
-            flex-direction: row;
-            align-items: center;
-            margin: auto; 
-            color:var(--color-text-dim);
-        }
         #qr-reader-window{
             width: 60vw;
         }
@@ -47,22 +27,31 @@
         
         <!-- 追加：ポップアップ -->
         <dialog id="modalDialog">
-            <p id="modalDialog-text"></p>
+            <p>none</p>
         </dialog>
 
         <h1>LEFTPAD</h1>
         
         <h2>ペアリング</h2>
-        <div class="panel"> 
+
+        <div class="container" id="qr-container"> 
             <p>PC側アプリのQRコードをスキャンしてペアリングする</p> 
             <div id="qr-reader-window">
                 <!-- カメラ画面を移すためのdiv -->
+            </div>            
+        </div>
+
+        <div class="container" id="url-container" style="display: none;">
+            <p>PC側アプリのURLを入力してペアリングする</p>
+            <div class="container">
+                <input type="text" id="manual-url" class="txtbox" placeholder="テキストボックスの例"/>
+                <button id="connect-btn" class="btn btn-primary" onclick="manualConnect()">
+                    接続
+                </button>
+                <button id="scan-btn" class="btn btn-primary" onclick="startQRScan()" style="display: none;">
+                    QRスキャン再試行
+                </button>
             </div>
-            <button id="scan-btn" class="btn btn-primary" onclick="startQRScan()">
-                QRスキャン開始
-            </button>
-            <!-- 手動パネルに再試行ボタン追加 -->
-            <button onclick="startQRScan()">QRで再試行</button>
         </div>
 
     </div>
@@ -71,7 +60,7 @@
     <script src="https://unpkg.com/html5-qrcode"></script>
     <script>
 
-        const modalDialog =document.getElementById('modalDialog')
+        const modalDialog = document.getElementById('modalDialog')
         let serverIp = localStorage.getItem('server_ip');
         let authToken = localStorage.getItem('auth_token');
 
@@ -83,7 +72,8 @@
                 connectWebSocket(serverIp, authToken);
             }
             // もし認証情報がないならQR撮影に入る
-            modalDialog.showModal("QRを撮影してペアリングします");
+            document.getElementById('modalDialog').textContent = "QRを撮影してペアリングします";
+            modalDialog.showModal();
             startQRScan();
 
         });
@@ -103,9 +93,11 @@
 
             qr_scanner.start(
                 { facingMode: "environment" },             
-                { fps: 10, 
+                { 
+                    fps: 10, 
                     qrbox: { width: 250, height: 250 } 
                 }, 
+                // qrを検出した時呼ぶ
                 (decodedText) => {
                     // QRの内容が http://192.168.1.5:8080/smartphone.html?ip=192.168.1.5&token=... 形式と想定
                     try {
@@ -119,22 +111,33 @@
                             saveAndConnect(ip, token);
                         }
                     } catch (e) {
-                        modalDialog.showModal("無効なQRコードです");
+                        document.getElementById('modalDialog').textContent = "有効でないQRコードです";
+                        modalDialog.showModal();
                     }
                 }
             ).then(() => {
+                // カメラ起動に成功した直後に1回だけ実行
+                // 
                 scanning = true;
-                // 成功時UI
-                document.getElementById("scan-btn").style.display = "none";
             }).catch(err => {
+                // qr_scanner.startに失敗
                 scanning = false;
-                // 失敗時：原因表示
-                modalDialog.showModal("カメラ起動失敗: " + err);
-                // 手動モードへ誘導
-                document.getElementById("scan-btn").textContent = "QRで再試行";
+                document.getElementById('modalDialog').textContent = "カメラの起動に失敗しました";
+                modalDialog.showModal("カメラの起動に失敗しました");
+                qr_scanner.stop();
+                //
+                document.getElementById('url-container').style.display = 'flex';
+                document.getElementById('qr-container').style.display = 'none';
             });
         }
         
+        // 手動入力の場合
+        function manualConnect() {
+            const ip = document.getElementById('manual-url').value;
+            const token = prompt("認証トークンを入力してください（サーバー画面に表示されています）");
+            if (ip && token) saveAndConnect(ip, token);
+        }
+       
         //
         function saveAndConnect(ip, token) {
             localStorage.setItem('server_ip', ip);
@@ -143,13 +146,6 @@
             // UIを隠して接続
             document.getElementById('pairing-overlay').style.display = 'none';
             connectWebSocket(ip, token);
-        }
-
-        // 手動入力の場合
-        function manualConnect() {
-            const ip = document.getElementById('manual-url').value;
-            const token = prompt("認証トークンを入力してください（サーバー画面に表示されています）");
-            if (ip && token) saveAndConnect(ip, token);
         }
 
         function connectWebSocket(ip, token) {

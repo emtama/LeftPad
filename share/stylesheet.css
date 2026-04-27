@@ -232,15 +232,26 @@ button {
 ・モーダルとは他の操作を禁止するもの。
 */
 
-.dialog{
+dialog{
     align-items:center; 
     justify-content:center; 
-    border: none;
     margin: auto;
+    border: none;
     border-radius: var(--border-radius-rc);
-    background:var(--color-surface); 
-    background:var(--color-text-dim); 
+    background: var(--color-surface); 
+    color: var(--color-text-dim);
+    width:auto; 
+    height:auto; 
+    /* アニメーション */
+    opacity: 0;
+    transition: all var(--transient-time);
 }
-.dialog::backdrop{/* dialogを表示している時、それいがいのウィンドウにかぶせるフィルタ */
+dialog[open]{
+    opacity: 1;
+}
+dialog::backdrop{/* dialogを表示している時、それいがいのウィンドウにかぶせるフィルタ */
     background: rgba(0, 0, 0, 0.5);
+}
+dialog:active{
+    border: none; 
 }
