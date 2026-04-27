@@ -1,0 +1,53 @@
+/* Noto Sans JP フォントのインポート*/
+@import url("https://fonts.googleapis.com/css2?family=Noto+Sans+JP&display=swap");
+
+:root{
+    /* マウスの位置 */
+    --mx: 0;/* マウスの位置 */
+    --my: 0;/* マウスの位置 */
+
+    /**/
+
+    /* dark */
+    --color_bg: #0d0e11;
+    --color_surface: #16181e;
+    --color_accent: #e8ff47;
+    --color_accent2: #47c4ff;
+    --color_text_dim: #e4e6ee;/* 暗い背景でのテキストカラー */
+    --color_text_light: #ffffff;/* 明るい背景でのテキストカラー */
+    --color_border: #2a2d36;
+    --color_danger: #ff5c5c;
+    --color_success: #4dff91;
+}
+/* カラーテーマ */
+[color-theme="light"]{
+    --color_bg: #f7f9fc;
+    --color_surface: #ffffff;
+    --color_accent: #c6d800;     /* 少し落ち着かせる */
+    --color_accent2: #007acc;    /* コントラスト確保 */
+    --color_text_dim: #1a1d24;  /* 暗い背景でのテキストカラー */
+    --color_text_light: #1a1d24;/* 明るい背景でのテキストカラー */
+    --color_border: #d6dbe6;
+    --color_danger: #d93636;
+    --color_success: #1fbf63;
+}
+
+/*  */
+*{
+    box-sizing: border-box; /*widthとheightにpaddingとmarginを含む設定*/
+}
+body {
+    background: var(--color_bg); 
+    color:      var(--color_text_dim); 
+    font-family: "Noto Sans JP";
+}
+/* 見出しの書式 */
+h1{
+    color: var(--color_accent);
+    font-weight: bold;
+}
+h2{
+    color: var(--color_text_dim);
+    font-weight: bold;
+
+}
