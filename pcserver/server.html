@@ -146,9 +146,6 @@
             color: var(--color_text_dim); }
         .key-display { flex: 1; color: var(--color_accent2); background: var(--color_bg); padding: 8px; border-radius: 4px; margin: 0 10px; min-height: 20px; }
         
-        button { background: var(--color_border); color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; }
-        button.active { background: var(--color_accent2); color: var(--color_bg); font-weight: bold; }
-
         /* 設定ラベル */
         .setting-row { 
             display: flex; 
@@ -266,7 +263,9 @@
         <div id="panel-logs" class="panel">
             <h1>通信ログ</h1>
             <div id="log-container"></div>
-            <button onclick="document.getElementById('log-container').innerHTML=''" style="margin-top:10px;">ログをクリア</button>
+            <button onclick="document.getElementById('log-container').innerHTML=''" style="margin-top:10px;">
+                ログをクリア
+            </button>
         </div>
     </div>
 
@@ -285,7 +284,7 @@
                 
                 const root = document.documentElement;  // :root 要素（html要素）を取得
                 const styles = getComputedStyle(root);  // :root に適用されているすべてのスタイル計算値を取得
-                const qr_fillcolor = "#000000";//styles.getPropertyValue('--color_accent').trim();// 特定の変数名（例: --value）の値を抜き出す
+                const qr_fillcolor = "#000000";//styles.getPropertyValue('--color_main').trim();// 特定の変数名（例: --value）の値を抜き出す
                 const qr_backcolor = "#ffffff";//styles.getPropertyValue('--color_surface').trim();// 特定の変数名（例: --value）の値を抜き出す
                 //
                 const data = await pywebview.api.get_init_data(qr_fillcolor, qr_backcolor);

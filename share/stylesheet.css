@@ -9,10 +9,10 @@
     /**/
 
     /* dark */
-    --color_bg: #0d0e11;
+    --color_bg: #0d0e11;/* ベースカラー。背景色でもある。画面の70% */
     --color_surface: #16181e;
-    --color_accent: #e8ff47;
-    --color_accent2: #47c4ff;
+    --color_main: #e8ff47;/* メインカラー。画面の25% */
+    --color_accent2: #47c4ff;/* アクセントカラー。画面の5% */
     --color_text_dim: #e4e6ee;/* 暗い背景でのテキストカラー */
     --color_text_light: #ffffff;/* 明るい背景でのテキストカラー */
     --color_border: #2a2d36;
@@ -23,7 +23,7 @@
 [color-theme="light"]{
     --color_bg: #f7f9fc;
     --color_surface: #ffffff;
-    --color_accent: #c6d800;     /* 少し落ち着かせる */
+    --color_main: #c6d800;     /* 少し落ち着かせる */
     --color_accent2: #007acc;    /* コントラスト確保 */
     --color_text_dim: #1a1d24;  /* 暗い背景でのテキストカラー */
     --color_text_light: #1a1d24;/* 明るい背景でのテキストカラー */
@@ -43,11 +43,25 @@ body {
 }
 /* 見出しの書式 */
 h1{
-    color: var(--color_accent);
+    color: var(--color_main);
     font-weight: bold;
 }
 h2{
     color: var(--color_text_dim);
     font-weight: bold;
 
+}
+/* 普通のボタンのスタイル */
+button { 
+    background: var(--color_border); 
+    color: var(--color_text_dim); 
+    border: none; 
+    padding: 8px 15px; 
+    border-radius: 5px; 
+    cursor: pointer; 
+}
+button.active { 
+    background: var(--color_accent2); 
+    color: var(--color_bg); 
+    font-weight: bold; 
 }
