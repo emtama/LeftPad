@@ -227,3 +227,20 @@ button {
 .txtbox::placeholder {
     color: var(--color-border); /* 案内文字は淵と同じ */
 }
+
+/* ダイアログもしくはモーダルダイアログ
+・モーダルとは他の操作を禁止するもの。
+*/
+
+.dialog{
+    align-items:center; 
+    justify-content:center; 
+    border: none;
+    margin: auto;
+    border-radius: var(--border-radius-rc);
+    background:var(--color-surface); 
+    background:var(--color-text-dim); 
+}
+.dialog::backdrop{/* dialogを表示している時、それいがいのウィンドウにかぶせるフィルタ */
+    background: rgba(0, 0, 0, 0.5);
+}
