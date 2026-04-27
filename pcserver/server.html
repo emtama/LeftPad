@@ -36,12 +36,12 @@
             align-items: center;
             cursor: pointer;
             border-radius: 8px;
-            color: var(--color_border);
-            transition: 0.3s;
+            color: var(--color-text-light);
+            transition: var(--transient-time);
             font-size: 12px;
         }
-        .nav-item:hover { background: var(--color_border); color: #fff; }
-        .nav-item.active { background: var(--color_accent2); color: var(--color_bg); }
+        .nav-item:hover { background: var(--color_border);}
+        .nav-item.active { background: var(--color_accent);}
         .nav-item i { font-size: 24px; margin-bottom: 4px; }
 
         /* メインコンテンツ */
@@ -49,16 +49,17 @@
             flex: 1;
             padding: 30px;
             overflow-y: auto;
-            background: var(--color_bg);
+            background: var(--color-bg);
         }
         
+        /*  */
         .panel { display: none; }
         .panel.active { display: block; }
         
         /* ログパネル専用 */
         #log-container {
             background: var(--color_surface);
-            color: var(--color_text_dim);
+            color: var(--color-text-dim);
             font-family: monospace;
             padding: 15px;
             height: 500px;
@@ -67,11 +68,12 @@
             font-size: 13px;
             line-height: 1.5;
         }
+
         /* 接続設定タブ */
         .url-container {
             display: flex;
-            flex-direction: column;
-            align-items: center; /* 中央揃え */
+            flex-direction: row; /* 横に並べる */
+            align-items: center; /* 上下中央揃え */
             padding: 20px;
             background: var(--color_surface);
             border-radius: 12px;
@@ -80,10 +82,10 @@
         /* URLテキストのスタイル（追加） */
         .clickable-url {
             word-break: break-all; 
-            color: var(--color_accent2);
+            color: var(--color_accent);
             cursor: pointer;
             padding: 10px;
-            background: var(--color_bg);
+            background: var(--color-bg);
             border-radius: 6px;
             border: 1px solid transparent;
             transition: all 0.2s;
@@ -95,7 +97,7 @@
 
         /* ホバー時に枠線と色を変える */
         .clickable-url:hover {
-            border-color: var(--color_accent2);
+            border-color: var(--color_accent);
             background: var(--color_border);
         }
 
@@ -112,8 +114,8 @@
             top: var(--my);
             left: var(--mx);
             transform: translate(-50%, -120%);
-            background: var(--color_accent2);
-            color: var(--color_text_dim);
+            background: var(--color_accent);
+            color: var(--color-text-dim);
             padding: 2px 8px;
             border-radius: 4px;
             font-size: 14px;
@@ -143,70 +145,24 @@
             border-radius: 8px; }
         .gesture-label { width: 150px; 
             font-weight: bold; 
-            color: var(--color_text_dim); }
-        .key-display { flex: 1; color: var(--color_accent2); background: var(--color_bg); padding: 8px; border-radius: 4px; margin: 0 10px; min-height: 20px; }
+            color: var(--color-text-dim); }
+        .key-display { flex: 1; color: var(--color_accent); background: var(--color-bg); padding: 8px; border-radius: 4px; margin: 0 10px; min-height: 20px; }
         
         /* 設定ラベル */
         .setting-row { 
             display: flex; 
             align-items: center; 
-            background: var(--color_surface); 
-            margin-bottom: 8px; 
-            padding: 10px; 
+            background: var(--color-bg); 
+            padding: 0.5em; 
             border-radius: 8px;
         }
-        .setting-label{
+        .setting-text{    
             padding: 10px; 
-            color: var(--color_text_dim); 
-        }
-        /* トグルスイッチ */
-        .toggle-button-2 {/*スイッチの器*/
-            /* --- カスタマイズ用の定数 --- */
-            --toggle-width: 50px; /* 全体の幅 */
-            --toggle-height: calc(var(--toggle-width) / 2); /* 高さは幅の半分 */
-            --border-width: 3; /* 枠の太さ */
-            --gap: calc(var(--toggle-width) / 20); /* 外枠とつまみの間の隙間 */
-            --color-off: var(--color_text_dim);
-            --color-on: var(--color_accent2);
-            --color-color_bg: var(--color_bg);
-            --speed: .4s;
-
-            /* --- 計算用の変数 --- */
-            --circle-size: calc(var(--toggle-height) - (var(--gap) * 2)); /* つまみのサイズ */
-            --move-distance: calc(var(--toggle-width) - var(--circle-size) - (var(--gap) * 2));
-
-            display: inline-block;
-            position: relative;
-            width: var(--toggle-width);
-            height: var(--toggle-height);
-            border-radius: var(--toggle-height);
-            border: var(--border-width) solid var(--color-off);
-            box-sizing: content-box;
-            cursor: pointer;
-            transition: border-color var(--speed);
-            background-color: var(--color-color_bg);
-        }
-        .toggle-button-2:has(:checked) {/*チェック時の器*/
-            border-color: var(--color-on);
-        }
-        .toggle-button-2::after {/*つまみ*/
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: var(--gap);
-            transform: translateY(-50%);
-            width: var(--circle-size);
-            height: var(--circle-size);
-            border-radius: 50%;
-            background-color: var(--color-off);
-            transition: left var(--speed);
-        }
-        .toggle-button-2:has(:checked)::after {/*チェック時のつまみ(移動)*/
-            left: calc(var(--gap) + var(--move-distance));
-            background-color: var(--color-on);
-        }
-        .toggle-button-2 input {/*標準のチェックボックスを非表示*/
-            display: none;
+            color: var(--color-text-dim); 
+            display: flex;
+            flex-direction: column; /* 縦並びにする */
+            justify-content: center;/* 中央揃え */
+            margin-right: 15px; /* ボタン類とのマージン */
         }
 
     </style>
@@ -234,7 +190,7 @@
             <div id="connection-status" style="text-align: center; margin-bottom: 20px; padding: 10px; background: var(--color_surface); border-radius: 8px;">
                 <h2>現在の接続数</h2>
                 <h1 id="client-count">0</h1>
-                <div id="client-list" style="font-size: 0.8em; color: var(--color_accent2); margin-top: 5px;">待機中...</div>
+                <div id="client-list" style="font-size: 0.8em; color: var(--color_accent); margin-top: 5px;">待機中...</div>
             </div>
             <div class="url-container">
                 <h2 style="text-align: center;">HTTP URL</h2>
@@ -252,10 +208,14 @@
         <div id="panel-settings" class="panel">
             <h1>アプリ設定</h1>
             <label class = "setting-row">
+                <div class="setting-text">
+                    <h2>ハプティクス</h2><br>
+                    スマホをタップした時に振動させます。</p>
+                </div>
                 <label class="toggle-button-2">
                     <input type="checkbox" id="vib-toggle" onchange="toggleVib()"/>
                 </label>
-                <label class="setting-label">タップ時の振動</label>
+
             </label>
 
         </div>
@@ -263,7 +223,7 @@
         <div id="panel-logs" class="panel">
             <h1>通信ログ</h1>
             <div id="log-container"></div>
-            <button onclick="document.getElementById('log-container').innerHTML=''" style="margin-top:10px;">
+            <button class="btn btn-danger" onclick="document.getElementById('log-container').innerHTML=''" style="margin-top:10px;" >
                 ログをクリア
             </button>
         </div>
@@ -391,8 +351,8 @@
                 row.innerHTML = `
                     <div class="gesture-label">${gesture_labels[id]}</div>
                     <div class="key-display" id="display-${id}">${(gesture_shortcuts[id] || []).join(' + ')}</div>
-                    <button onclick="startCapture('${id}')" id="btn-${id}">記録</button>
-                    <button onclick="deleteGesture('${id}')" id="btn-delete-${id}" style="margin-left:5px; background:var(--color_danger);">削除</button>
+                    <button onclick="startCapture('${id}')" class="btn btn-primary" id="btn-${id}">記録</button>
+                    <button onclick="deleteGesture('${id}')" class="btn btn-danger"  id="btn-delete-${id}">削除</button>
                 `;
                 container.appendChild(row);
             });
