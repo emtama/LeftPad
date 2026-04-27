@@ -19,12 +19,12 @@
         /* サイドバー */
         .sidebar {
             width: 80px;
-            background: var(--color_surface);
+            background: var(--color-surface);
             display: flex;
             flex-direction: column;
             align-items: center;
             padding-top: 20px;
-            border-right: 1px solid var(--color_border);
+            border-right: 1px solid var(--color-border);
         }
         .nav-item {
             width: 60px;
@@ -40,8 +40,8 @@
             transition: var(--transient-time);
             font-size: 12px;
         }
-        .nav-item:hover { background: var(--color_border);}
-        .nav-item.active { background: var(--color_accent);}
+        .nav-item:hover { background: var(--color-border);}
+        .nav-item.active { background: var(--color-accent);}
         .nav-item i { font-size: 24px; margin-bottom: 4px; }
 
         /* メインコンテンツ */
@@ -49,7 +49,6 @@
             flex: 1;
             padding: 30px;
             overflow-y: auto;/* Y方向にあふれた時？あふれた時だけスクロールバー付ける */
-            background: var(--color-bg);
         }
         
         /*  */
@@ -63,7 +62,7 @@
             text-align: center; /* テキストを中央揃え */
             justify-content: center;
             padding: 1em; 
-            background: var(--color_bg); 
+            background: var(--color-bg); 
             border-radius: 8px;
             margin: 0.5em; 
             width: fit-content;   /* 中身の幅に合わせる */
@@ -80,7 +79,7 @@
             margin-right: auto;
             width: 250px;
             height: 250px;
-            background: var(--color_surface);
+            background: var(--color-surface);
             display: block;
         }
 
@@ -92,7 +91,7 @@
             align-items: center; /* 子要素をそれぞれ各バウンディングボックス内で上下中央揃え */
             justify-content: center;/* 子要素の塊を左右中央寄 */
             padding: 1em;
-            background: var(--color_bg); 
+            background: var(--color-bg); 
             border-radius: 8px;
             margin: 0.5em;
         }
@@ -103,14 +102,14 @@
             align-items: center; /* 子要素を各バウンディングボックス内で上下中央揃え */
             justify-content: space-evenly;/* 上下左右等間隔に配置 */
             padding: 1em;
-            background: var(--color_bg); 
+            background: var(--color-bg); 
             border-radius: 8px;
             margin: 0.5em;
         }
 
         .clickable-url {
             word-break: break-all; 
-            color: var(--color_accent);
+            color: var(--color-accent);
             cursor: pointer;
             padding: 10px;
             background: var(--color-bg);
@@ -126,8 +125,8 @@
 
         /* ホバー時に枠線と色を変える */
         .clickable-url:hover {
-            border-color: var(--color_accent);
-            background: var(--color_border);
+            border-color: var(--color-accent);
+            background: var(--color-border);
         }
 
         /* コピーした瞬間の視覚効果 */
@@ -143,7 +142,7 @@
             top: var(--my);
             left: var(--mx);
             transform: translate(-50%, -120%);
-            background: var(--color_accent);
+            background: var(--color-accent);
             color: var(--color-text-dim);
             padding: 2px 8px;
             border-radius: 4px;
@@ -155,14 +154,14 @@
         /* ジェスチャー-ショートカット編集 */
         .gesture-row { display: flex; 
             align-items: center; 
-            background: var(--color_surface); 
+            background: var(--color-surface); 
             margin-bottom: 8px; 
             padding: 10px; 
             border-radius: 8px; }
         .gesture-label { width: 150px; 
             font-weight: bold; 
             color: var(--color-text-dim); }
-        .key-display { flex: 1; color: var(--color_accent); background: var(--color-bg); padding: 8px; border-radius: 4px; margin: 0 10px; min-height: 20px; }
+        .key-display { flex: 1; color: var(--color-accent); background: var(--color-bg); padding: 8px; border-radius: 4px; margin: 0 10px; min-height: 20px; }
         
         /* 設定ラベル */
         .setting-row { 
@@ -183,7 +182,7 @@
         
         /* ログパネル専用 */
         #log-container {
-            background: var(--color_surface);
+            background: var(--color-surface);
             color: var(--color-text-dim);
             font-family: monospace;
             padding: 15px;
@@ -229,7 +228,7 @@
             <div class="connection-status-container">
                 <h2>現在の接続数</h2>
                 <h1 id="client-count">0</h1>
-                <div id="client-list" style="font-size: 1em; color: var(--color_accent); margin-top: 5px;">
+                <div id="client-list" style="font-size: 1em; color: var(--color-accent); margin-top: 5px;">
                     待機中...
                 </div>
             </div>
@@ -279,8 +278,8 @@
                 
                 const root = document.documentElement;  // :root 要素（html要素）を取得
                 const styles = getComputedStyle(root);  // :root に適用されているすべてのスタイル計算値を取得
-                const qr_fillcolor = "#000000";//styles.getPropertyValue('--color_main').trim();// 特定の変数名（例: --value）の値を抜き出す
-                const qr_backcolor = "#ffffff";//styles.getPropertyValue('--color_surface').trim();// 特定の変数名（例: --value）の値を抜き出す
+                const qr_fillcolor = "#000000";//styles.getPropertyValue('--color-main').trim();// 特定の変数名（例: --value）の値を抜き出す
+                const qr_backcolor = "#ffffff";//styles.getPropertyValue('--color-surface').trim();// 特定の変数名（例: --value）の値を抜き出す
                 //
                 const data = await pywebview.api.get_init_data(qr_fillcolor, qr_backcolor);
                 //

@@ -1,0 +1,21 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {// LeftPad用の
+            "label": "Copy CSS",
+            "type": "shell",
+            "command": "xcopy /Y share\\stylesheet.css docs\\css\\",
+            "windows": {
+                "command": "xcopy /Y share\\stylesheet.css docs\\css\\"
+            },
+            "linux": {
+                "command": "cp share/stylesheet.css docs/css/"
+            },
+            "problemMatcher": [],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        }
+    ]
+}

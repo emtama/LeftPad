@@ -1,35 +1,40 @@
-/* Noto Sans JP フォントのインポート*/
-@import url("https://fonts.googleapis.com/css2?family=Noto+Sans+JP&display=swap");
+/* 
+Noto Sans JP の全ウェイトをインポート 
+"wght@100..900"がないと、太字（font-weight: 700~）が表示できない。
+*/
+
+@import url("https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@100..900&display=swap");
 
 :root{
     /* マウスの位置 */
     --mx: 0;/* マウスの位置 */
     --my: 0;/* マウスの位置 */
 
-    /**/
+    /* 基本の遷移時間 */
+    --transient-time: 250ms;
 
     /* dark */
-    --color_bg: #0d0e11;
-    --color_surface: #16181e;
-    --color_accent: #e8ff47;
-    --color_accent2: #47c4ff;
-    --color_text_dim: #e4e6ee;/* 暗い背景でのテキストカラー */
-    --color_text_light: #ffffff;/* 明るい背景でのテキストカラー */
-    --color_border: #2a2d36;
-    --color_danger: #ff5c5c;
-    --color_success: #4dff91;
+    --color-bg: #0d0e11;/* ベースカラー。背景色でもある。画面の70% */
+    --color-main: #e8ff47;/* メインカラー。画面の25% */
+    --color-accent: #47c4ff;/* アクセントカラー。画面の5% */
+    --color-text-dim: #e4e6ee;/* 暗い背景でのテキストカラー */
+    --color-text_light: #ffffff;/* 明るい背景でのテキストカラー */
+    --color-surface: color-mix(in srgb, var(--color-bg) 90%, white);/* テキストボックス背景など少し浮き上がった部分のイオ。 */
+    --color-border: color-mix(in srgb, var(--color-bg) 80%, white);/* 分割線、枠線用の色。 */
+    --color-error: #f65656;
+    --color-success: #4dff91;
 }
 /* カラーテーマ */
 [color-theme="light"]{
-    --color_bg: #f7f9fc;
-    --color_surface: #ffffff;
-    --color_accent: #c6d800;     /* 少し落ち着かせる */
-    --color_accent2: #007acc;    /* コントラスト確保 */
-    --color_text_dim: #1a1d24;  /* 暗い背景でのテキストカラー */
-    --color_text_light: #1a1d24;/* 明るい背景でのテキストカラー */
-    --color_border: #d6dbe6;
-    --color_danger: #d93636;
-    --color_success: #1fbf63;
+    --color-bg: #f7f9fc;
+    --color-surface: #edeff3;
+    --color-main: #c6d800;     /* 少し落ち着かせる */
+    --color-accent: #007acc;    /* コントラスト確保 */
+    --color-text-dim: #1a1d24;  /* 暗い背景でのテキストカラー */
+    --color-text_light: #1a1d24;/* 明るい背景でのテキストカラー */
+    --color-border: #d6dbe6;
+    --color-error: #d93636;
+    --color-success: #1fbf63;
 }
 
 /*  */
@@ -37,17 +42,167 @@
     box-sizing: border-box; /*widthとheightにpaddingとmarginを含む設定*/
 }
 body {
-    background: var(--color_bg); 
-    color:      var(--color_text_dim); 
-    font-family: "Noto Sans JP";
+    background: var(--color-bg); 
+    color:      var(--color-text-dim); 
+    font-family: "Noto Sans JP", sans-serif;
 }
 /* 見出しの書式 */
 h1{
-    color: var(--color_accent);
+    color: var(--color-main);
     font-weight: bold;
+    letter-spacing: -0.03em; /* 見出しは少し詰める */
+    margin-bottom: 0.5rem;
 }
 h2{
-    color: var(--color_text_dim);
+    color: var(--color-text-dim);
     font-weight: bold;
+    letter-spacing: -0.03em; /* 見出しは少し詰める */
+    margin-bottom: 0.5rem;
+}
+/* ボタンのスタイル */
+button { 
+    /* ブラウザ標準スタイルを消去 */
+    appearance: none;
+    background: transparent;
+    border: none;
+    padding: 0;
+    font: inherit; /* 親要素のフォントをそのまま使う */
+    color: inherit;
+    cursor: pointer;
+}
+/* --- ボタンのベーススタイル（形やフォントなど） --- */
+.btn {
+    /* ボタンの基本的な見た目を設定 */
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 20px;
+    border-radius: 6px;
+    border: 1px solid transparent; /* 枠線の場所だけ確保しておく */
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: bold;
+    transition: all var(--transient-time) ease; /* アニメーションを継承 */
+    text-decoration: none;
+    gap: 8px; /* アイコンを入れた時の隙間 */
+}
+.btn:active{
+    /* 少し大きくする*/
+    transform: scale(0.95);
+    /* 遷移の平滑化 */
+    transition: all var(--transient-time) cubic-bezier(0.34, 1.56, 0.64, 1);
+}
 
+/* --- ボタンの拡張スタイル（色や影のバリエーション） --- */
+
+/* メイン（ネオンイエロー） */
+.btn-primary {
+    background-color: var(--color-accent);
+    color: var(--color-text_light);
+}
+.btn-primary:hover {
+    background-color: color-mix(in srgb, var(--color-accent), black 10%);
+}
+
+/* アウトライン（枠線のみ） */
+.btn-outline {
+    background-color: transparent;
+    border-color: var(--color-border);
+    color: var(--color-text_light);
+}
+.btn-outline:hover {
+    background-color: var(--color-surface);
+    border-color: var(--color-text_light);
+}
+
+/* 危険・削除（赤） */
+.btn-danger {
+    background-color: var(--color-error);
+    color: white;
+}
+.btn-danger:hover {
+    background-color: var(--color-error);
+    color: white;
+}
+
+/* トグルボタン */
+.toggle-button-2 {/*スイッチの器*/
+    /* --- カスタマイズ用の定数 --- */
+    --toggle-width: 50px; /* 全体の幅 */
+    --toggle-height: calc(var(--toggle-width) / 2); /* 高さは幅の半分 */
+    --border-width: 3; /* 枠の太さ */
+    --gap: calc(var(--toggle-width) / 20); /* 外枠とつまみの間の隙間 */
+    --color-off: var(--color-surface);
+    --color-on: var(--color-accent);
+    --color-nob: white;
+    --transient-time: var(transient-time);
+
+    /* --- 計算用の変数 --- */
+    --circle-size: calc(var(--toggle-height) - (var(--gap) * 2)); /* つまみのサイズ */
+    --move-distance: calc(var(--toggle-width) - var(--circle-size) - (var(--gap) * 2));
+
+    /* 通常時の器 */
+    display: inline-block;
+    position: relative;
+    vertical-align: middle;
+    width: var(--toggle-width);
+    height: var(--toggle-height);
+    border-radius: var(--toggle-height);
+    border: var(--border-width) solid var(--color-off);
+    box-sizing: content-box;
+    cursor: pointer;
+    transition: background-color var(--transient-time);
+    background-color: var(--color-off);
+}
+.toggle-button-2:has(:checked) {/*チェック時の器*/
+    background-color: var(--color-on);
+}
+.toggle-button-2::after {/*つまみ*/
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: var(--gap);
+    transform: translateY(-50%);
+    width: var(--circle-size);
+    height: var(--circle-size);
+    border-radius: 50%;
+    background-color: var(--color-nob);
+    transition: left cubic-bezier(0.68, -0.55, 0.27, 01.55) 420ms;
+}
+.toggle-button-2:has(:checked)::after {/*チェック時のつまみ(移動)*/
+    left: calc(var(--gap) + var(--move-distance));
+}
+.toggle-button-2 input {/*標準のチェックボックスを非表示*/
+    display: none;
+}
+
+/* テキストボックス */
+
+.textbox-4,
+.textbox-4-label {
+    color: #e5e5e5;
+}
+
+.textbox-4-label {
+    display: block;
+    margin-bottom: 5px;
+    font-size: .9em;
+}
+
+.textbox-4 {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid var(--color-border);
+    border-radius: 25px;
+    background-color: transparent;
+    font-size: 1em;
+    line-height: 1.5;
+}
+
+.textbox-4:focus{
+    outline: 1px solid #fff;
+}
+
+.textbox-4::placeholder {
+    color: #666;
 }

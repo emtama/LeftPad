@@ -5,29 +5,28 @@
     <link rel="stylesheet" href="./css/stylesheet.css">
     <style>
         body{
-            display: flex;
-            flex-direction: column;/*  上から並べる*/
-            margin: 0;
-        }
-        #pairing-overlay{
-            position:fixed;
-            inset:0; /*  */
-            margin: 0;
-            background:var(--color-bg); 
-            z-index:100; 
             display:flex; 
             flex-direction:column; 
             align-items:center; 
             justify-content:center;
+        }
+        /* 全体のコンテナ */
+        .main-content{
+            position:fixed;
+            inset:0; /*  */
+            margin: 0;/* */
+            background:var(--color-bg); 
+            z-index:100; 
+            width: fit-content;
+            height: fit-content;
         }
         .panel{
             margin: 10px;
             padding: 10px;
             inset: 0px;
             border: 0;
-            width: 600px;
             border-radius: 10px;
-            background-color: var(--color_surface);
+            background-color: var(--color-surface);
             display: flex;
             flex-direction:column; 
             align-items:center; 
@@ -37,21 +36,27 @@
     </style>
 </head>
 <body>
-    <div id="pairing-overlay">
+    <div class="main-content">
         <h1>LEFTPAD</h1>
         
         <div class="panel"> 
             <h2>PC側アプリのQRコードをスキャンしてペアリング</h2> 
-            <button id="scan-btn" class="btn btn-primary" onclick="startQRScan()" style="padding:15px 30px; background:var(--color_accent); color:var(--color-bg); border:none; border-radius:5px; font-weight:bold;">
+            <button id="scan-btn" class="btn btn-primary" onclick="startQRScan()">
                 QRスキャン開始
             </button>
         </div>
 
         <div class="panel">
-            <h2>URLを入力してペアリング</h2>
+            <h2>PC側アプリのURLを入力してペアリング</h2>
             <div style="margin-top:20px; font-size:1.em; color:var(--color-text-dim);">
-                <input type="text" id="manual-ip" placeholder="192.168.x.x" style="background:var(--color_surface); border:1px solid var(--color_border); color:white; padding:5px; margin-top:5px;">
-                <button onclick="manualConnect()" style="background:none; border:1px solid var(--color_accent); color:var(--color_accent); padding:5px 10px;">接続</button>
+                <label>
+                    <span class="textbox-4-label">ラベルの例</span>
+                    <input type="text" class="textbox-4" placeholder="テキストボックスの例"/>
+                    </label>
+                <input type="text" id="manual-ip" placeholder="192.168.x.x" style="background:var(--color-surface); border:1px solid var(--color-border); color:white; padding:5px; margin-top:5px;">
+                <button id="connect-btn" class="btn btn-primary" onclick="manualConnect()">
+                    接続
+                </button>
             </div>
         </div>
     </div>
