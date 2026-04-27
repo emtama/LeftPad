@@ -19,10 +19,10 @@ Noto Sans JP の全ウェイトをインポート
     /* フォントサイズ */
     /* clamp(最小値, 推奨値(可変), 最大値) */
     /* 1.5vw は画面幅の1.5% */
-    --font-size-base: clamp(1rem, 1rem + 0.5vw, 1.2rem);
-    --font-size-h1:   clamp(1.8rem, 1rem + 2.0vw, 3rem);
-    --font-size-h2:   clamp(1.5rem, 1rem + 1.5vw, 2.5rem);
-    --font-size-h3:   clamp(1.2rem, 1rem + 1.0vw, 2.0rem);
+    --font-size-base: clamp(1rem, 1rem + 0.5vw, 10rem);
+    --font-size-h1:   clamp(1.8rem, 1rem + 2.0vw, 10rem);
+    --font-size-h2:   clamp(1.5rem, 1rem + 1.5vw, 10rem);
+    --font-size-h3:   clamp(1.2rem, 1rem + 1.0vw, 10rem);
 
     /* dark */
     --color-bg: #0d0e11;/* ベースカラー。背景色でもある。画面の70% */
