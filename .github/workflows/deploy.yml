@@ -9,6 +9,9 @@ on:
     branches: [main] # ブランチにソースコードが送り込まれた（push）時に実行
   workflow_dispatch:   # 手動実行ボタンを有効化（これでデプロイのラグをショートカット可能！）
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 # GitHubのサーバーがリポジトリを操作するための権限設定
 permissions:
   contents: read       # ファイルを読み取る権限
