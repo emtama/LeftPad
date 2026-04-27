@@ -49,6 +49,7 @@ Noto Sans JP の全ウェイトをインポート
 /*  */
 *{
     box-sizing: border-box; /*widthとheightにpaddingとmarginを含む設定*/
+    font-size: var(--font-size-base);
 }
 body {
     background: var(--color-bg); 
