@@ -48,38 +48,66 @@
         .main-content {
             flex: 1;
             padding: 30px;
-            overflow-y: auto;
+            overflow-y: auto;/* Y方向にあふれた時？あふれた時だけスクロールバー付ける */
             background: var(--color-bg);
         }
         
         /*  */
         .panel { display: none; }
         .panel.active { display: block; }
-        
-        /* ログパネル専用 */
-        #log-container {
-            background: var(--color_surface);
-            color: var(--color-text-dim);
-            font-family: monospace;
-            padding: 15px;
-            height: 500px;
-            overflow-y: scroll;
-            border-radius: 8px;
-            font-size: 13px;
-            line-height: 1.5;
-        }
+
 
         /* 接続設定タブ */
+        
+        .connection-status-container{
+            text-align: center; /* テキストを中央揃え */
+            justify-content: center;
+            padding: 1em; 
+            background: var(--color_bg); 
+            border-radius: 8px;
+            margin: 0.5em; 
+            width: fit-content;   /* 中身の幅に合わせる */
+            height: fit-content;  /* 中身の高さに合わせる */
+        }
+
+        /* QRカード */
+        #qr-img { 
+            position: fixed;
+            padding: 20px; 
+            border-radius: 20px; 
+            margin: 20px 0; 
+            margin-left: auto;
+            margin-right: auto;
+            width: 250px;
+            height: 250px;
+            background: var(--color_surface);
+            display: block;
+        }
+
+        /* URLテキストのスタイル（追加） */
+
         .url-container {
             display: flex;
             flex-direction: row; /* 横に並べる */
-            align-items: center; /* 上下中央揃え */
-            padding: 20px;
-            background: var(--color_surface);
-            border-radius: 12px;
-            margin: 20px;
+            align-items: center; /* 子要素をそれぞれ各バウンディングボックス内で上下中央揃え */
+            justify-content: center;/* 子要素の塊を左右中央寄 */
+            padding: 1em;
+            background: var(--color_bg); 
+            border-radius: 8px;
+            margin: 0.5em;
         }
-        /* URLテキストのスタイル（追加） */
+
+        .url-box{
+            display: flex;
+            flex-direction: column; /* 縦に並べる */
+            align-items: center; /* 子要素を各バウンディングボックス内で上下中央揃え */
+            justify-content: space-evenly;/* 上下左右等間隔に配置 */
+            padding: 1em;
+            background: var(--color_bg); 
+            border-radius: 8px;
+            margin: 0.5em;
+        }
+
         .clickable-url {
             word-break: break-all; 
             color: var(--color_accent);
@@ -88,11 +116,12 @@
             background: var(--color-bg);
             border-radius: 6px;
             border: 1px solid transparent;
-            transition: all 0.2s;
+            transition: all var(--transient-time);
             position: relative;
             display: block;
-            width: 90%;
             text-align: center;
+            width: fit-content;   /* 中身の幅に合わせる */
+            height: fit-content;  /* 中身の高さに合わせる */
         }
 
         /* ホバー時に枠線と色を変える */
@@ -122,19 +151,6 @@
             font-weight: bold;
             pointer-events: none;
         }
-
-        /* QRカード */
-        #qr-img { 
-            padding: 20px; 
-            border-radius: 20px; 
-            margin: 20px 0; 
-            margin-left: auto;
-            margin-right: auto;
-            width: 250px;
-            height: 250px;
-            background: var(--color_surface);
-            display: block;
-        }
         
         /* ジェスチャー-ショートカット編集 */
         .gesture-row { display: flex; 
@@ -161,8 +177,21 @@
             color: var(--color-text-dim); 
             display: flex;
             flex-direction: column; /* 縦並びにする */
-            justify-content: center;/* 中央揃え */
+            justify-content: center;/* 並べる方向の軸に対して中央揃え */
             margin-right: 15px; /* ボタン類とのマージン */
+        }
+        
+        /* ログパネル専用 */
+        #log-container {
+            background: var(--color_surface);
+            color: var(--color-text-dim);
+            font-family: monospace;
+            padding: 15px;
+            height: 500px;
+            overflow-y: scroll;
+            border-radius: 8px;
+            font-size: 13px;
+            line-height: 1.5;
         }
 
     </style>
@@ -187,16 +216,22 @@
         <div id="panel-qr" class="panel active">
             <h1>スマホとの接続</h1>
             <img id="qr-img"/>
-            <div id="connection-status" style="text-align: center; margin-bottom: 20px; padding: 10px; background: var(--color_surface); border-radius: 8px;">
+            <div class="url-container">
+                <div class="url-box">
+                    <h2 style="text-align: center;">HTTP URL</h2>
+                    <code id="http-url" class="clickable-url" onclick="copyHTTPURL()">読み込み中...</code>
+                </div>
+                <div class="url-box">
+                    <h2 style="text-align: center;">WebSocket URL</h2>
+                    <code id="ws-url" class="clickable-url" onclick="copyWSURL()">読み込み中...</code>
+                </div>
+            </div>
+            <div class="connection-status-container">
                 <h2>現在の接続数</h2>
                 <h1 id="client-count">0</h1>
-                <div id="client-list" style="font-size: 0.8em; color: var(--color_accent); margin-top: 5px;">待機中...</div>
-            </div>
-            <div class="url-container">
-                <h2 style="text-align: center;">HTTP URL</h2>
-                <code id="http-url" class="clickable-url" onclick="copyHTTPURL()">読み込み中...</code>
-                <h2 style="text-align: center; margin-top: 20px;">WebSocket URL</h2>
-                <code id="ws-url" class="clickable-url" onclick="copyWSURL()">読み込み中...</code>
+                <div id="client-list" style="font-size: 1em; color: var(--color_accent); margin-top: 5px;">
+                    待機中...
+                </div>
             </div>
         </div>
 
