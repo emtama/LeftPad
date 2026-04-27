@@ -1,10 +1,12 @@
+# これを使うには、Github>Settings>Pages>SourcesをGithubActionsにして、
+# Github>Actions（Settingsでなく上部タブのAction）>
 # ワークフローの名前（GitHubのActionsタブに表示されます）
 name: Deploy GitHub Pages
 
 # 実行されるタイミングの設定
 on:
   push:
-    branches: [master] # masterブランチにソースコードが送り込まれた（push）時に実行
+    branches: [main] # ブランチにソースコードが送り込まれた（push）時に実行
   workflow_dispatch:   # 手動実行ボタンを有効化（これでデプロイのラグをショートカット可能！）
 
 # GitHubのサーバーがリポジトリを操作するための権限設定
