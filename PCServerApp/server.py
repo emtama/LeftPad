@@ -157,13 +157,13 @@ def load_gesture_shortcuts(encoding="utf-8"):
 GESTURE_SHORTCUTS = load_gesture_shortcuts()
 
 
-# ══════════════════════════════════════════════
+
 # PC側GUIを作るpywebviewクラス-
 # ══════════════════════════════════════════════
 # server.html の JavaScript からは window.pywebview.api.関数名() で呼び出せます
 # 送信・受信メッセージはjson形式で必ずtype属性を含む必要があります。
 class JSApi:
-    PWA_START_HTML_PATH = r"../SmartPhonePWA/frontend/index.html"
+    PWA_START_HTML_PATH = r"../SmartPhonePWA/index.html"
     def __init__(self):
         self.ip = None  # IPアドレスは起動時に取得してURLを生成
         self.http_url = f"http://{self.ip}:{HTTP_PORT}/{JSApi.PWA_START_HTML_PATH}?token={ACCESS_TOKEN}"

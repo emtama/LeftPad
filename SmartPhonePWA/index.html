@@ -2,7 +2,7 @@
 <html>
 <head>
     <!-- スタイルシートを読みこむ -->
-    <link rel="stylesheet" href="stylesheet.css">
+    <link rel="stylesheet" href="../share/stylesheet.css">
 </head>
 <body>
     <!-- UI表示はしない -->
@@ -27,7 +27,7 @@
                 localStorage.setItem('server_ip', ip);
                 localStorage.setItem('auth_token', token);
                 
-                // 操作画面へ
+                // 操作画面へ移行
                 location.href = `smartphone.html?token=${token}`; // smartphone.html側でURLからトークンを拾うロジックに合わせて
             } else {
                 // 未ペアリングならスキャン画面へ

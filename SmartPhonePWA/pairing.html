@@ -2,24 +2,58 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8" />
-    <link rel="stylesheet" href="../../config/stylesheet.css">
+    <link rel="stylesheet" href="../share/stylesheet.css">
+    <style>
+        body{
+            display: flex;
+            flex-direction: column;/*  上から並べる*/
+            margin: 0;
+        }
+        #pairing-overlay{
+            position:fixed; 
+            inset:0; /*  */
+            margin: 0;
+            background:var(--color_bg); 
+            z-index:100; 
+            display:flex; 
+            flex-direction:column; 
+            align-items:center; 
+            justify-content:center;
+        }
+        .panel{
+            margin: 10px;
+            padding: 10px;
+            inset: 0px;
+            border: 0;
+            width: 600px;
+            border-radius: 10px;
+            background-color: var(--color_surface);
+            display: flex;
+            flex-direction:column; 
+            align-items:center; 
+            justify-content:center;
+
+        }
+    </style>
 </head>
 <body>
-    <div id="pairing-overlay" style="position:fixed; inset:0; background:var(--color_bg); z-index:100; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:20px;">
-        <h1 style="color:var(--color_accent);">LeftPad</h1>
-            <p style="text-align:center; color:var(--color_text_dim);">
-                サーバーのQRコードをスキャンして<br>ペアリングを開始してください
-            </p>        
-        <div id="reader" style="width:100%; max-width:300px; border-radius:10px; overflow:hidden; margin:20px 0;"></div>
+    <div id="pairing-overlay">
+        <h1>LEFTPAD</h1>
         
-        <button id="scan-btn" onclick="startQRScan()" style="padding:15px 30px; background:var(--color_accent); color:var(--color_bg); border:none; border-radius:5px; font-weight:bold;">
-            QRスキャン開始
-        </button>
-        
-        <div style="margin-top:20px; font-size:0.8em; color:var(--color_text_dim);">
-            またはIPを手入力: <br>
-            <input type="text" id="manual-ip" placeholder="192.168.x.x" style="background:var(--color_surface); border:1px solid var(--color_border); color:white; padding:5px; margin-top:5px;">
-            <button onclick="manualConnect()" style="background:none; border:1px solid var(--color_accent); color:var(--color_accent); padding:5px 10px;">接続</button>
+        <div class="panel"> 
+            <h2>PC側アプリのQRコードをスキャンしてペアリング</h2> 
+            <button id="scan-btn" onclick="startQRScan()" style="padding:15px 30px; background:var(--color_accent); color:var(--color_bg); border:none; border-radius:5px; font-weight:bold;">
+                QRスキャン開始
+            </button>
+        </div>
+
+        <div class="panel">
+            <h2>IPとトークンを入力してペアリング</h2>
+            <div style="margin-top:20px; font-size:1.em; color:var(--color_text_dim);">
+                <input type="text" id="manual-ip" placeholder="192.168.x.x" style="background:var(--color_surface); border:1px solid var(--color_border); color:white; padding:5px; margin-top:5px;">
+                <input type="text" id="manual-token" placeholder="token" style="background:var(--color_surface); border:1px solid var(--color_border); color:white; padding:5px; margin-top:5px;">
+                <button onclick="manualConnect()" style="background:none; border:1px solid var(--color_accent); color:var(--color_accent); padding:5px 10px;">接続</button>
+            </div>
         </div>
     </div>
 
