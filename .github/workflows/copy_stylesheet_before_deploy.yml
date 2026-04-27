@@ -1,0 +1,48 @@
+# ワークフローの名前（GitHubのActionsタブに表示されます）
+name: Deploy GitHub Pages
+
+# 実行されるタイミングの設定
+on:
+  push:
+    branches: [master] # masterブランチにソースコードが送り込まれた（push）時に実行
+  workflow_dispatch:   # 手動実行ボタンを有効化（これでデプロイのラグをショートカット可能！）
+
+# GitHubのサーバーがリポジトリを操作するための権限設定
+permissions:
+  contents: read       # ファイルを読み取る権限
+  pages: write         # GitHub Pagesに書き込む（公開する）権限
+  id-token: write      # 安全なデプロイのための認証トークン作成権限
+
+jobs:
+  # 1. 公開用データの準備工程（ビルドジョブ）
+  build:
+    runs-on: ubuntu-latest # GitHubが用意するクラウド上のLinuxマシンで実行
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4 # 自分のリポジトリのファイルをクラウドマシン上にコピーする
+
+      - name: Copy shared assets
+        # シンボリックリンクはWeb公開時に無効になることが多いため、
+        # 実体ファイルを物理的にコピーして公開フォルダ(docs)に配置する処理
+        run: |
+          mkdir -p docs/css
+          cp share/stylesheet.css docs/css/stylesheet.css
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3 # 準備できたdocsフォルダを「公開用セット」として固める
+        with:
+          path: docs # docsフォルダの中身を公開対象に指定
+
+  # 2. 実際にネット上に公開する工程（デプロイジョブ）
+  deploy:
+    needs: build # 「build」ジョブが無事に終わってから実行する
+    environment:
+      name: github-pages # デプロイ先の環境名を指定
+      url: ${{ steps.deployment.outputs.page_url }} # 公開後のURLを自動取得
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy to Pages
+        id: deployment
+        uses: actions/deploy-pages@v4 # 固められたファイルをGitHub Pagesのサーバーへ転送
