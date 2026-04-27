@@ -17,10 +17,12 @@ Noto Sans JP の全ウェイトをインポート
     --border-radius-rc: 8px;
 
     /* フォントサイズ */
-    --font-size-base: clamp(1rem, 1rem + 1vw, 1.25rem); /*  */
-    --font-size-h1:   clamp(1.8rem, 1rem + 4vw, 3rem);
-    --font-size-h2:   clamp(1.5rem, 1rem + 3vw, 2.5rem);
-    --font-size-h3:   clamp(1.2rem, 1rem + 3vw, 2.5rem);
+    /* clamp(最小値, 推奨値(可変), 最大値) */
+    /* 1.5vw は画面幅の1.5% */
+    --font-size-base: clamp(1rem, 1rem + 0.5vw, 1.2rem);
+    --font-size-h1:   clamp(1.8rem, 1rem + 2.0vw, 3rem);
+    --font-size-h2:   clamp(1.5rem, 1rem + 1.5vw, 2.5rem);
+    --font-size-h3:   clamp(1.2rem, 1rem + 1.0vw, 2.0rem);
 
     /* dark */
     --color-bg: #0d0e11;/* ベースカラー。背景色でもある。画面の70% */
@@ -49,7 +51,6 @@ Noto Sans JP の全ウェイトをインポート
 /*  */
 *{
     box-sizing: border-box; /*widthとheightにpaddingとmarginを含む設定*/
-    font-size: var(--font-size-base);
 }
 body {
     background: var(--color-bg); 
@@ -96,7 +97,7 @@ button {
     border-radius: var(--border-radius-rc);
     border: 1px solid transparent; /* 枠線の場所だけ確保しておく */
     cursor: pointer;
-    font-size: 14px;
+    font-size: 1em;
     font-weight: bold;
     transition: all var(--transient-time) ease; /* アニメーションを継承 */
     text-decoration: none;
