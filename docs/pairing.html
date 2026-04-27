@@ -50,10 +50,8 @@
             <h2>PC側アプリのURLを入力してペアリング</h2>
             <div style="margin-top:20px; font-size:1.em; color:var(--color-text-dim);">
                 <label>
-                    <span class="textbox-4-label">ラベルの例</span>
-                    <input type="text" class="textbox-4" placeholder="テキストボックスの例"/>
-                    </label>
-                <input type="text" id="manual-ip" placeholder="192.168.x.x" style="background:var(--color-surface); border:1px solid var(--color-border); color:white; padding:5px; margin-top:5px;">
+                    <input type="text" id="manual-url" class="txtbox" placeholder="テキストボックスの例"/>
+                </label>
                 <button id="connect-btn" class="btn btn-primary" onclick="manualConnect()">
                     接続
                 </button>
@@ -107,7 +105,7 @@
 
         // 手動入力の場合
         function manualConnect() {
-            const ip = document.getElementById('manual-ip').value;
+            const ip = document.getElementById('manual-url').value;
             const token = prompt("認証トークンを入力してください（サーバー画面に表示されています）");
             if (ip && token) saveAndConnect(ip, token);
         }

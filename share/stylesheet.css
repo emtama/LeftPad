@@ -13,6 +13,9 @@ Noto Sans JP の全ウェイトをインポート
     /* 基本の遷移時間 */
     --transient-time: 250ms;
 
+    /**/
+    --border-radius-rc: 8px;
+
     /* dark */
     --color-bg: #0d0e11;/* ベースカラー。背景色でもある。画面の70% */
     --color-main: #e8ff47;/* メインカラー。画面の25% */
@@ -77,7 +80,7 @@ button {
     align-items: center;
     justify-content: center;
     padding: 8px 20px;
-    border-radius: 6px;
+    border-radius: var(--border-radius-rc);
     border: 1px solid transparent; /* 枠線の場所だけ確保しておく */
     cursor: pointer;
     font-size: 14px;
@@ -165,7 +168,7 @@ button {
     transform: translateY(-50%);
     width: var(--circle-size);
     height: var(--circle-size);
-    border-radius: 50%;
+    border-radius: 50%;/* 円 */
     background-color: var(--color-nob);
     transition: left cubic-bezier(0.68, -0.55, 0.27, 01.55) 420ms;
 }
@@ -178,31 +181,24 @@ button {
 
 /* テキストボックス */
 
-.textbox-4,
-.textbox-4-label {
-    color: #e5e5e5;
+.txtbox{
+    color: var(--color-text-light); /* 文字色 */
+    width: 100%; /* 横幅を親要素に対して100%（いっぱい）にする */
+    padding: 2% 3%; /* 内側に上下8px、左右10pxの余白を作る */
+    margin: 0.5em;
+    border: 1px solid var(--color-border); /* 1pxの太さでCSS変数 --color-border 色の枠線を引く */
+    border-radius: var(--border-radius-rc); /* 角を丸め、角丸に */
+    background-color: var(--color-surface); /* 背景色を透明にする */
+    font-size: 1em; /* 文字サイズを標準（1倍）にする */
+    line-height: 1.5; /* 行の高さを文字の1.5倍にして読みやすくする */
 }
 
-.textbox-4-label {
-    display: block;
-    margin-bottom: 5px;
-    font-size: .9em;
+/* 入力欄にフォーカス（クリック等）が当たった時 */
+.txtbox:focus{
+    outline: 1px solid white; /* 標準のアウトラインを消さず、白の1px線を強調表示する */
 }
 
-.textbox-4 {
-    width: 100%;
-    padding: 8px 10px;
-    border: 1px solid var(--color-border);
-    border-radius: 25px;
-    background-color: transparent;
-    font-size: 1em;
-    line-height: 1.5;
-}
-
-.textbox-4:focus{
-    outline: 1px solid #fff;
-}
-
-.textbox-4::placeholder {
-    color: #666;
+/* 入力欄のプレースホルダ（未入力時の案内文字）に適用 */
+.txtbox::placeholder {
+    color: var(--color-text_dim); /* 案内文字の色をグレー（#666）にする */
 }
