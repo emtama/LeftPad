@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8" />
+    <link rel="stylesheet" href="./css/stylesheet.css">
+    <style>
+        *{
+            /*テキストの選択を禁止 */
+            -webkit-user-select: none; /* Safari / iOS */
+            -ms-user-select: none;     /* 旧Edge */
+            user-select: none;         /* 標準 */
+        }
+        body{
+            display:flex; 
+            flex-direction:column; 
+            align-items:center; 
+            justify-content:center;
+        }
+        /* 全体のコンテナ */
+        #qr-reader-window{
+            width: 60vw;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        
+        <!-- 追加：ポップアップ -->
+        <dialog id="modalDialog">
+            <p>none</p>
+        </dialog>
+
+        <h1>LEFTPAD</h1>
+        
+        <h2>ペアリング</h2>
+
+        <div class="container" id="qr-container"> 
+            <p>PC側アプリのQRコードをスキャンしてペアリングする</p> 
+            <div id="qr-reader-window">
+                <!-- カメラ画面を移すためのdiv -->
+            </div>            
+        </div>
+
+        <div class="container" id="url-container" style="display: none;">
+            <p>PC側アプリのURLを入力してペアリングする</p>
+            <div class="container">
+                <input class="txtbox" type="text" id="manual-url" placeholder="テキストボックスの例"/>
+                <button id="connect-btn" class="btn btn-primary" onclick="manualConnect()">
+                    接続
+                </button>
+                <button id="scan-btn" class="btn btn-primary" onclick="startQRScan()">
+                    QRスキャン再試行
+                </button>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- qrコード読み取り用のライブラリ -->
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <script>
+
+        const modalDialog = document.getElementById('modalDialog')
+        let serverIp = localStorage.getItem('server_ip');
+        let authToken = localStorage.getItem('auth_token');
+
+        // 起動時のチェック
+        window.addEventListener('load', () => {
+            if (serverIp && authToken) {
+                // 認証情報があるなら認証する
+                document.getElementById('pairing-overlay').style.display = 'none';
+                if (connectWebSocket(serverIp, authToken)){
+                    location.href = "smartphone.html"
+                }
+                
+            }
+            // もし認証情報がないならQR撮影に入る
+            document.getElementById('modalDialog').textContent = "QRを撮影してペアリングします";
+            modalDialog.showModal();
+            startQRScan();
+
+        });
+
+        window.addEventListener('click', () => {
+            modalDialog.close()
+        })
+
+        // QRスキャン開始
+        let qr_scanner;
+        let scanning = false;
+        function startQRScan() {
+            if (scanning) return;
+
+            qr_scanner = new Html5Qrcode("qr-reader-window");
+            const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+
+            qr_scanner.start(
+                { facingMode: "environment" },             
+                { 
+                    fps: 10, 
+                    qrbox: { width: 250, height: 250 } 
+                }, 
+                // qrを検出した時呼ぶ
+                (decodedText) => {
+                    // QRの内容が http://192.168.1.5:8080/smartphone.html?ip=192.168.1.5&token=... 形式と想定
+                    try {
+                        const url = new URL(decodedText);
+                        const ip = url.searchParams.get("ip");
+                        const token = url.searchParams.get("token");
+                        
+                        if (ip && token) {
+                            qr_scanner.stop();
+                            scanning = false;
+                            saveAndConnect(ip, token);
+                        }
+                    } catch (e) {
+                        document.getElementById('modalDialog').textContent = "有効でないQRコードです";
+                        modalDialog.showModal();
+                    }
+                }
+            ).then(() => {
+                // カメラ起動に成功した直後に1回だけ実行
+                // 
+                scanning = true;
+            }).catch(err => {
+                // qr_scanner.startに失敗
+                scanning = false;
+                document.getElementById('modalDialog').textContent = "カメラの起動に失敗しました";
+                modalDialog.showModal();
+                qr_scanner.stop();
+                //
+                document.getElementById('url-container').style.display = 'flex';
+                document.getElementById('qr-container').style.display = 'none';
+            });
+        }
+        
+        // 手動入力の場合
+        function manualConnect() {
+            const ip = document.getElementById('manual-url').value;
+            const token = prompt("認証トークンを入力してください（サーバー画面に表示されています）");
+            if (ip && token) saveAndConnect(ip, token);
+        }
+       
+        //
+        function saveAndConnect(ip, token) {
+            localStorage.setItem('server_ip', ip);
+            localStorage.setItem('auth_token', token);
+            
+            // UIを隠して接続
+            document.getElementById('pairing-overlay').style.display = 'none';
+            connectWebSocket(ip, token);
+        }
+        
+
+        function connectWebSocket(ip, token) {
+            const wsUrl = `ws://${ip}:8765`;
+            // 接続時にトークンを送信するなどの認証処理をここに追加
+            ws = new WebSocket(wsUrl);
+            
+            ws.onopen = () => {
+                // 最初にトークンを送って認証
+                ws.onopen = () => ws.send(JSON.stringify({type:'auth', token}));
+            };
+
+            ws.onmessage = (e)=>{
+            let d; try{d=JSON.parse(e.data)}catch{return} // メッセージをjsonに変換
+            // 認証結果を受け取って処理
+            if(d.type==='auth'){
+                isAuthed=!!d.ok;
+                setConn(isAuthed, isAuthed?'接続済み':'認証失敗');
+                return;
+            }
+            
+            
+            ws.onclose = () => {
+                // 切断されたら再試行
+                isAuthed=false; 
+                setTimeout(initial_connect, 1500);
+            };
+        }
+    }
+
+    </script>
+</body>
+</html>

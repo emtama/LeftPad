@@ -163,17 +163,17 @@ GESTURE_SHORTCUTS = load_gesture_shortcuts()
 # server.html の JavaScript からは window.pywebview.api.関数名() で呼び出せます
 # 送信・受信メッセージはjson形式で必ずtype属性を含む必要があります。
 class JSApi:
-    PWA_START_HTML_PATH = r"../SmartPhonePWA/index.html"
+    PWA_START_HTML_PATH = r"../docs/index.html"
     def __init__(self):
         self.ip = None  # IPアドレスは起動時に取得してURLを生成
-        self.http_url = f"http://{self.ip}:{HTTP_PORT}/{JSApi.PWA_START_HTML_PATH}?token={ACCESS_TOKEN}"
+        self.http_url = None
         self.ws_url = f"ws://{self.ip}:{WS_PORT}"
 
     # 起動時にUIへ必要な情報を渡す関数
     def get_init_data(self, qr_fill_color, qr_back_color):
         if self.ip is None:
             self.ip = get_local_ip()
-            self.http_url = f"http://{self.ip}:{HTTP_PORT}/{JSApi.PWA_START_HTML_PATH}?token={ACCESS_TOKEN}"
+            self.http_url = f"http://{self.ip}:{HTTP_PORT}/{JSApi.PWA_START_HTML_PATH}?ip={self.ip}&token={ACCESS_TOKEN}"
             self.ws_url = f"ws://{self.ip}:{WS_PORT}"
         return {
             "http_url": self.http_url,

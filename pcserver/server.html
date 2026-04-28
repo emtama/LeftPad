@@ -63,30 +63,23 @@
 
 
         /* 接続設定タブ */
-        
-        .connection-status-container{
+        #connection-tab-container{
             text-align: center; /* テキストを中央揃え */
             justify-content: center;
-            padding: 1em; 
-            background: var(--color-bg); 
             border-radius: 8px;
-            margin: 0.5em; 
-            width: fit-content;   /* 中身の幅に合わせる */
-            height: fit-content;  /* 中身の高さに合わせる */
         }
 
         /* QRカード */
         #qr-img { 
-            position: fixed;
-            padding: 20px; 
-            border-radius: 20px; 
-            margin: 20px 0; 
-            margin-left: auto;
-            margin-right: auto;
-            width: 250px;
-            height: 250px;
+            display: block; /*  */
+            position: static;
+            padding: auto; 
+            margin: auto;
+            border: none;
+            border-radius: var(--border-radius-rc); 
+            width: 40vh;
+            height: 40vh;
             background: var(--color-surface);
-            display: block;
         }
 
         /* URLテキストのスタイル（追加） */
@@ -217,25 +210,23 @@
         </div>
     </div>
 
-    <div class="main-content">
+    <div class="container" id="connection-tab-container">
         <div id="panel-qr" class="panel active">
             <h1>スマホとの接続</h1>
-            <img id="qr-img"/>
-            <div class="url-container">
-                <div class="url-box">
-                    <h2 style="text-align: center;">HTTP URL</h2>
-                    <code id="http-url" class="clickable-url" onclick="copyHTTPURL()">読み込み中...</code>
+            <div style="display:flex; flex-direction:row; align-items: center; justify-content: space-evenly;">
+                <img id="qr-img"/>
+                <div class="url-container">
+                    <div class="url-box">
+                        <h2 style="text-align: center;">HTTP URL</h2>
+                        <code id="http-url" class="clickable-url" onclick="copyHTTPURL()">読み込み中...</code>
+                    </div>
                 </div>
-                <div class="url-box">
-                    <h2 style="text-align: center;">WebSocket URL</h2>
-                    <code id="ws-url" class="clickable-url" onclick="copyWSURL()">読み込み中...</code>
-                </div>
-            </div>
-            <div class="connection-status-container">
-                <h2>現在の接続数</h2>
-                <h1 id="client-count">0</h1>
-                <div id="client-list" style="font-size: 1em; color: var(--color-accent); margin-top: 5px;">
-                    待機中...
+                <div class="connection-status-container">
+                    <h2>現在の接続数</h2>
+                    <h1 id="client-count">0</h1>
+                    <div id="client-list" style="font-size: 1em; color: var(--color-accent); margin-top: 5px;">
+                        待機中...
+                    </div>
                 </div>
             </div>
         </div>
