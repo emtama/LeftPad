@@ -1,0 +1,30 @@
+# This is an example configuration file
+# To learn more, see the full config.yaml reference: https://docs.continue.dev/reference
+
+name: Example Config
+version: 1.0.0
+schema: v1
+
+# Define which models can be used
+models:
+  - name: llama3.1:8b
+    provider: ollama
+    model: llama3.1:8b 
+  - name: qwen2.5-coder:1.5b-base
+    provider: ollama
+    model: qwen2.5-coder:1.5b-base
+    roles: 
+      - autocomplete
+    autocompleteOptions:
+      debounceDelay: 150
+      maxPromptTokens: 1024
+      onlyMyCode: true
+    defaultCompletionOptions:
+      temperature: 0.3
+      stop:
+        - "\n"
+  - name: nomic-embed-text:latest
+    provider: ollama
+    model: nomic-embed-text:latest
+    roles:
+      - embed

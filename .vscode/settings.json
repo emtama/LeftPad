@@ -1,0 +1,12 @@
+{
+    // 特定のファイルが保存されたときにタスクを実行するようにする。
+    // Ctrl+@ > 出力 > Run ON Saveでログがみれる。
+    "emeraldwalk.runonsave": {
+    "commands": [
+      {
+        "match": "share\\*+\\.(css|js)",// 起動の対象となる保存ファイルパス
+        "cmd": "node .dev-scripts/copy-assets.js"// 実行するCMD、
+      }
+    ]
+  }
+}
