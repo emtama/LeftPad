@@ -4,7 +4,7 @@
     "emeraldwalk.runonsave": {
     "commands": [
       {
-        "match": "share\\*+\\.(css|js)",// 起動の対象となる保存ファイルパス
+        "match": "share\\\\.*\\.(css|js)$",// 起動の対象となる保存ファイルパス
         "cmd": "node .dev-scripts/copy-assets.js"// 実行するCMD、
       }
     ]

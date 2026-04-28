@@ -259,25 +259,48 @@ def run_ws():
 # ══════════════════════════════════════════════
 # HTTP/HTTPS サーバー
 # ══════════════════════════════════════════════
-def run_http():
-    server = HTTPServer((HOST, HTTP_PORT), SimpleHTTPRequestHandler)
-    ssl_context = get_ssl_context()
-    if ssl_context:
-        server.socket = ssl_context.wrap_socket(server.socket, server_side=True)
-        LOGGER.info(f"HTTPS サーバー起動: ポート {HTTP_PORT}")
-    else:
-        LOGGER.info(f"HTTP サーバー起動: ポート {HTTP_PORT}")
-    server.serve_forever()
 
-def initialize_servers(window):
-    threading.Thread(target=run_ws, daemon=True).start()
-    threading.Thread(target=run_http, daemon=True).start()
+def run_http():  # HTTP/HTTPSサーバーを起動する関数
+    server = HTTPServer((HOST, HTTP_PORT), SimpleHTTPRequestHandler)  # 指定ホスト・ポートでHTTPサーバー生成
+    ssl_context = get_ssl_context()  # SSLコンテキスト（HTTPS化用）を取得
 
-if __name__ == '__main__':
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s", datefmt="%H:%M:%S")
-    api = JSApi()
-    window = webview.create_window('LeftPad Server', url='server.html', js_api=api, width=1100, height=750)
-    handler = WebviewLogHandler(window)
-    handler.setFormatter(logging.Formatter('%(asctime)s - %(message)s', datefmt='%H:%M:%S'))
-    LOGGER.addHandler(handler)
-    webview.start(initialize_servers, window)
+    if ssl_context:  # SSL設定が存在する場合はHTTPSとして動作
+        server.socket = ssl_context.wrap_socket(server.socket, server_side=True)  # ソケットをSSLでラップ
+        LOGGER.info(f"HTTPS サーバー起動: ポート {HTTP_PORT}")  # HTTPS起動ログ
+    else:  # SSLがない場合はHTTPで動作
+        LOGGER.info(f"HTTP サーバー起動: ポート {HTTP_PORT}")  # HTTP起動ログ
+
+    server.serve_forever()  # サーバーを無限ループで待受開始
+
+
+def initialize_servers(window):  # WebSocketとHTTPサーバーを別スレッドで起動
+    threading.Thread(target=run_ws, daemon=True).start()  # WebSocketサーバーをバックグラウンド起動
+    threading.Thread(target=run_http, daemon=True).start()  # HTTP/HTTPSサーバーをバックグラウンド起動
+
+
+if __name__ == '__main__':  # スクリプトが直接実行された場合のエントリポイント
+    logging.basicConfig(  # ログ設定の初期化
+        level=logging.INFO,  # INFOレベル以上を出力
+        format="%(asctime)s [%(levelname)s] %(message)s",  # ログフォーマット指定
+        datefmt="%H:%M:%S"  # 時刻フォーマット指定
+    )
+
+    api = JSApi()  # JavaScript連携用APIインスタンス生成
+
+    window = webview.create_window(  # WebViewウィンドウ生成
+        'LeftPad Server',  # ウィンドウタイトル
+        url='server.html',  # 表示するHTML
+        js_api=api,  # JSから呼び出すAPI
+        width=1100,  # 幅
+        height=750,  # 高さ
+        maximized=True,  # 最大サイズ
+        resizable=False  # サイズ変更不可
+    )
+
+    handler = WebviewLogHandler(window)  # WebView用ログハンドラ生成
+    handler.setFormatter(logging.Formatter('%(asctime)s - %(message)s', datefmt='%H:%M:%S'))  # ログ出力フォーマット設定
+    LOGGER.addHandler(handler)  # LOGGERにハンドラ追加
+
+    webview.start(initialize_servers, 
+                window,
+                debug=True)  # WebView起動 + サーバー初期化処理実行
