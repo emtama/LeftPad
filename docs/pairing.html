@@ -66,11 +66,14 @@
         const modalDialog = document.getElementById('modalDialog')
         let serverIp = localStorage.getItem('server_ip');
         let authToken = localStorage.getItem('auth_token');
+        const WS_PORT = 8765;
 
         //=============================================================
-        //	起動時のチェック
+        // ページ読み込み時に認証を試行し失敗時QR撮影を開始
+        // DOMContentLoadedは完全にページが読み込まれてはいなくとも
+        // 最低限HTMLの解析が終わったら実行	
         //=============================================================
-        window.addEventListener('load', () => {
+        window.addEventListener('DOMContentLoaded', () => {
             // 認証情報があるなら認証を試みる
             if (serverIp && authToken) {
                 if (connectWebSocket(serverIp, authToken)){
@@ -96,14 +99,14 @@
         //=============================================================
         //	HTTPSのURLから
         //=============================================================
-        function decodeURLtoIPandToken(htttps_url){
+        function decodeURLtoIPandToken(https_url){
             // QRの内容が http://192.168.1.5:8080/smartphone.html?ip=192.168.1.5&token=... 形式と想定
-            const htttps_url = new URL(htttps_url);
-            const ip = htttps_url.searchParams.get("ip");
-            const token = htttps_url.searchParams.get("token");
-            return ip, token
+            
+            const u = new URL(https_url);
+            const ip = u.searchParams.get("ip");
+            const token = u.searchParams.get("token");
+            return { ip, token };
         }
-
         //=============================================================
         //	QRスキャンでURLを取得
         //=============================================================
@@ -128,7 +131,7 @@
                 // qrを検出した時呼ぶ
                 (decodedText) => {
                     try {
-                        ip, token = decodeURLtoIPandToken(decodedText);
+                        const { ip, token } = decodeURLtoIPandToken(decodedText);
                         
                         if (ip && token) {
                             qr_scanner.stop();
@@ -161,8 +164,8 @@
         //	手動でURLを取得
         //=============================================================
         function manualConnect() {
-
-            ip, token = decodeURLtoIPandToken(document.getElementById('manual-url').value);
+            const urltext = document.getElementById('url-container').value;
+            const { ip, token } = decodeURLtoIPandToken(urltext);
             
             if (ip && token) {
                 connectAndSave(ip, token);
@@ -181,7 +184,7 @@
             
             ws.onopen = () => {
                 // 最初にトークンを送って認証
-                ws.onopen = () => ws.send(JSON.stringify({type:'auth', token}));
+                ws.send(JSON.stringify({type:'auth', token}));
             };
 
             // 返信を受け取る
@@ -208,7 +211,7 @@
             ws.onclose = () => {
                 // 切断されたら再試行
                 isAuthed=false; 
-                setTimeout(initial_connect, 1500);
+                setTimeout(connectAndSave(ip, token), 1500);
             };
         }
     }
