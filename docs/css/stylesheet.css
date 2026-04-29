@@ -31,7 +31,7 @@ Noto Sans JP の全ウェイトをインポート
 
     /* dark */
     --color-bg: #0d0e11;/* ベースカラー。背景色でもある。画面の70% */
-    --color-main: #e8ff47;/* メインカラー。画面の25% */
+    --color-primary: #e8ff47;/* メインカラー。画面の25% */
     --color-accent: #47c4ff;/* アクセントカラー。画面の5% */
     --color-text-dim: #e4e6ee;/* 暗い背景でのテキストカラー */
     --color-text_light: #ffffff;/* 明るい背景でのテキストカラー */
@@ -44,7 +44,7 @@ Noto Sans JP の全ウェイトをインポート
 [color-theme="light"]{
     --color-bg: #f7f9fc;
     --color-surface: #edeff3;
-    --color-main: #c6d800;     /* 少し落ち着かせる */
+    --color-primary: #c6d800;     /* 少し落ち着かせる */
     --color-accent: #007acc;    /* コントラスト確保 */
     --color-text-dim: #1a1d24;  /* 暗い背景でのテキストカラー */
     --color-text_light: #1a1d24;/* 明るい背景でのテキストカラー */
@@ -71,7 +71,7 @@ h1,h2,h3{
     margin: 0.5em;
 }
 h1{
-    color: var(--color-main);
+    color: var(--color-primary);
     font-size: var(--font-size-h1);
 }
 h2{
@@ -267,7 +267,10 @@ button {
     color: var(--color-border); /* 案内文字は淵と同じ */
 }
 
-/* ダイアログもしくはモーダルダイアログ
+/*=============================================================
+    
+=============================================================*/
+ ダイアログもしくはモーダルダイアログ
 ・モーダルとは他の操作を禁止するもの。
 */
 
@@ -296,8 +299,76 @@ dialog:active{
     border: none; 
 }
 
-/* ローディング表示 */
+:root {
+            --modal-bg: rgba(0, 0, 0, 0.6);
+            --modal-content-bg: #ffffff;
+            --color-primary: #4f96f6;
+            --accent-color: #c7511f;
+            --close-btn-bg: #777777;
+            --anim-speed: 0.3s;
+            --color-
+            var()
+        }
+
+body { font-family: sans-serif; padding: 20px; line-height: 1.6; }
+
+/* Trigger Button */
+.open-btn { background: none; border: none; color: var(--color-primary); cursor: pointer; padding: 10px; transition: color 0.2s; }
+.open-btn:hover { text-decoration: underline; color: var(--accent-color); }
+
+/* Dialog Styling */
+.custom-modal { padding: 0; border: none; border-radius: 12px; box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3); width: 90%; max-width: 600px; overflow: visible; }
+.custom-modal::backdrop { background-color: var(--modal-bg); opacity: 0; }
+.custom-modal[open] { animation: fadeIn var(--anim-speed) ease forwards; }
+.custom-modal[open]::backdrop { animation: backdropFadeIn var(--anim-speed) ease forwards; }
+
+/* Close Button (Centering Adjusted) */
+.close-btn { 
+    position: absolute; 
+    top: -15px; 
+    right: -15px; 
+    width: 34px; 
+    height: 34px; 
+    background: var(--close-btn-bg); 
+    color: #fff; 
+    border: 2px solid #fff; 
+    border-radius: 50%; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+}
+
+/* Create X with CSS to ensure perfect centering */
+.close-btn::before,
+.close-btn::after {
+    content: "";
+    position: absolute;
+    width: 16px;
+    height: 2px;
+    background-color: currentColor;
+}
+.close-btn::before { transform: rotate(45deg); }
+.close-btn::after { transform: rotate(-45deg); }
+
+.close-btn:hover { background-color: #333; }
+
+/* Content Area */
+.modal-body { max-height: 70vh; overflow-y: auto; padding: 40px; }
+
+@keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes backdropFadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+@media (max-width: 480px) {
+    .custom-modal { width: 95%; }
+    .modal-body { padding: 30px 20px; }
+    .close-btn { top: -10px; right: -5px; }
+}
+
 /* ==========================================
+    ローディング表示
     再利用可能なスピナーコンポーネント
 ========================================== */
 /* 角度を変数として定義 */

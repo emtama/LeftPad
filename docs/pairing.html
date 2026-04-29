@@ -26,8 +26,11 @@
     <div class="container">
         
         <!-- ポップアップ -->
-        <dialog id="modalDialog">
-            <p>none</p>
+        <dialog id="modalDialog" class="custom-modal" onclick="event.target==this&&this.close()" style="display: none;">
+            <button class="close-btn" onclick="modalDialog.close()"></button>
+            <div class="modal-body">
+                HTML側をさらに短縮しました。IDが指定されている要素は、現代のブラウザでは直接変数として扱えるため、document.getElementByIdを省略可能です。
+            </div>
         </dialog>
 
         <!-- ローディング表示 -->
@@ -70,9 +73,13 @@
 
         //=============================================================
         // ページ読み込み時に認証を試行し失敗時QR撮影を開始
-        // DOMContentLoadedは完全にページが読み込まれてはいなくとも
-        // 最低限HTMLの解析が終わったら実行	
+        // DOMContentLoadedはHTMLが読み込まれたら実行	
+        // loadはHTML,CSS, JSなど読み込まれたら実行
         //=============================================================
+        window.addEventListener('DOMContentLoaded', () => {
+
+        });
+
         window.addEventListener('load', () => {
             // 認証情報があるなら認証を試みる
             if (serverIp && authToken) {

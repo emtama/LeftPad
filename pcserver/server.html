@@ -256,7 +256,7 @@
                 
                 const root = document.documentElement;  // :root 要素（html要素）を取得
                 const styles = getComputedStyle(root);  // :root に適用されているすべてのスタイル計算値を取得
-                const qr_fillcolor = "#000000";//styles.getPropertyValue('--color-main').trim();// 特定の変数名（例: --value）の値を抜き出す
+                const qr_fillcolor = "#000000";//styles.getPropertyValue('--color-primary').trim();// 特定の変数名（例: --value）の値を抜き出す
                 const qr_backcolor = "#ffffff";//styles.getPropertyValue('--color-surface').trim();// 特定の変数名（例: --value）の値を抜き出す
                 //
                 const data = await pywebview.api.get_init_data(qr_fillcolor, qr_backcolor);
