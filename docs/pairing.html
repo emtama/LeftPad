@@ -31,9 +31,7 @@
         </dialog>
 
         <!-- ローディング表示 -->
-         <div class="loading">
-            
-         </div>
+         <div class="spinner" id="loading-spinner" style="display: none;"></div>
 
         <h1>LEFTPAD</h1>
         
@@ -69,56 +67,76 @@
         let serverIp = localStorage.getItem('server_ip');
         let authToken = localStorage.getItem('auth_token');
 
-        // 起動時のチェック
+        //=============================================================
+        //	起動時のチェック
+        //=============================================================
         window.addEventListener('load', () => {
+            // 認証情報があるなら認証を試みる
             if (serverIp && authToken) {
-                // 認証情報があるなら認証する
-                document.getElementById('pairing-overlay').style.display = 'none';
                 if (connectWebSocket(serverIp, authToken)){
-                    location.href = "smartphone.html"
-                }
-                
+                    location.href = "smartphone.html";
+                }             
             }
-            // もし認証情報がないならQR撮影に入る
+            // QR撮影開始のダイアログ
             document.getElementById('modalDialog').textContent = "QRを撮影してペアリングします";
             modalDialog.showModal();
+            // もし認証情報がないならQR撮影に入る
             startQRScan();
 
         });
-
+        //=============================================================
+        //	画面のどこかがクリックされているならダイアログを閉じる
+        //=============================================================
         window.addEventListener('click', () => {
-            modalDialog.close()
+            const modalDialog = document.getElementsByClassName('dialog');
+            // もしダイアログが開いているなら閉じる
+            modalDialog.close();
         })
 
-        // QRスキャン開始
-        let qr_scanner;
-        let scanning = false;
+        //=============================================================
+        //	HTTPSのURLから
+        //=============================================================
+        function decodeURLtoIPandToken(htttps_url){
+            // QRの内容が http://192.168.1.5:8080/smartphone.html?ip=192.168.1.5&token=... 形式と想定
+            const htttps_url = new URL(htttps_url);
+            const ip = htttps_url.searchParams.get("ip");
+            const token = htttps_url.searchParams.get("token");
+            return ip, token
+        }
+
+        //=============================================================
+        //	QRスキャンでURLを取得
+        //=============================================================
+        let qr_scanner = null;
+        let scanning = false;   // スキャン中かどうか
         function startQRScan() {
-            if (scanning) return;
+            if (scanning) return;   // すでにスキャンしているならばreturn
+           
+            const height = document.documentElement.clientHeight;// 画面の高さ
 
             qr_scanner = new Html5Qrcode("qr-reader-window");
-            const config = { fps: 10, qrbox: { width: 250, height: 250 } };
 
             qr_scanner.start(
                 { facingMode: "environment" },             
                 { 
                     fps: 10, 
-                    qrbox: { width: 250, height: 250 } 
+                    qrbox: { 
+                        width: 0.3 * height,
+                        height: 0.3 * height
+                    }  
                 }, 
                 // qrを検出した時呼ぶ
                 (decodedText) => {
-                    // QRの内容が http://192.168.1.5:8080/smartphone.html?ip=192.168.1.5&token=... 形式と想定
                     try {
-                        const url = new URL(decodedText);
-                        const ip = url.searchParams.get("ip");
-                        const token = url.searchParams.get("token");
+                        ip, token = decodeURLtoIPandToken(decodedText);
                         
                         if (ip && token) {
                             qr_scanner.stop();
                             scanning = false;
-                            saveAndConnect(ip, token);
+                            connectAndSave(ip, token);
                         }
                     } catch (e) {
+                        // エラーが出た場合ポップアップ表示
                         document.getElementById('modalDialog').textContent = "有効でないQRコードです";
                         modalDialog.showModal();
                     }
@@ -139,26 +157,25 @@
             });
         }
         
-        // 手動入力の場合
+        //=============================================================
+        //	手動でURLを取得
+        //=============================================================
         function manualConnect() {
-            const ip = document.getElementById('manual-url').value;
-            const token = prompt("認証トークンを入力してください（サーバー画面に表示されています）");
-            if (ip && token) saveAndConnect(ip, token);
-        }
-       
-        //
-        function saveAndConnect(ip, token) {
-            localStorage.setItem('server_ip', ip);
-            localStorage.setItem('auth_token', token);
-            
-            // UIを隠して接続
-            document.getElementById('pairing-overlay').style.display = 'none';
-            connectWebSocket(ip, token);
-        }
-        
 
-        function connectWebSocket(ip, token) {
-            const wsUrl = `ws://${ip}:8765`;
+            ip, token = decodeURLtoIPandToken(document.getElementById('manual-url').value);
+            
+            if (ip && token) {
+                connectAndSave(ip, token);
+            }
+        }
+
+        //=============================================================
+        //	WSで認証した後、認証成功うしたらIPとトークンを保存する関数
+        //=============================================================
+        function connectAndSave(ip, token) {      
+
+            // サーバーへの接続wssURLを作成
+            wsURL = `wss://${self.ip}:${WS_PORT}`;
             // 接続時にトークンを送信するなどの認証処理をここに追加
             ws = new WebSocket(wsUrl);
             
@@ -167,15 +184,26 @@
                 ws.onopen = () => ws.send(JSON.stringify({type:'auth', token}));
             };
 
+            // 返信を受け取る
             ws.onmessage = (e)=>{
             let d; try{d=JSON.parse(e.data)}catch{return} // メッセージをjsonに変換
             // 認証結果を受け取って処理
             if(d.type==='auth'){
-                isAuthed=!!d.ok;
-                setConn(isAuthed, isAuthed?'接続済み':'認証失敗');
+                isAuthed=!!d.ok;// 真理値に変換
+                if(isAuthed) {       
+                    // 認証成功したらIPとトークンを保存                    
+                    localStorage.setItem('server_ip', ip);
+                    localStorage.setItem('auth_token', token);                   
+                    // 操作画面へ移行
+                    location.href = `smartphone.html`; // smartphone.html側でURLからトークンを拾うロジックに合わせて
+                }else{
+                    // 認証に失敗した場合URL入力に戻る
+                    document.getElementById('modalDialog').textContent = "認証に失敗しました";
+                    modalDialog.showModal();
+
+                }
                 return;
-            }
-            
+            }            
             
             ws.onclose = () => {
                 // 切断されたら再試行

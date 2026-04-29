@@ -155,7 +155,6 @@ class JSApi:
             
         return {
             "http_url": self.http_url,
-            "ws_url": self.ws_url,
             "qr_image": self._generate_qr_base64(self.http_url, qr_fill_color, qr_back_color),
             "gesture_shortcuts": GESTURE_SHORTCUTS,
             "gesture_labels": GESTURE_LABELS_JP,
@@ -203,7 +202,10 @@ def inform_ui_connection_stats():
     window.evaluate_js(f"connectionStatsUpdate({json.dumps(stats)})")
 
 async def ws_handler(websocket):
+    # 初回通信
+    # クライアントから通信があったとき、その情報を取得
     client_ip, client_port = websocket.remote_address
+    # 受信したデータにトークンが含まれていなかったり形式が不正なら通信終了
     try:
         raw = await asyncio.wait_for(websocket.recv(), timeout=10)
         data = json.loads(raw)
@@ -213,7 +215,8 @@ async def ws_handler(websocket):
     except:
         await websocket.close(4001, "Unauthorized")
         return
-
+    
+    # 認証OKなら返答
     await websocket.send(json.dumps({"type": "auth", "ok": True}))
     CONNECTED_CLIENTS.add(websocket)
     CONNECTED_CLIENTS_INFOS[websocket] = f"{client_ip}:{client_port}"
@@ -225,7 +228,8 @@ async def ws_handler(websocket):
         "gesture_labels": GESTURE_LABELS_JP,
         "vibration_setting": APP_SETTINGS.get("vibration_enabled")
     }))
-    
+
+    # 接続確立後は随時受け取ったメッセージを処理する
     try:
         async for message in websocket:
             try:

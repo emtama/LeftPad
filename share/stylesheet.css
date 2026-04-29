@@ -280,17 +280,17 @@ dialog{
     border-radius: var(--border-radius-rc);
     background: var(--color-surface); 
     color: var(--color-text-dim);
-    width:auto; 
-    height:auto; 
+    width: fit-content; 
+    height: fit-content; 
     /* アニメーション */
-    opacity: 0;
-    transition: all var(--transient-time);
+    opacity: 0;/* 通常は非表示（透明） */
+    transition: opacity var(--transient-time) ease-in-out; /* 透明度を遷移 */
 }
 dialog[open]{
-    opacity: 1;
+    opacity: 1;/* 開かれたとき、透明度を0にする */
 }
-dialog::backdrop{/* dialogを表示している時、それいがいのウィンドウにかぶせるフィルタ */
-    background: rgba(0, 0, 0, 0.5);
+dialog::backdrop{/* dialogを表示している時、それ以外の表示部分にかぶせるフィルタ */
+    background: rgba(0, 0, 0, 0.8);
 }
 dialog:active{
     border: none; 

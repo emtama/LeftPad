@@ -340,15 +340,7 @@
             const el = document.getElementById('http-url');
             const success = await pywebview.api.copy_to_clipboard(el.innerText);
             if (success) showCopyFeedback(el);
-        }
-
-        async function copyWSURL() {
-            const el = document.getElementById('ws-url');
-            const success = await pywebview.api.copy_to_clipboard(el.innerText);
-            if (success) showCopyFeedback(el);
-        }
-
-        
+        }        
 
         // ══════════════════════════════════════════════
         // ジェスチャー・ショートカットタブ

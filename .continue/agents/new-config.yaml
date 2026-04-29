@@ -7,12 +7,13 @@ schema: v1
 
 # Define which models can be used
 models:
-  - name: llama3.1:8b
+  - name: qwen2.5-coder:7b
     provider: ollama
-    model: llama3.1:8b 
-  - name: qwen2.5-coder:1.5b-base
+    model: qwen2.5-coder:7b 
+
+  - name: qwen2.5-coder:3b
     provider: ollama
-    model: qwen2.5-coder:1.5b-base
+    model: qwen2.5-coder:3b
     roles: 
       - autocomplete
     autocompleteOptions:
@@ -21,8 +22,6 @@ models:
       onlyMyCode: true
     defaultCompletionOptions:
       temperature: 0.3
-      stop:
-        - "\n"
   - name: nomic-embed-text:latest
     provider: ollama
     model: nomic-embed-text:latest
