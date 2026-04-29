@@ -26,10 +26,9 @@
     <div class="container">
         
         <!-- ポップアップ -->
-         <dialog class="custom-modal" data-modal="demo">
+         <dialog id="modalDialog" class="custom-modal" data-modal="demo">
             <button class="close-btn" data-modal-close></button>
-            <div class="modal-body">
-            </div>
+            <!-- テキストは document.getelementbyid(id).textcontentから設定する -->
         </div> 
 
         <!-- ローディング表示 -->
@@ -62,6 +61,7 @@
     </div>
 
     <!-- qrコード読み取り用のライブラリ -->
+    <script src="js/modal.js"></script>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <script>
 
@@ -87,7 +87,7 @@
                 }             
             }
             // QR撮影開始のダイアログ
-            document.getElementById('modalDialog').textContent = "QRを撮影してペアリングします";
+            modalDialog.textContent = "QRを撮影してペアリングします";
             modalDialog.showModal();
             // もし認証情報がないならQR撮影に入る
             startQRScan();
@@ -146,7 +146,7 @@
                         }
                     } catch (e) {
                         // エラーが出た場合ポップアップ表示
-                        document.getElementById('modalDialog').textContent = "有効でないQRコードです";
+                        modalDialog.textContent = "有効でないQRコードです";
                         modalDialog.showModal();
                     }
                 }
@@ -157,7 +157,7 @@
             }).catch(err => {
                 // qr_scanner.startに失敗
                 scanning = false;
-                document.getElementById('modalDialog').textContent = "カメラの起動に失敗しました";
+                modalDialog.textContent = "カメラの起動に失敗しました";
                 modalDialog.showModal();
                 qr_scanner.stop();
                 //
@@ -207,7 +207,7 @@
                     location.href = `smartphone.html`; // smartphone.html側でURLからトークンを拾うロジックに合わせて
                 }else{
                     // 認証に失敗した場合URL入力に戻る
-                    document.getElementById('modalDialog').textContent = "認証に失敗しました";
+                    modalDialog.textContent = "認証に失敗しました";
                     modalDialog.showModal();
 
                 }
