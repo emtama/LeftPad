@@ -1,18 +1,18 @@
 {
   "pinch_in": [
-    "ctrl",
+    "Ctrl",
     ";"
   ],
   "pinch_out": [
-    "ctrl",
+    "Ctrl",
     "-"
   ],
   "single_finger_tap_top": [
-    "ctrl",
+    "Ctrl",
     "]"
   ],
   "single_finger_tap_bottom": [
-    "ctrl",
+    "Ctrl",
     "["
   ],
   "single_finger_tap_left": [
@@ -22,11 +22,11 @@
     "["
   ],
   "single_finger_double_tap_top": [
-    "ctrl",
+    "Ctrl",
     "z"
   ],
   "single_finger_double_tap_bottom": [
-    "ctrl",
+    "Ctrl",
     "y"
   ],
   "single_finger_double_tap_left": [],
@@ -44,19 +44,19 @@
     "Shift"
   ],
   "two_finger_tap_top": [
-    "ctrl",
+    "Ctrl",
     "0"
   ],
   "two_finger_tap_bottom": [
-    "ctrl",
+    "Ctrl",
     "0"
   ],
   "two_finger_tap_left": [
-    "ctrl",
+    "Ctrl",
     "0"
   ],
   "two_finger_tap_right": [
-    "ctrl",
+    "Ctrl",
     "0"
   ],
   "two_finger_double_tap_top": [],
@@ -87,18 +87,16 @@
   "three_finger_long_press_bottom": [],
   "three_finger_long_press_left": [],
   "three_finger_long_press_right": [],
-  "single_finger_swipe_up": [],
-  "single_finger_swipe_down": [],
-  "single_finger_swipe_left": [],
-  "single_finger_swipe_right": [],
-  "two_finger_swipe_up": [],
-  "two_finger_swipe_down": [],
-  "two_finger_swipe_left": [],
-  "two_finger_swipe_right": [
-    " "
-  ],
-  "three_finger_swipe_up": [],
-  "three_finger_swipe_down": [],
-  "three_finger_swipe_left": [],
-  "three_finger_swipe_right": []
+  "single_finger_swipe_upward": [],
+  "single_finger_swipe_downward": [],
+  "single_finger_swipe_leftward": [],
+  "single_finger_swipe_rightward": [],
+  "two_finger_swipe_upward": [],
+  "two_finger_swipe_downward": [],
+  "two_finger_swipe_leftward": [],
+  "two_finger_swipe_rightward": [],
+  "three_finger_swipe_upward": [],
+  "three_finger_swipe_downward": [],
+  "three_finger_swipe_leftward": [],
+  "three_finger_swipe_rightward": []
 }

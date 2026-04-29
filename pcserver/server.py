@@ -31,13 +31,17 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 SSL_CERT_FILE_PATH = os.path.join(BASE_DIR, "cert.pem")
 SSL_KEY_FILE_PATH = os.path.join(BASE_DIR, "key.pem")
 
-GESTURE_LABELS_JP_PATH = os.path.join(BASE_DIR, "../share/gesture_labels.json")
+GESTURE_LABELS_PATH = os.path.join(BASE_DIR, "../share/gesture_labels.json")
 GESTURE_SHORTCUTS_PATH = os.path.join(BASE_DIR, "../share/gesture_shortcuts.json")
+GESTURE_TAGS_PATH = os.path.join(BASE_DIR, "../share/gesture_tags.json")
+GESTURE_TAG_LABELS_PATH = os.path.join(BASE_DIR, "../share/gesture_tag_labels.json")
 
 LOGGER = None
-GESTURE_LABELS_JP = {}
+GESTURE_LABELS = {}
 GESTURE_KEYS = []
 GESTURE_SHORTCUTS = {}
+GESTURE_TAGS = {}
+GESTURE_TAG_LABELS = {}
 CONNECTED_CLIENTS: set = set()
 CONNECTED_CLIENTS_INFOS: dict = {}
 APP_SETTINGS = {
@@ -119,23 +123,12 @@ def get_local_ip():
         return ip
     except: return "127.0.0.1"
 
-# データの読み込み
-GESTURE_LABELS_JP = load_json(GESTURE_LABELS_JP_PATH)
-GESTURE_KEYS = list(GESTURE_LABELS_JP.keys())
-
-def load_gesture_shortcuts():
-    data = load_json(GESTURE_SHORTCUTS_PATH)
-    for key in list(data.keys()):
-        if key not in GESTURE_LABELS_JP: del data[key]
-    return data
-
-GESTURE_SHORTCUTS = load_gesture_shortcuts()
-
 # ══════════════════════════════════════════════
 # PC側GUI API
 # ══════════════════════════════════════════════
 class JSApi:
     PWA_START_HTML_PATH = r"../docs/index.html"
+    
     def __init__(self):
         self.ip = None
         self.http_url = None
@@ -152,12 +145,14 @@ class JSApi:
             
             self.http_url = f"{scheme_http}://{self.ip}:{HTTP_PORT}/{JSApi.PWA_START_HTML_PATH}?ip={self.ip}&token={ACCESS_TOKEN}"
             self.ws_url = f"{scheme_ws}://{self.ip}:{WS_PORT}"
-            
+        
         return {
             "http_url": self.http_url,
             "qr_image": self._generate_qr_base64(self.http_url, qr_fill_color, qr_back_color),
             "gesture_shortcuts": GESTURE_SHORTCUTS,
-            "gesture_labels": GESTURE_LABELS_JP,
+            "gesture_labels": GESTURE_LABELS,
+            "gesture_tags": GESTURE_TAGS,
+            "gesture_tag_labels": GESTURE_TAG_LABELS,
             "vibration": APP_SETTINGS["vibration_enabled"]
         }
     
@@ -225,7 +220,9 @@ async def ws_handler(websocket):
     await websocket.send(json.dumps({
         "type": "initial_auth_setup", 
         "gesture_shortcuts": GESTURE_SHORTCUTS,
-        "gesture_labels": GESTURE_LABELS_JP,
+        "gesture_labels": GESTURE_LABELS,
+        "gesture_tags": GESTURE_TAGS,
+        "gesture_tag_labels": GESTURE_TAG_LABELS,
         "vibration_setting": APP_SETTINGS.get("vibration_enabled")
     }))
 
@@ -283,11 +280,21 @@ def initialize_servers(window):  # WebSocketとHTTPサーバーを別スレッ�
 
 
 if __name__ == '__main__':  # スクリプトが直接実行された場合のエントリポイント
+
+
     logging.basicConfig(  # ログ設定の初期化
         level=logging.INFO,  # INFOレベル以上を出力
         format="%(asctime)s [%(levelname)s] %(message)s",  # ログフォーマット指定
         datefmt="%H:%M:%S"  # 時刻フォーマット指定
     )
+    # 
+    GESTURE_LABELS = load_json(GESTURE_LABELS_PATH)
+    GESTURE_TAGS = load_json(GESTURE_TAGS_PATH)
+    GESTURE_TAG_LABELS = load_json(GESTURE_TAG_LABELS_PATH)
+    GESTURE_SHORTCUTS = load_json(GESTURE_SHORTCUTS_PATH)
+    GESTURE_KEYS = list(GESTURE_LABELS.keys())
+    if not all(set(x.keys()) == set(GESTURE_KEYS) for x in [GESTURE_TAGS, GESTURE_SHORTCUTS]):
+        LOGGER.warning('ジェスチャーの集合が一致しませんでした')
 
     api = JSApi()  # JavaScript連携用APIインスタンス生成
 

@@ -1,0 +1,19 @@
+{
+    "single_finger": "1本指",
+    "two_finger": "2本指",
+    "three_finger": "3本指",    
+    "tap": "タップ",
+    "double_tap": "ダブルタップ",
+    "triple_tap": "トリプルタップ",
+    "swipe": "スワイプ",
+    "long_press": "長押し",
+    "pinch": "ピンチ",    
+    "top": "上部",
+    "bottom": "下部",
+    "left": "左部",
+    "right": "右部",
+    "upward": "上方向",
+    "downward": "下方向",
+    "leftward": "左方向",
+    "rightward": "右方向"
+}

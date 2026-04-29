@@ -1,438 +1,565 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html lang="ja" data-theme="dark">
 <head>
-    <meta charset="UTF-8">
-    <!-- google font symbols & icons -->
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
-    <!-- スタイルシートを読みこむ -->
-    <link rel="stylesheet" href="css/stylesheet.css">
-    <style>
-        :root {            
-            --dummy: 0;
-        }
-        *{
-            /*テキストの選択を禁止 */
-            -webkit-user-select: none; /* Safari / iOS */
-            -ms-user-select: none;     /* 旧Edge */
-            user-select: none;         /* 標準 */
-        }
-        body {
-            display: flex; /* 横並びにする */
-            height: 100vh; /*  */
-            margin: 0;
-            overflow: hidden;
-        }
-
-        /* メインコンテンツ */
-        .main-content {
-            flex: 1;
-            padding: 30px;
-            overflow-y: auto;/* Y方向にあふれた時？あふれた時だけスクロールバー付ける */
-        }
-        
-        /*  */
-        .panel { display: none; }
-        .panel.active { display: block; }
-
-
-        /* 接続設定タブ */
-        #connection-tab-container{
-            text-align: center; /* テキストを中央揃え */
-            justify-content: center;
-            border-radius: 8px;
-        }
-
-        /* QRカード */
-        #qr-img { 
-            display: block; /*  */
-            position: static;
-            padding: auto; 
-            margin: auto;
-            border: none;
-            border-radius: var(--border-radius-rc); 
-            width: 40vh;
-            height: 40vh;
-            background: var(--color-surface);
-        }
-
-        /* URLテキストのスタイル（追加） */
-
-        .url-container {
-            display: flex;
-            flex-direction: row; /* 横に並べる */
-            align-items: center; /* 子要素をそれぞれ各バウンディングボックス内で上下中央揃え */
-            justify-content: center;/* 子要素の塊を左右中央寄 */
-            padding: 1em;
-            background: var(--color-bg); 
-            border-radius: 8px;
-            margin: 0.5em;
-        }
-
-        .url-box{
-            display: flex;
-            flex-direction: column; /* 縦に並べる */
-            align-items: center; /* 子要素を各バウンディングボックス内で上下中央揃え */
-            justify-content: space-evenly;/* 上下左右等間隔に配置 */
-            padding: 1em;
-            background: var(--color-bg); 
-            border-radius: 8px;
-            margin: 0.5em;
-        }
-
-        .clickable-url {
-            word-break: break-all; 
-            color: var(--color-accent);
-            cursor: pointer;
-            padding: 10px;
-            background: var(--color-bg);
-            border-radius: 6px;
-            border: 1px solid transparent;
-            transition: all var(--transition-time);
-            position: relative;
-            display: block;
-            text-align: center;
-            width: fit-content;   /* 中身の幅に合わせる */
-            height: fit-content;  /* 中身の高さに合わせる */
-        }
-
-        /* ホバー時に枠線と色を変える */
-        .clickable-url:hover {
-            border-color: var(--color-accent);
-            background: var(--color-border);
-        }
-
-        /* コピーした瞬間の視覚効果 */
-        .clickable-url:active {
-            transform: scale(0.98);/*  */
-            opacity: 0.8;
-        }
-
-        /* コピー完了通知（ツールチップ風） */
-       .clickable-url.copied_tooltip::after {
-            content: "コピーしました！";
-            position: fixed;
-            top: var(--my);
-            left: var(--mx);
-            transform: translate(-50%, -120%);
-            background: var(--color-accent);
-            color: var(--color-text-dim);
-            padding: 2px 8px;
-            border-radius: 4px;
-            font-size: 14px;
-            font-weight: bold;
-            pointer-events: none;
-        }
-        
-        /* ジェスチャー＆ショートカット編集 */
-        .gesture-row { display: flex; 
-            align-items: center; 
-            background: var(--color-surface); 
-            margin-bottom: 8px; 
-            padding: 10px; 
-            border-radius: 8px; }
-        .gesture-label { width: 150px; 
-            font-weight: bold; 
-            color: var(--color-text-dim); }
-        .key-display { flex: 1; color: var(--color-accent); background: var(--color-bg); padding: 8px; border-radius: 4px; margin: 0 10px; min-height: 20px; }
-        
-        /* 設定ラベル */
-        .setting-row { 
-            display: flex; 
-            align-items: center; 
-            background: var(--color-bg); 
-            padding: 0.5em; 
-            border-radius: 8px;
-        }
-        .setting-text{    
-            padding: 10px; 
-            color: var(--color-text-dim); 
-            display: flex;
-            flex-direction: column; /* 縦並びにする */
-            justify-content: center;/* 並べる方向の軸に対して中央揃え */
-            margin-right: 15px; /* ボタン類とのマージン */
-        }
-        
-        /* ログパネル専用 */
-        #log-container {
-            background: var(--color-surface);
-            color: var(--color-text-dim);
-            font-family: monospace;
-            padding: 15px;
-            height: 500px;
-            overflow-y: scroll;
-            border-radius: 8px;
-            font-size: 13px;
-            line-height: 1.5;
-        }
-
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.10/dist/full.min.css" rel="stylesheet" />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" />
+<title>LEFTPAD Server</title>
+<style>
+  body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+  .panel { height: 100%; overflow-y: auto; padding: 2rem; flex: 1; }
+  #log-container { font-family: 'Fira Code', 'Cascadia Code', monospace; }
+  .key-badge { @apply badge badge-outline gap-1 mx-0.5; }
+  .disabled { pointer-events: none; opacity: 0.5; }
+</style>
 </head>
-<body>
-    <div class="sidebar">
-        <div class="nav-item active" onclick="switchPanel('qr')">
-            <span class="material-symbols-outlined">devices</span>
+
+<body class="flex h-screen overflow-hidden bg-base-100">
+
+<!-- 削除確認モーダル (daisyUI) -->
+<dialog id="bulk_delete_modal" class="modal">
+  <div class="modal-box border border-error">
+    <h3 class="font-bold text-lg flex items-center gap-2 text-error">
+      <span class="material-symbols-outlined">warning</span> 一括削除の確認
+    </h3>
+    <p class="py-4 text-sm">
+      現在表示されている <span id="bulk-delete-count" class="font-bold text-lg"></span> 件のショートカットをすべて削除しますか？<br>
+      この操作は取り消せません。
+    </p>
+    <div class="modal-action">
+      <form method="dialog">
+        <button class="btn btn-ghost">キャンセル</button>
+        <button class="btn btn-error" onclick="executeBulkDelete()">削除を実行</button>
+      </form>
+    </div>
+  </div>
+</dialog>
+
+<!-- サイドバー -->
+<div class="w-20 bg-base-200 flex flex-col items-center py-6 gap-6 border-r border-base-300">
+  <div class="avatar placeholder mb-4">
+    <div class="bg-primary text-primary-content rounded-full w-12">
+      <span class="text-xl font-bold">LP</span>
+    </div>
+  </div>
+  <button class="btn btn-ghost btn-circle nav-btn" id="nav-qr" onclick="switchPanel('qr')" title="接続設定">
+    <span class="material-symbols-outlined">devices</span>
+  </button>
+  <button class="btn btn-ghost btn-circle nav-btn" id="nav-key" onclick="switchPanel('key')" title="ジェスチャー編集">
+    <span class="material-symbols-outlined">gesture</span>
+  </button>
+  <button class="btn btn-ghost btn-circle nav-btn" id="nav-settings" onclick="switchPanel('settings')" title="一般設定">
+    <span class="material-symbols-outlined">settings</span>
+  </button>
+  <button class="btn btn-ghost btn-circle nav-btn" id="nav-logs" onclick="switchPanel('logs')" title="システムログ">
+    <span class="material-symbols-outlined">terminal</span>
+  </button>
+</div>
+
+<!-- メインコンテンツ -->
+<main class="flex-1 flex flex-col relative">
+  
+  <!-- 個別記録中のフローティングステータス -->
+  <div id="capture-status" class="fixed top-4 right-4 z-50 hidden">
+    <div class="alert alert-warning shadow-lg py-2 px-4 animate-bounce">
+      <span class="material-symbols-outlined">keyboard</span>
+      <span class="text-sm font-bold">キー入力待ち...</span>
+    </div>
+  </div>
+
+  <!-- QR/接続パネル -->
+  <div id="panel-qr" class="panel">
+    <h2 class="text-2xl font-bold mb-6 flex items-center gap-2">
+      <span class="material-symbols-outlined">qr_code_2</span> デバイス連携
+    </h2>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div class="card bg-base-200 shadow-xl p-6 flex flex-col items-center justify-center border border-base-300">
+        <img id="qr-img" class="rounded-xl shadow-inner bg-white p-2 mb-4" src="" alt="QR Code" width="240" height="240">
+        <p class="text-xs opacity-60 text-center">スマホのPWAでこのQRをスキャンしてください</p>
+      </div>
+
+      <div class="flex flex-col gap-4">
+        <div class="card bg-base-200 p-4 border border-base-300">
+          <label class="label text-xs font-bold uppercase opacity-50">HTTP URL (ペアリング用)</label>
+          <div class="join w-full">
+            <button id="http-url" class="btn btn-ghost join-item flex-1 font-mono text-xs justify-start overflow-hidden">読み込み中...</button>
+            <button class="btn btn-primary join-item" onclick="copyText('http-url')">
+              <span class="material-symbols-outlined text-sm">content_copy</span>
+            </button>
+          </div>
         </div>
-        <div class="nav-item" onclick="switchPanel('key')">
-            <span class="material-symbols-outlined">keyboard</span>
+
+        <div class="card bg-base-200 p-6 border border-base-300">
+          <div class="flex justify-between items-center">
+            <div>
+              <h3 class="font-bold text-lg">接続状況</h3>
+              <div id="client-list" class="text-xs opacity-70 mt-1">待機中...</div>
+            </div>
+            <div class="radial-progress text-primary" id="client-status-circle" style="--value:0; --size:3rem; --thickness: 4px;">
+              <span id="client-count">0</span>
+            </div>
+          </div>
         </div>
-        <div class="nav-item" onclick="switchPanel('settings')">
-            <span class="material-symbols-outlined">settings</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ジェスチャー編集パネル -->
+  <div id="panel-key" class="panel hidden">
+    <div class="flex justify-between items-end mb-6">
+      <div>
+        <h2 class="text-2xl font-bold flex items-center gap-2">
+          <span class="material-symbols-outlined">gesture</span> ジェスチャー編集
+        </h2>
+        <p class="text-sm opacity-60">各操作に割り当てるPCキーボードのショートカットを設定します。</p>
+      </div>
+    </div>
+      
+    <div class="divider"></div>
+    
+    <!-- フィルタリングタグ -->
+    <div id="tag-filter-container" class="flex flex-wrap gap-2 mb-6"></div>
+
+    <!-- まとめて操作エリア -->
+    <div class="flex items-center gap-4 mb-6 p-4 bg-base-200 rounded-2xl border border-base-300">
+      <div id="bulk-initial-btns" class="flex gap-2">
+        <button class="btn btn-primary btn-sm" onclick="enterBulkMode()">
+          <span class="material-symbols-outlined text-sm">dynamic_feed</span> まとめて記録
+        </button>
+        <button class="btn btn-outline btn-error btn-sm" onclick="bulkDelete()">
+          <span class="material-symbols-outlined text-sm">delete_sweep</span> まとめて削除
+        </button>
+      </div>
+
+      <div id="bulk-capturing-btns" class="flex gap-2 hidden items-center w-full">
+        <div class="flex-1 flex items-center gap-3">
+          <div class="badge badge-warning animate-pulse p-4 gap-2">
+            <span class="loading loading-spinner loading-xs"></span> 
+            <span class="font-bold">一括入力待機中...</span>
+          </div>
+          <div class="text-xs opacity-70 italic">
+            フィルタ中の全項目に入力したキーがリアルタイムで反映されます
+          </div>
         </div>
-        <div class="nav-item" onclick="switchPanel('logs')">  
-            <span class="material-symbols-outlined">history</span>
-        </div>
+        <button class="btn btn-success btn-sm" onclick="confirmBulkCapture()">
+          <span class="material-symbols-outlined text-sm">check</span> 決定
+        </button>
+        <button class="btn btn-ghost btn-sm" onclick="exitBulkMode()">
+          キャンセル
+        </button>
+      </div>
     </div>
 
-    <div class="container">
-        <header>
-            <h1>LEFTPAD</h1>
-        </header>
-
-        <div class="container" id="connection-tab-container">
-            <div id="panel-qr" class="panel active">
-                <h2>スマホとの接続</h2>
-                <div style="display:flex; flex-direction:row; align-items: center; justify-content: space-evenly;">
-                    <img id="qr-img"/>
-                    <div class="url-container">
-                        <div class="url-box">
-                            <h3 style="text-align: center;">HTTP URL</h3>
-                            <code id="http-url" class="clickable-url" onclick="copyHTTPURL()">読み込み中...</code>
-                        </div>
-                    </div>
-                    <div class="connection-status-container">
-                        <h3>接続</h3>
-                        <h2 id="client-count">0</h2>
-                        <div id="client-list" style="font-size: 1em; color: var(--color-accent); margin-top: 5px;">
-                            <!-- クライアントのリスト -->
-                        </div>
-                        <div class="spinner"></div>
-                    </div>
-                </div>
-            </div>
-
-            <div id="panel-key" class="panel">
-                <h2>ジェスチャー＆ショートカット編集</h2>
-                <div id="gesture-shortcut-editor"></div>
-            </div>
-
-            <div id="panel-settings" class="panel">
-                <h2>アプリ設定</h2>
-                <label class = "setting-row">
-                    <div class="setting-text">
-                        <h3>ハプティクス</h3><br>
-                        スマホをタップした時に振動させます。</p>
-                    </div>
-                    <label class="toggle-button-2">
-                        <input type="checkbox" id="vib-toggle" onchange="toggleVib()"/>
-                    </label>
-
-                </label>
-
-            </div>
-
-            <div id="panel-logs" class="panel">
-                <h2>通信ログ</h2>
-                <div id="log-container"></div>
-                <button class="btn btn-danger" onclick="document.getElementById('log-container').innerHTML=''" style="margin-top:10px;" >
-                    ログをクリア
-                </button>
-            </div>
-        </div>
+    <div id="gesture-list" class="grid grid-cols-1 gap-3">
+      <!-- JSで動的に生成 -->
     </div>
+  </div>
 
+  <!-- 設定パネル -->
+  <div id="panel-settings" class="panel hidden">
+    <h2 class="text-2xl font-bold mb-6 flex items-center gap-2">
+      <span class="material-symbols-outlined">settings_suggest</span> 設定
+    </h2>
+    <div class="card bg-base-200 p-6 border border-base-300 max-w-md shadow-xl">
+      <div class="form-control">
+        <label class="label cursor-pointer hover:bg-base-300 px-4 rounded-lg transition-colors">
+          <span class="label-text font-bold">スマホの振動（ハプティクス）</span>
+          <input type="checkbox" class="toggle toggle-primary" id="vib-toggle" onchange="toggleVib()" />
+        </label>
+        <p class="text-xs px-4 opacity-50 mt-1">ボタン操作時にスマートフォン側を軽く振動させます。</p>
+      </div>
+    </div>
+  </div>
 
-    <script>
-        // ══════════════════════════════════════════════
-        // 初期化
-        // ══════════════════════════════════════════════
-        let gesture_shortcuts = {};
-        let gesture_labels = {};
-        let capturingKey = null;
-        let pressedKeys = new Set(); // 現在押されているキーを保持
+  <!-- ログパネル -->
+  <div id="panel-logs" class="panel hidden">
+    <div class="flex justify-between items-center mb-4">
+      <h2 class="text-2xl font-bold flex items-center gap-2">
+        <span class="material-symbols-outlined">terminal</span> システムログ
+      </h2>
+      <button class="btn btn-outline btn-error btn-sm" onclick="clearLogs()">
+        <span class="material-symbols-outlined text-sm">delete</span> クリア
+      </button>
+    </div>
+    <div id="log-container" class="bg-black text-green-400 p-4 rounded-xl h-[70vh] overflow-y-auto text-sm border border-base-300 leading-relaxed shadow-inner">
+      <!-- ログ -->
+    </div>
+  </div>
 
-        // 初期化処理（サーバーから基本情報を受け取って設定）
-        async function init() {
-            try {
-                
-                const root = document.documentElement;  // :root 要素（html要素）を取得
-                const styles = getComputedStyle(root);  // :root に適用されているすべてのスタイル計算値を取得
-                const qr_fillcolor = "#000000";//styles.getPropertyValue('--color-primary').trim();// 特定の変数名（例: --value）の値を抜き出す
-                const qr_backcolor = "#ffffff";//styles.getPropertyValue('--color-surface').trim();// 特定の変数名（例: --value）の値を抜き出す
-                //
-                const data = await pywebview.api.get_init_data(qr_fillcolor, qr_backcolor);
-                //
-                document.getElementById('qr-img').src = 'data:image/png;base64,' + data.qr_image;
-                document.getElementById('http-url').innerText = data.http_url;
-                document.getElementById('ws-url').innerText = data.ws_url;
-                document.getElementById('vib-toggle').checked = data.vibration;
-                gesture_shortcuts = data.gesture_shortcuts;
-                gesture_labels = data.gesture_labels;
-                renderGestures(gesture_labels);
+</main>
 
-                // カラーパレットの適用
-                if (data.colors) {
-                    const root = document.documentElement;
-                    for (const [key, value] of Object.entries(data.colors)) {
-                        root.style.setProperty(`--${key}`, value);
-                    }
-                }
+<script>
+  // ==============================================
+  // 状態管理
+  // ==============================================
+  let gestureShortcuts = {};
+  let gestureTags = {};
+  let gestureLabels = {};
+  let gestureTagLabels = {};
+  let activeFilterTags = new Set();
 
-            } catch (e) {
-                console.error("Init error:", e);
-            }
+  let isBulkMode = false;
+  let bulkTempKeys = [];
+
+  let capturingKey = null;
+  let pressedKeys = new Set();
+
+  const isTesting = false;
+
+  // テスト用。後で削除 
+  if (isTesting){
+    async function initTestMode() {
+      const loadJSON = async (path) => {
+        try {
+          const response = await fetch(path);
+          if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+          return await response.json();
+        } catch (e) {
+          console.error(`Failed to load ${path}:`, e);
+          return {}; // エラー時は空オブジェクトを返してクラッシュを防ぐ
         }
-        // 接続ステータスアップデート
-        function connectionStatsUpdate(stats) {
-            try {                    
-                // 端末数を更新
-                document.getElementById('client-count').innerText = stats.count;
-                
-                // 端末IPリストを更新
-                const listEl = document.getElementById('client-list');
-                if (stats.count > 0) {
-                    listEl.innerText = "接続中: " + stats.ips.join(', ');
-                } else {
-                    listEl.innerText = "接続されている端末はありません";
-                }
-            } catch (e) {
-                console.error("Stats update error:", e);
-            }
-        }
+      };
+      gestureLabels = await loadJSON('..\\share\\gesture_labels.json');  
+      gestureShortcuts = await loadJSON('..\\share\\gesture_shortcuts.json');
+      gestureTags = await loadJSON('..\\share\\gesture_tags.json');
+      gestureTagLabels = await loadJSON('..\\share\\gesture_tag_labels.json');
+      renderTagFilters();
+      renderGestureList();  
+    }  
+    initTestMode(); // テストモード開始
+  }
 
-        // pywebviewready のタイミングで実行開始
-        window.addEventListener('pywebviewready', () => {
-            init();
-        });
+  // ==============================================
+  // 初期化 & 通信
+  // ==============================================
+  window.addEventListener('pywebviewready', async () => {
+    // daisyUIのアクセントカラー、ニュートラルカラーを取得
+    const accent = styles.getPropertyValue('--a').trim();
+    const neutral = styles.getPropertyValue('--n').trim();
+    try {
+      const data = await pywebview.api.get_init_data(styles.getPropertyValue('--a'), styles.getPropertyValue('--n'));
+      
+      document.getElementById('qr-img').src = 'data:image/png;base64,' + data.qr_image;
+      document.getElementById('http-url').innerText = data.http_url;
+      document.getElementById('vib-toggle').checked = data.vibration;
+      
+      gestureLabels = data.gesture_labels;
+      gestureShortcuts = data.gesture_shortcuts;
+      gestureTags = data.gesture_tags;
+      gestureTagLabels = data.gesture_tag_labels;
 
-        // ══════════════════════════════════════════════
-        // 共通
-        // ══════════════════════════════════════════════
-        // マウスの位置を追跡
-        document.addEventListener("mousemove", (e) => {
-            document.documentElement.style.setProperty("--mx", e.clientX + "px");
-            document.documentElement.style.setProperty("--my", e.clientY + "px");
-            });
-        // パネルを切り替える
-        function switchPanel(panelId) {
-            // 全パネルとナビボタンをリセット
-            document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+      addLog(gestureLabels, gestureShortcuts, gestureTags, gestureTagLabels);
 
-            // 選択されたものだけアクティブ化
-            document.getElementById(`panel-${panelId}`).classList.add('active');
-            event.currentTarget.classList.add('active');
-        }
+      renderTagFilters();
+      renderGestureList();
+      
+      addLog("System initialized.");
+    } catch (e) {
+      addLog("Initialization error: " + e);
+    }
+  });
 
-        // ══════════════════════════════════════════════
-        // スマホ接続タブ
-        // ══════════════════════════════════════════════
+  // ==============================================
+  // タグフィルタリング
+  // ==============================================
+  function renderTagFilters() {
+    const container = document.getElementById('tag-filter-container');
+    const tags = [{id: null, name: "すべて"}, ...Object.entries(gestureTagLabels).map(([id, name]) => ({id, name}))];
+
+    container.innerHTML = tags.map(tag => {
+      const isActive = (tag.id === null) ? activeFilterTags.size === 0 : activeFilterTags.has(tag.id);
+      return `
+        <button onclick="setFilter(${tag.id ? `'${tag.id}'` : 'null'})" 
+          class="badge badge-lg cursor-pointer transition-all ${isActive ? 'badge-primary text-white' : 'badge-outline opacity-50'}">
+          ${tag.name}
+        </button>
+      `;
+    }).join('');
+  }
+
+  function setFilter(tagId) {
+    if (tagId === "null" || tagId === null) {
+      activeFilterTags.clear();
+    } else {
+      if (activeFilterTags.has(tagId)) activeFilterTags.delete(tagId);
+      else activeFilterTags.add(tagId);
+    }
+    renderTagFilters(); 
+    renderGestureList(); 
+  }
+
+  function getFilteredKeys() {
+    let keys = Object.keys(gestureLabels);
+    if (activeFilterTags.size > 0) {
+      keys = keys.filter(id => {
+        const itemTags = gestureTags[id] || [];
+        return Array.from(activeFilterTags).every(t => itemTags.includes(t));
+      });
+    }
+    return keys;
+  }
+
+  // ==============================================
+  // リスト描画
+  // ==============================================
+  function renderGestureList() {
+    const container = document.getElementById('gesture-list');
+    container.innerHTML = '';
+    const targetKeys = getFilteredKeys();
+
+    targetKeys.forEach(id => {
+      const shortcut = gestureShortcuts[id] || [];
+      const row = document.createElement('div');
+      row.className = `flex gap-4 items-center bg-base-200 p-4 rounded-xl border border-base-300 transition-all ${capturingKey === id ? 'ring-2 ring-primary bg-base-300' : ''}`;
+      row.id = `gesture-row-${id}`;
+
+      const shortcutHtml = shortcut.length > 0 
+        ? shortcut.map(k => `<span class="kbd kbd-sm">${k}</span>`).join(' + ') 
+        : '<span class="text-xs opacity-30 italic">未設定</span>';
+
+      row.innerHTML = `
+        <div class="flex-1">
+          <div class="text-sm font-bold">${gestureLabels[id]}</div>
+          <div class="flex gap-1 mt-1 opacity-40">
+             ${(gestureTags[id] || []).map(t => `<span class="text-[10px] uppercase font-mono bg-base-300 px-1 rounded">#${gestureTagLabels[t] || t}</span>`).join('')}
+          </div>
+        </div>
+        <div id="display-${id}" class="flex gap-1 items-center justify-center min-w-[150px] bg-base-100 p-2 rounded-lg border border-base-300 min-h-[44px]">
+          ${shortcutHtml}
+        </div>
+        <button id="rec-btn-${id}" class="btn ${capturingKey === id ? 'btn-warning' : 'btn-primary'} btn-sm w-20" onclick="toggleCapture('${id}')">
+          ${capturingKey === id ? '決定' : '記録'}
+        </button>
+        <button id="del-btn-${id}" class="btn btn-ghost btn-outline btn-error btn-sm w-10 p-0" onclick="deleteShortcut('${id}')" title="削除">
+          <span class="material-symbols-outlined text-sm">delete</span>
+        </button>
+      `;
+      container.appendChild(row);
+    });
+  }
+
+  // ==============================================
+  // 記録ロジック (個別)
+  // ==============================================
+  function toggleCapture(id) {
+    if (isBulkMode) return; // 一括モード中は無視
+
+    const isStopping = capturingKey === id;
+    const statusEl = document.getElementById('capture-status');
+    const targetBtn = document.getElementById(`rec-btn-${id}`);
+
+    if (isStopping) {
+      capturingKey = null;
+      statusEl.classList.add('hidden');
+      if (targetBtn) targetBtn.textContent = "記録";
+      renderGestureList(); // 全ボタンのロック解除のため再描画
+    } else {
+      if (capturingKey) toggleCapture(capturingKey); // 他が開いていれば閉じる
+      
+      capturingKey = id;
+      pressedKeys.clear();
+      statusEl.classList.remove('hidden');
+      if (targetBtn) targetBtn.textContent = "決定";
+      
+      // 他のボタンをすべて無効化
+      document.querySelectorAll('#gesture-list button').forEach(btn => {
+        if (btn.id !== `rec-btn-${id}`) btn.disabled = true;
+      });
+    }
+  }
+
+  async function saveShortcut(id, keys) {
+    try {
+      gestureShortcuts[id] = keys;
+      if (window.pywebview) await pywebview.api.save_gesture_shortcut(id, keys);
+      addLog(`[Saved] ${gestureLabels[id]} -> ${keys.join(' + ')}`);
+      
+      capturingKey = null;
+      document.getElementById('capture-status').classList.add('hidden');
+      renderGestureList();
+    } catch (error) {
+      addLog("Save error: " + error);
+    }
+  }
+
+  async function deleteShortcut(id) {
+    gestureShortcuts[id] = [];
+    if (window.pywebview) await pywebview.api.save_gesture_shortcut(id, []);
+    addLog(`[Deleted] ${gestureLabels[id]}`);
+    renderGestureList();
+  }
+
+  // ==============================================
+  // 記録ロジック (一括)
+  // ==============================================
+  function enterBulkMode() {
+    if (capturingKey) toggleCapture(capturingKey); // 個別記録中なら終了
+    isBulkMode = true;
+    bulkTempKeys = [];
+    
+    document.getElementById('bulk-initial-btns').classList.add('hidden');
+    document.getElementById('bulk-capturing-btns').classList.remove('hidden');
+    
+    // 他の個別ボタンをすべて無効化
+    document.querySelectorAll('#gesture-list button').forEach(btn => btn.disabled = true);
+    
+    addLog("Bulk recording mode enabled.");
+  }
+
+  function exitBulkMode() {
+    isBulkMode = false;
+    bulkTempKeys = [];
+    document.getElementById('bulk-initial-btns').classList.remove('hidden');
+    document.getElementById('bulk-capturing-btns').classList.add('hidden');
+    renderGestureList();
+    addLog("Bulk mode exited.");
+  }
+
+  async function confirmBulkCapture() {
+    if (bulkTempKeys.length === 0) return;
+
+    const targetKeys = getFilteredKeys();
+    const btn = event.currentTarget;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="loading loading-spinner loading-xs"></span>';
+
+    for (const id of targetKeys) {
+      gestureShortcuts[id] = [...bulkTempKeys];
+      if (window.pywebview) await pywebview.api.save_gesture_shortcut(id, [...bulkTempKeys]);
+    }
+
+    addLog(`[Bulk Saved] ${targetKeys.length} items updated.`);
+    exitBulkMode();
+  }
+
+  function bulkDelete() {
+    const targetKeys = getFilteredKeys();
+    if (targetKeys.length === 0) return;
+    document.getElementById('bulk-delete-count').innerText = targetKeys.length;
+    document.getElementById('bulk_delete_modal').showModal();
+  }
+
+  async function executeBulkDelete() {
+    const targetKeys = getFilteredKeys();
+    for (const id of targetKeys) {
+      gestureShortcuts[id] = [];
+      if (window.pywebview) await pywebview.api.save_gesture_shortcut(id, []);
+    }
+    addLog(`[Bulk Deleted] ${targetKeys.length} items cleared.`);
+    renderGestureList();
+  }
+
+  // ==============================================
+  // キーボードイベントハンドラ
+  // ==============================================
+  window.addEventListener('keydown', (e) => {
+    if (!capturingKey && !isBulkMode) return;
+    e.preventDefault();
+
+    let key = e.key;
+    if (key === " ") key = "Space";
+    if (key === "Control") key = "Ctrl";
+    if (key === "Meta") key = "Win"; 
+
+    if (isBulkMode) {
+      if (!pressedKeys.has(key)) {
+        pressedKeys.add(key);
+        bulkTempKeys = Array.from(pressedKeys);
         
-        // 2秒間だけ「Copied!」を表示する視覚演出
-        function showCopyFeedback(element) {
-            const wait_time = 500;
-            element.classList.add('copied_tooltip');// "copied_tooltip"の名前の要素を::afterとして追加。
-            setTimeout(() => {
-                element.classList.remove('copied_tooltip');// "copied_tooltip"の名前の要素を::afterとして追加。
-            }, wait_time);
-        }
-        // URLをクリップボードにコピーする関数
-        async function copyHTTPURL() {
-            const el = document.getElementById('http-url');
-            const success = await pywebview.api.copy_to_clipboard(el.innerText);
-            if (success) showCopyFeedback(el);
-        }        
-
-        // ══════════════════════════════════════════════
-        // ジェスチャー・ショートカットタブ
-        // ══════════════════════════════════════════════
-        // ジェスチャーとショートカットの対応を表示する関数
-        function renderGestures(gesture_labels) {
-            const container = document.getElementById('gesture-shortcut-editor');
-            container.innerHTML = ''; // 再描画用
-            Object.keys(gesture_labels).forEach(id => {
-                const row = document.createElement('div');
-                row.className = 'gesture-row';
-                row.innerHTML = `
-                    <div class="gesture-label">${gesture_labels[id]}</div>
-                    <div class="key-display" id="display-${id}">${(gesture_shortcuts[id] || []).join(' + ')}</div>
-                    <button onclick="startCapture('${id}')" class="btn btn-primary" id="btn-${id}">記録</button>
-                    <button onclick="deleteGesture('${id}')" class="btn btn-danger"  id="btn-delete-${id}">削除</button>
-                `;
-                container.appendChild(row);
-            });
-        }
-        // ジェスチャーに対応するキーの記録を開始する関数
-        function startCapture(id) {
-            if(capturingKey) return;
-            capturingKey = id;
-            pressedKeys.clear();
-            const btn = document.getElementById(`btn-${id}`);
-            btn.innerText = "キーを離して確定...";
-            btn.classList.add('active');
-        }
-        // ジェスチャーに対応するキーの削除
-        async function deleteGesture(id) {
-            gesture_shortcuts[id] = []; // ローカルデータを空に
-            document.getElementById(`display-${id}`).innerText = '';
-            await pywebview.api.save_gesture_shortcut(id, []); // Python側へ空リストを送信
-        }
-        // 複数キー記録のロジック (keydown で蓄積、keyup で送信)
-        window.addEventListener('keydown', (e) => {
-            if(!capturingKey) return;
-            e.preventDefault();
-
-            // 修飾キーの正規化
-            let key = e.key;
-            if (key === "Control") key = "Ctrl";
-            if (key === "Meta") key = "Win"; // Windowsキーなど
-
-            pressedKeys.add(key);
-            
-            // リアルタイム表示用
-            const display = Array.from(pressedKeys);
-            document.getElementById(`display-${capturingKey}`).innerText = display.join(' + ');
+        const targetKeys = getFilteredKeys();
+        targetKeys.forEach(id => {
+          const display = document.getElementById(`display-${id}`);
+          if (display) {
+            display.innerHTML = bulkTempKeys.map(k => `<span class="kbd kbd-sm animate-pulse badge-warning text-warning-content">${k}</span>`).join(' + ');
+          }
         });
-        
-        window.addEventListener('keyup', (e) => {
-            if(!capturingKey) return;
-            
-            // 全てのキーが離されたら確定して保存
-            const finalKeys = Array.from(pressedKeys);
-            if (finalKeys.length > 0) {
-                saveAndFinish(capturingKey, finalKeys);
-            }
-            pressedKeys.clear();
-        });
-        // ジェスチャーに対応するキーの決定と保存
-        async function saveAndFinish(id, keys) {
-            gesture_shortcuts[id] = keys;
-            await pywebview.api.save_gesture_shortcut(id, keys);
-            
-            const btn = document.getElementById(`btn-${id}`);
-            btn.innerText = "記録";
-            btn.classList.remove('active');
-            capturingKey = null;
-        }
-        // ══════════════════════════════════════════════
-        // 設定タブ
-        // ══════════════════════════════════════════════
-        // 振動の設定
-        async function toggleVib() {
-            const val = document.getElementById('vib-toggle').checked;
-            await pywebview.api.toggle_vibration(val);
-        }
-        // ══════════════════════════════════════════════
-        // ログタブ
-        // ══════════════════════════════════════════════
-        // Python側からログを受け取って表示する関数
-        function addLog(message) {
-            const container = document.getElementById('log-container');
-            const entry = document.createElement('div');
-            entry.textContent = message;
-            container.appendChild(entry);            
-            // 常に最新（一番下）にスクロール
-            container.scrollTop = container.scrollHeight;
-        }
-    </script>
+      }
+    } else {
+      pressedKeys.add(key);
+      const display = document.getElementById(`display-${capturingKey}`);
+      if (display) {
+        display.innerHTML = Array.from(pressedKeys).map(k => `<span class="kbd kbd-sm animate-bounce badge-primary text-primary-content">${k}</span>`).join(' + ');
+      }
+    }
+  });
+
+  window.addEventListener('keyup', (e) => {
+    if (!capturingKey && !isBulkMode) return;
+
+    if (isBulkMode) {
+        pressedKeys.clear(); // 離した時は単にSetをリセット
+        return;
+    }
+    
+    // 個別モードは離した瞬間に確定
+    const finalKeys = Array.from(pressedKeys);
+    if (finalKeys.length > 0) {
+      saveShortcut(capturingKey, finalKeys);
+    }
+    pressedKeys.clear();
+  });
+
+  // ==============================================
+  // UI ユーティリティ
+  // ==============================================
+  function switchPanel(id) {
+    document.querySelectorAll('.panel').forEach(p => p.classList.add('hidden'));
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('btn-active', 'btn-primary'));
+    
+    document.getElementById('panel-' + id).classList.remove('hidden');
+    document.getElementById('nav-' + id).classList.add('btn-active', 'btn-primary');
+  }
+
+  async function copyText(elementId) {
+    const text = document.getElementById(elementId).innerText;
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        const el = document.createElement('textarea');
+        el.value = text;
+        document.body.appendChild(el);
+        el.select();
+        document.execCommand('copy');
+        document.body.removeChild(el);
+      }
+      addLog("Copied to clipboard.");
+    } catch (err) {
+      addLog("Copy failed.");
+    }
+  }
+
+  async function toggleVib() {
+    const val = document.getElementById('vib-toggle').checked;
+    if (window.pywebview) await pywebview.api.toggle_vibration(val);
+    addLog(`Vibration ${val ? 'ON' : 'OFF'}`);
+  }
+
+  function addLog(msg) {
+    const c = document.getElementById('log-container');
+    const time = new Date().toLocaleTimeString([], { hour12: false });
+    const d = document.createElement('div');
+    d.className = "mb-1";
+    d.innerHTML = `<span class="opacity-40 text-[10px] mr-2">[${time}]</span> ${msg}`;
+    c.appendChild(d);
+    c.scrollTop = c.scrollHeight;
+  }
+
+  function clearLogs() {
+    document.getElementById('log-container').innerHTML = '';
+    addLog("Logs cleared.");
+  }
+
+  // 初期化完了時
+  window.onload = () => {
+    if (typeof pywebview === 'undefined') {
+       addLog("Web browser mode (Mock API)");
+    }
+    switchPanel('qr');
+  };
+</script>
+
 </body>
 </html>
