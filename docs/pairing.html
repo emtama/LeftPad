@@ -73,7 +73,7 @@
         // DOMContentLoadedは完全にページが読み込まれてはいなくとも
         // 最低限HTMLの解析が終わったら実行	
         //=============================================================
-        window.addEventListener('DOMContentLoaded', () => {
+        window.addEventListener('load', () => {
             // 認証情報があるなら認証を試みる
             if (serverIp && authToken) {
                 if (connectWebSocket(serverIp, authToken)){
