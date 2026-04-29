@@ -26,12 +26,11 @@
     <div class="container">
         
         <!-- ポップアップ -->
-        <dialog id="modalDialog" class="custom-modal" onclick="event.target==this&&this.close()" style="display: none;">
-            <button class="close-btn" onclick="modalDialog.close()"></button>
+         <dialog class="custom-modal" data-modal="demo">
+            <button class="close-btn" data-modal-close></button>
             <div class="modal-body">
-                HTML側をさらに短縮しました。IDが指定されている要素は、現代のブラウザでは直接変数として扱えるため、document.getElementByIdを省略可能です。
             </div>
-        </dialog>
+        </div> 
 
         <!-- ローディング表示 -->
          <div class="spinner" id="loading-spinner" style="display: none;"></div>

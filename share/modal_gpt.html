@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Modal Fix Sample</title>
+
+<link rel="stylesheet" href="stylesheet.css">
+
+<style>
+</style>
+</head>
+
+<body>
+
+<button class="open-btn" data-modal-open="demo">
+    モーダルを開く
+</button>
+
+<dialog class="custom-modal" data-modal="demo">
+    <button class="close-btn" data-modal-close></button>
+    <div class="modal-body">
+        閉じるボタンのクリッピング問題を解消した構造。
+        dialog直配置ではなく内側コンテナを分離している。
+    </div>
+</dialog>
+
+<script src="modal.js"></script>
+<script>
+</script>
+
+</body>
+</html>
