@@ -13,21 +13,18 @@
 
 <body>
 
-<button class="open-btn" data-modal-open="demo">
-    モーダルを開く
-</button>
+    <dialog id="modal" class="custom-modal" data-modal="demo">
+        <button class="close-btn" data-modal-close></button>
+    </dialog>
 
-<dialog class="custom-modal" data-modal="demo">
-    <button class="close-btn" data-modal-close></button>
-    <div class="modal-body">
-        閉じるボタンのクリッピング問題を解消した構造。
-        dialog直配置ではなく内側コンテナを分離している。
-    </div>
-</dialog>
-
-<script src="modal.js"></script>
-<script>
-</script>
+    <script src="modal.js"></script>
+    <script>
+        const modal = document.getElementById('modal');
+        window.addEventListener('load', () => {
+            modal.textContent = "閉じるボタンのクリッピング問題を解消した構造。\ndialog直配置ではなく内側コンテナを分離している。";
+            modal.showModal();
+        });
+    </script>
 
 </body>
 </html>

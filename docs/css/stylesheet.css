@@ -202,7 +202,7 @@ button {
 }
 
 /*=============================================================
-/* トグルボタン */
+    トグルボタン 
 =============================================================*/
 .toggle-button-2 {/*スイッチの器*/
     /* --- カスタマイズ用の定数 --- */
@@ -259,13 +259,13 @@ button {
 =============================================================*/
 .close-btn { 
     position: absolute; 
-    top: -15px; 
-    right: -15px; 
-    width: 34px; 
-    height: 34px; 
+    top: -1rem; 
+    right: -1rem; 
+    width: 2rem; 
+    height: 2rem; 
     background: var(--close-btn-bg); 
     color: white; 
-    border: 2px solid white; 
+    border: 0.15rem solid white; 
     border-radius: 50%; 
     display: flex; 
     align-items: center; 
@@ -280,8 +280,8 @@ button {
 .close-btn::after {
     content: "";
     position: absolute;
-    width: 16px;
-    height: 2px;
+    width: 1rem;
+    height: 0.15rem;
     background-color: currentColor;
 }
 .close-btn::before { transform: rotate(45deg); }/* 十字を４５度回転させてXにする */

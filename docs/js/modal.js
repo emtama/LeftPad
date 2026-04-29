@@ -1,50 +1,68 @@
 //=============================================================
 //	モーダル
 //=============================================================
-class ModalManager {
-    constructor() {
-        this.bind(); // インスタンス生成時にイベントバインドを実行
+class ModalWrapper extends HTMLElement {
+    connectedCallback() {
+        const text = this.getAttribute('text') || '';
+
+        // 内部構造を生成
+        this.innerHTML = `
+            <dialog>
+                <div class="modal-body">
+                    <button class="modal-close"></button>
+                    <p>${text}</p>
+                </div>
+            </dialog>
+        `;
+
+        this.dialog = this.querySelector('dialog');
+
+        this.bind();
     }
 
     bind() {
-        // ドキュメント全体にクリックイベントを委譲して監視
+        // =========================
+        // 外部トリガー
+        // =========================
         document.addEventListener('click', (e) => {
+            const btn = e.target.closest('[data-open]');
+            if (!btn) return;
 
-            //=========================
-            // open（モーダルを開く）
-            //=========================
-            const open = e.target.closest('[data-modal-open]'); // クリックされた要素、またはその親に data-modal-open 属性があるか確認
-            if (open) {
-                const id = open.dataset.modalOpen; // data-modal-open の値（モーダル識別子）を取得
-                const modal = document.querySelector(`[data-modal="${id}"]`); // 対応するモーダル要素を取得
-                if (modal) modal.showModal(); // モーダルが存在すれば表示（<dialog>要素のAPI）
+            if (btn.dataset.open === this.id) {
+                this.dialog.showModal();
+            }
+        });
+
+        // =========================
+        // 内部イベント
+        // =========================
+        this.dialog.addEventListener('click', (e) => {
+
+            // closeボタン
+            if (e.target.closest('.modal-close')) {
+                this.dialog.close();
+                return;
             }
 
-            //=========================
-            // close button（ボタンで閉じる）
-            //=========================
-            const close = e.target.closest('[data-modal-close]'); // data-modal-close 属性を持つ要素を検出
-            if (close) {
-                const modal = close.closest('dialog'); // その要素が属する <dialog> を取得
-                if (modal) modal.close(); // モーダルを閉じる
-            }
-
-            //=========================
-            // backdrop close（外側クリックで閉じる）
-            //=========================
-            if (e.target.tagName === 'DIALOG') { // クリック対象が <dialog> 自体かどうか判定
-                const rect = e.target.getBoundingClientRect(); // モーダルの表示領域（位置とサイズ）を取得
+            // backdropクリック
+            if (e.target === this.dialog) {
+                const r = this.dialog.getBoundingClientRect();
                 const inside =
-                    e.clientX >= rect.left &&   // クリック位置が左端以上か
-                    e.clientX <= rect.right &&  // クリック位置が右端以下か
-                    e.clientY >= rect.top &&    // クリック位置が上端以上か
-                    e.clientY <= rect.bottom;   // クリック位置が下端以下か
+                    e.clientX >= r.left &&
+                    e.clientX <= r.right &&
+                    e.clientY >= r.top &&
+                    e.clientY <= r.bottom;
 
-                if (!inside) e.target.close(); // モーダル外（背景）クリックなら閉じる
+                if (!inside) this.dialog.close();
             }
+        });
+
+        // Escキー
+        this.dialog.addEventListener('cancel', (e) => {
+            e.preventDefault();
+            this.dialog.close();
         });
     }
 }
 
-// クラスをインスタンス化して機能を有効化
-new ModalManager();
+customElements.define('modal-wrapper', ModalWrapper);

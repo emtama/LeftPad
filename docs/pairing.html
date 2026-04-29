@@ -26,7 +26,7 @@
     <div class="container">
         
         <!-- ポップアップ -->
-         <dialog id="modalDialog" class="custom-modal" data-modal="demo">
+        <dialog id="modalDialog" class="custom-modal" data-modal="demo">
             <button class="close-btn" data-modal-close></button>
             <!-- テキストは document.getelementbyid(id).textcontentから設定する -->
         </div> 
@@ -61,11 +61,11 @@
     </div>
 
     <!-- qrコード読み取り用のライブラリ -->
-    <script src="js/modal.js"></script>
+    <script src="./js/modal.js"></script>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <script>
 
-        const modalDialog = document.getElementById('modalDialog')
+        const modalDialog = document.getElementById('modalDialog');
         let serverIp = localStorage.getItem('server_ip');
         let authToken = localStorage.getItem('auth_token');
         const WS_PORT = 8765;
