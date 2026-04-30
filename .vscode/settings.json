@@ -1,0 +1,12 @@
+{
+    "emeraldwalk.runonsave": {
+    "commands": [
+        {
+            // .jsonc ファイルが保存されたときのみ実行
+            "match": ".*\\.jsonc$",
+            // Pythonスクリプトを実行。${file} は保存されたファイルのフルパスに置換されます
+            "cmd": "python \"${workspaceFolder}/jsonc_to_json.py\" \"${file}\""
+        }
+    ]
+    }
+}

@@ -1,0 +1,25 @@
+{
+  // 
+  "short_name": "LeftPad v1",// ホーム画面のアイコン下に表示される短い名前。	必須。長いと省略されるため、12文字以内が推奨。
+  "name": "LeftPad Mobile Controller v1",// アプリの正式名称。インストール確認画面などで表示。	必須。
+  "description": "スマホをPCの左手デバイスとして連携させるアプリです。",// アプリの説明文。ストアなどで表示。
+  "icons": [// アプリのアイコン画像。192pxと512pxの2種が必要。	必須。PWAのインストール条件の1つです。
+    {
+      "src": "images/icon-192x192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any maskable"//アイコンを円形や角丸など、OSに合わせて切り抜ける設定。
+    },
+    {
+      "src": "images/icon-512x512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "/index.html",// アプリ起動中のスプラッシュ画面の背景色。必須。
+  "background_color": "#000000",// アプリ起動中のスプラッシュ画面の背景色。
+  "display": "standalone",// ブラウザのUI（URLバー等）を隠し、単体アプリのように表示。	必須。これがないとPWAらしくなりません。
+  "scope": "/",//アプリが制御するディレクトリの範囲。	推奨。ルートなら "/" でOK。
+  "theme_color": "#000000"// ツールバーなどのテーマ色。	推奨。
+}
