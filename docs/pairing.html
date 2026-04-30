@@ -186,20 +186,20 @@
         //=============================================================
         function authenticateWebSocket(ip, token) {      
             // 
-            console.log(`authenticateWebSocket`)
+            console.log(`authenticateWebSocket`);
             document.getElementById('loading-spinner').classList.remove('hidden');
             //
-            console.log(`authenticateWebSocket`)
+            console.log(`authenticateWebSocket`);
 
             const wsUrl = `ws://${ip}:${WS_PORT}`; // 修正: wssからwsへ（ローカル開発想定）
             try {
                 const ws = new WebSocket(wsUrl);
 
             } catch(e) {
-                console.log(`error: ${error}`)
+                console.log(`error: ${error}`);
             }
             // 
-            console.log(`authenticateWebSocket`)
+            console.log(`authenticateWebSocket`);
 
             ws.onopen = () => {
                 ws.send(JSON.stringify({
@@ -207,7 +207,7 @@
                 }));
             };
             // 
-            console.log(`authenticateWebSocket`)
+            console.log(`authenticateWebSocket`);
 
             ws.onmessage = (e) => {
                 let d; 
