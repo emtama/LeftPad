@@ -142,6 +142,8 @@
                     console.log("Read: ", decodedText);
                     try {
                         const { ip, token } = decodeURLtoIPandToken(decodedText);
+                        console.log(`ip ${ip} token ${token}`);
+
                         if (ip && token) {
                             console.log("StopQRScanner");
                             qr_scanner.stop();
