@@ -15,6 +15,8 @@ import socket
 import qrcode
 import io
 import base64
+import subprocess
+
 
 # ══════════════════════════════════════════════
 #  グローバル変数の初期化
@@ -28,9 +30,9 @@ WS_BROADCAST_QUEUE = queue.Queue()
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 # 証明書ファイルのパス
-SSL_CERT_FILE_PATH = os.path.join(BASE_DIR, "cert.pem")
-SSL_KEY_FILE_PATH = os.path.join(BASE_DIR, "key.pem")
-
+SSL_CERT_FILE_PATH = os.path.join(BASE_DIR, "ssl/cert.pem")
+SSL_KEY_FILE_PATH = os.path.join(BASE_DIR, "ssl/key.pem")
+# ジェスチャー定義系のJSONファイルパス
 GESTURE_LABELS_PATH = os.path.join(BASE_DIR, "../share/gesture_labels.json")
 GESTURE_SHORTCUTS_PATH = os.path.join(BASE_DIR, "../share/gesture_shortcuts.json")
 GESTURE_TAGS_PATH = os.path.join(BASE_DIR, "../share/gesture_tags.json")
@@ -52,6 +54,38 @@ APP_SETTINGS = {
 #  SSL/HTTPS 判定ユーティリティ
 # ══════════════════════════════════════════════
 
+
+def ensure_ssl_cert():
+    """sslディレクトリに自己署名証明書を生成"""
+    try:
+        if os.path.exists(SSL_CERT_FILE_PATH) and os.path.exists(SSL_KEY_FILE_PATH):
+            return True
+
+        os.makedirs(SSL_DIR, exist_ok=True)
+
+        LOGGER.warning("SSL証明書が存在しないため自己署名証明書を生成する")
+
+        cmd = [
+            "openssl",
+            "req",
+            "-x509",
+            "-newkey", "rsa:2048",
+            "-keyout", SSL_KEY_FILE_PATH,
+            "-out", SSL_CERT_FILE_PATH,
+            "-days", "365",
+            "-nodes",
+            "-subj", "/CN=localhost"
+        ]
+
+        subprocess.run(cmd, check=True)
+
+        LOGGER.info("自己署名証明書を生成した")
+        return True
+
+    except Exception as e:
+        LOGGER.error(f"証明書生成失敗: {e}")
+        return False
+
 def is_ssl_available():
     """証明書ファイルが存在するかチェック"""
     available = os.path.exists(SSL_CERT_FILE_PATH) and os.path.exists(SSL_KEY_FILE_PATH)
@@ -61,14 +95,19 @@ def is_ssl_available():
 
 def get_ssl_context():
     """HTTPS/WSS用のSSLコンテキストを作成。ファイルがない場合はNoneを返す"""
-    if not is_ssl_available():
+
+    if not ensure_ssl_cert():
         return None
+
     try:
         context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-        context.load_cert_chain(certfile=SSL_CERT_FILE_PATH, keyfile=SSL_KEY_FILE_PATH)
+        context.load_cert_chain(
+            certfile=SSL_CERT_FILE_PATH,
+            keyfile=SSL_KEY_FILE_PATH
+        )
         return context
     except Exception as e:
-        if LOGGER: LOGGER.error(f"SSLコンテキスト作成エラー: {e}")
+        LOGGER.error(f"SSLコンテキスト作成エラー: {e}")
         return None
 
 # ══════════════════════════════════════════════
@@ -247,7 +286,9 @@ async def ws_handler(websocket):
         CONNECTED_CLIENTS.discard(websocket)
         CONNECTED_CLIENTS_INFOS.pop(websocket, None)
         inform_ui_connection_stats()
-
+#=============================================================
+#   WS    
+#=============================================================
 def run_ws():
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
