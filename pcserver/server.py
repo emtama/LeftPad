@@ -164,7 +164,7 @@ class JSApi:
         img.save(buffered, format="PNG")
         return base64.b64encode(buffered.getvalue()).decode()
 
-    def save_shortcut(self, gesture_key, keys_list):
+    def save_gesture_shortcut(self, gesture_key, keys_list):
         try:            
             if not isinstance(keys_list, list): keys_list = []
             normalized_keys = [str(k).lower() for k in keys_list]            

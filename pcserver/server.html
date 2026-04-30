@@ -230,27 +230,64 @@
     }  
     initTestMode(); // テストモード開始
   }
+  //=============================================================
+  //  CSS変数(OKLCH等)をPillow互換のHEXに変換
+  //=============================================================
+  const getComputedColor = (() => {
+    // CanvasとContextをクロージャ内に保持（再利用して高速化）
+    const canvas = document.createElement('canvas');
+    canvas.width = 1;
+    canvas.height = 1;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+
+    return (variableName) => {
+        try {
+            // 1. CSS変数の値を解決
+            // bodyに追加しなくても getComputedStyle は有効な値を計算できる場合が多い
+            const rawColor = getComputedStyle(document.documentElement)
+                .getPropertyValue(variableName).trim();
+
+            if (!rawColor) return '#000000'; // 変数が空なら黒を返す
+
+            // 2. Canvasに色を流し込んでRGBを抽出
+            ctx.clearRect(0, 0, 1, 1);
+            ctx.fillStyle = `oklch(${rawColor})`; // daisyUIの変数は数値のみの場合があるためラップ
+            
+            // それでもダメならそのまま代入（既にoklch()形式や名前付き色のケース）
+            if (ctx.fillStyle === '#000000' && rawColor !== 'black' && rawColor !== '#000000') {
+                ctx.fillStyle = rawColor;
+            }
+
+            ctx.fillRect(0, 0, 1, 1);
+            const [r, g, b] = ctx.getImageData(0, 0, 1, 1).data;
+
+            // 3. HEX形式へ変換
+            const toHex = (v) => v.toString(16).padStart(2, '0');
+            return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+            
+        } catch (e) {
+            console.error('Color conversion failed:', e);
+            return '#000000'; // エラー時は安全のため黒を返す
+        }
+    };
+})();
 
   // ==============================================
   // 初期化 & 通信
   // ==============================================
   window.addEventListener('pywebviewready', async () => {
-    // daisyUIのアクセントカラー、ニュートラルカラーを取得
-    const accent = styles.getPropertyValue('--a').trim();
-    const neutral = styles.getPropertyValue('--n').trim();
+    
     try {
-      const data = await pywebview.api.get_init_data(styles.getPropertyValue('--a'), styles.getPropertyValue('--n'));
+      const data = await pywebview.api.get_init_data("#000000", "#ffffff");
       
       document.getElementById('qr-img').src = 'data:image/png;base64,' + data.qr_image;
       document.getElementById('http-url').innerText = data.http_url;
       document.getElementById('vib-toggle').checked = data.vibration;
       
-      gestureLabels = data.gesture_labels;
-      gestureShortcuts = data.gesture_shortcuts;
-      gestureTags = data.gesture_tags;
-      gestureTagLabels = data.gesture_tag_labels;
-
-      addLog(gestureLabels, gestureShortcuts, gestureTags, gestureTagLabels);
+      gestureLabels = data.gesture_labels || {};
+      gestureShortcuts = data.gesture_shortcuts || {};
+      gestureTags = data.gesture_tags || {};
+      gestureTagLabels = data.gesture_tag_labels || {};
 
       renderTagFilters();
       renderGestureList();
@@ -537,6 +574,9 @@
     addLog(`Vibration ${val ? 'ON' : 'OFF'}`);
   }
 
+  //=============================================================
+  //	ログ関連
+  //=============================================================
   function addLog(msg) {
     const c = document.getElementById('log-container');
     const time = new Date().toLocaleTimeString([], { hour12: false });

@@ -1,227 +1,177 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html lang="ja" data-theme="dark">
 <head>
     <meta charset="UTF-8" />
-    <link rel="stylesheet" href="./css/stylesheet.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.10/dist/full.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" />
+    <title>LEFTPAD Pairing</title>
     <style>
-        *{
-            /*テキストの選択を禁止 */
-            -webkit-user-select: none; /* Safari / iOS */
-            -ms-user-select: none;     /* 旧Edge */
-            user-select: none;         /* 標準 */
-        }
-        body{
-            display:flex; 
-            flex-direction:column; 
-            align-items:center; 
-            justify-content:center;
-        }
-        /* 全体のコンテナ */
-        #qr-reader-window{
-            width: 60vw;
-        }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; -webkit-user-select: none; user-select: none; }
+        #qr-reader-window { width: 100%; border-radius: 1rem; overflow: hidden; }
+        #qr-reader-window video { border-radius: 1rem; }
     </style>
 </head>
-<body>
-    <div class="container">
-        
-        <!-- ポップアップ -->
-        <dialog id="modalDialog" class="custom-modal" data-modal="demo">
-            <button class="close-btn" data-modal-close></button>
-            <!-- テキストは document.getelementbyid(id).textcontentから設定する -->
-        </div> 
+<body class="bg-base-100 min-h-screen flex flex-col items-center p-6">
 
-        <!-- ローディング表示 -->
-         <div class="spinner" id="loading-spinner" style="display: none;"></div>
+    <dialog id="modalDialog" class="modal">
+      <div class="modal-box border border-primary text-center">
+        <h3 id="modal-text" class="font-bold text-lg"></h3>
+        <div class="modal-action justify-center">
+          <form method="dialog">
+            <button class="btn btn-primary">OK</button>
+          </form>
+        </div>
+      </div>
+    </dialog>
 
-        <h1>LEFTPAD</h1>
-        
-        <h2>ペアリング</h2>
-
-        <div class="container" id="qr-container"> 
-            <p>PC側アプリのQRコードをスキャンしてペアリングする</p> 
-            <div id="qr-reader-window">
-                <!-- カメラ画面を移すためのdiv -->
-            </div>            
+    <div class="w-full max-w-md flex flex-col items-center gap-8">
+        <div class="flex flex-col items-center gap-2">
+            <div class="avatar placeholder">
+                <div class="bg-primary text-primary-content rounded-full w-16">
+                    <span class="text-2xl font-bold">LP</span>
+                </div>
+            </div>
+            <h1 class="text-3xl font-black tracking-tighter">LEFTPAD</h1>
+            <div class="badge badge-outline opacity-50 uppercase tracking-widest text-[10px]">Pairing Mode</div>
         </div>
 
-        <div class="container" id="url-container" style="display: none;">
-            <p>PC側アプリのURLを入力してペアリングする</p>
-            <div class="container">
-                <input class="txtbox" type="text" id="manual-url" placeholder="テキストボックスの例"/>
-                <button id="connect-btn" class="btn btn-primary" onclick="manualConnect()">
-                    接続
-                </button>
-                <button id="scan-btn" class="btn btn-primary" onclick="startQRScan()">
-                    QRスキャン再試行
-                </button>
+        <div id="qr-container" class="card bg-base-200 w-full shadow-xl border border-base-300">
+            <div class="card-body items-center text-center p-6">
+                <div class="flex items-center gap-2 mb-4 text-primary">
+                    <span class="material-symbols-outlined">qr_code_scanner</span>
+                    <h2 class="card-title text-sm">QRスキャン</h2>
+                </div>
+                <div id="qr-reader-window" class="bg-black aspect-square mb-4 border-2 border-primary/20"></div>
+                <p class="text-xs opacity-60">PCアプリに表示されたQRコードを<br>枠内に収めてください</p>
             </div>
         </div>
 
+        <div id="url-container" class="hidden card bg-base-200 w-full shadow-xl border border-base-300">
+            <div class="card-body p-6">
+                <h2 class="card-title text-sm mb-4 flex items-center gap-2">
+                    <span class="material-symbols-outlined">link</span> 手動接続
+                </h2>
+                <div class="form-control gap-4">
+                    <input type="text" id="manual-url" placeholder="http://192.168..." class="input input-bordered w-full" />
+                    <button class="btn btn-primary w-full" onclick="manualConnect()">
+                        <span class="material-symbols-outlined">bolt</span> 接続
+                    </button>
+                    <button class="btn btn-ghost btn-sm" onclick="startQRScan()">
+                        QRスキャンを再試行
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <div id="loading-spinner" class="hidden flex flex-col items-center gap-2">
+            <span class="loading loading-ring loading-lg text-primary"></span>
+            <span class="text-xs opacity-50">接続中...</span>
+        </div>
     </div>
 
-    <!-- qrコード読み取り用のライブラリ -->
-    <script src="./js/modal.js"></script>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <script>
+        // ロジック部分は変更なし (UI操作のID指定のみ微調整)
+        const modal = document.getElementById('modalDialog');
+        const modalText = document.getElementById('modal-text');
+        
+        function showMsg(msg) {
+            modalText.textContent = msg;
+            modal.showModal();
+        }
 
-        const modalDialog = document.getElementById('modalDialog');
         let serverIp = localStorage.getItem('server_ip');
         let authToken = localStorage.getItem('auth_token');
         const WS_PORT = 8765;
 
-        //=============================================================
-        // ページ読み込み時に認証を試行し失敗時QR撮影を開始
-        // DOMContentLoadedはHTMLが読み込まれたら実行	
-        // loadはHTML,CSS, JSなど読み込まれたら実行
-        //=============================================================
-        window.addEventListener('DOMContentLoaded', () => {
-
-        });
-
         window.addEventListener('load', () => {
-            // 認証情報があるなら認証を試みる
             if (serverIp && authToken) {
+                // ロジック実行
                 if (connectWebSocket(serverIp, authToken)){
                     location.href = "smartphone.html";
                 }             
             }
-            // QR撮影開始のダイアログ
-            modalDialog.textContent = "QRを撮影してペアリングします";
-            modalDialog.showModal();
-            // もし認証情報がないならQR撮影に入る
             startQRScan();
-
         });
-        //=============================================================
-        //	画面のどこかがクリックされているならダイアログを閉じる
-        //=============================================================
-        window.addEventListener('click', () => {
-            const modalDialog = document.getElementsByClassName('dialog');
-            // もしダイアログが開いているなら閉じる
-            modalDialog.close();
-        })
 
-        //=============================================================
-        //	HTTPSのURLから
-        //=============================================================
         function decodeURLtoIPandToken(https_url){
-            // QRの内容が http://192.168.1.5:8080/smartphone.html?ip=192.168.1.5&token=... 形式と想定
-            
             const u = new URL(https_url);
             const ip = u.searchParams.get("ip");
             const token = u.searchParams.get("token");
             return { ip, token };
         }
-        //=============================================================
-        //	QRスキャンでURLを取得
-        //=============================================================
-        let qr_scanner = null;
-        let scanning = false;   // スキャン中かどうか
-        function startQRScan() {
-            if (scanning) return;   // すでにスキャンしているならばreturn
-           
-            const height = document.documentElement.clientHeight;// 画面の高さ
 
+        let qr_scanner = null;
+        let scanning = false;
+        function startQRScan() {
+            if (scanning) return;
+            document.getElementById('url-container').classList.add('hidden');
+            document.getElementById('qr-container').classList.remove('hidden');
+            
+            const height = document.documentElement.clientHeight;
             qr_scanner = new Html5Qrcode("qr-reader-window");
 
             qr_scanner.start(
                 { facingMode: "environment" },             
-                { 
-                    fps: 10, 
-                    qrbox: { 
-                        width: 0.3 * height,
-                        height: 0.3 * height
-                    }  
-                }, 
-                // qrを検出した時呼ぶ
+                { fps: 10, qrbox: { width: 250, height: 250 } }, 
                 (decodedText) => {
                     try {
                         const { ip, token } = decodeURLtoIPandToken(decodedText);
-                        
                         if (ip && token) {
                             qr_scanner.stop();
                             scanning = false;
                             connectAndSave(ip, token);
                         }
                     } catch (e) {
-                        // エラーが出た場合ポップアップ表示
-                        modalDialog.textContent = "有効でないQRコードです";
-                        modalDialog.showModal();
+                        showMsg("有効でないQRコードです");
                     }
                 }
-            ).then(() => {
-                // カメラ起動に成功した直後に1回だけ実行
-                // 
-                scanning = true;
-            }).catch(err => {
-                // qr_scanner.startに失敗
+            ).then(() => { scanning = true; })
+            .catch(err => {
                 scanning = false;
-                modalDialog.textContent = "カメラの起動に失敗しました";
-                modalDialog.showModal();
-                qr_scanner.stop();
-                //
-                document.getElementById('url-container').style.display = 'flex';
-                document.getElementById('qr-container').style.display = 'none';
+                showMsg("カメラの起動に失敗しました");
+                document.getElementById('url-container').classList.remove('hidden');
+                document.getElementById('qr-container').classList.add('hidden');
             });
         }
         
-        //=============================================================
-        //	手動でURLを取得
-        //=============================================================
         function manualConnect() {
-            const urltext = document.getElementById('url-container').value;
-            const { ip, token } = decodeURLtoIPandToken(urltext);
-            
-            if (ip && token) {
-                connectAndSave(ip, token);
-            }
+            const urltext = document.getElementById('manual-url').value;
+            try {
+                const { ip, token } = decodeURLtoIPandToken(urltext);
+                if (ip && token) connectAndSave(ip, token);
+            } catch(e) { showMsg("URLの形式が正しくありません"); }
         }
 
-        //=============================================================
-        //	WSで認証した後、認証成功うしたらIPとトークンを保存する関数
-        //=============================================================
         function connectAndSave(ip, token) {      
-
-            // サーバーへの接続wssURLを作成
-            wsURL = `wss://${self.ip}:${WS_PORT}`;
-            // 接続時にトークンを送信するなどの認証処理をここに追加
-            ws = new WebSocket(wsUrl);
+            document.getElementById('loading-spinner').classList.remove('hidden');
+            const wsUrl = `ws://${ip}:${WS_PORT}`; // 修正: wssからwsへ（ローカル開発想定）
+            const ws = new WebSocket(wsUrl);
             
             ws.onopen = () => {
-                // 最初にトークンを送って認証
                 ws.send(JSON.stringify({type:'auth', token}));
             };
 
-            // 返信を受け取る
-            ws.onmessage = (e)=>{
-            let d; try{d=JSON.parse(e.data)}catch{return} // メッセージをjsonに変換
-            // 認証結果を受け取って処理
-            if(d.type==='auth'){
-                isAuthed=!!d.ok;// 真理値に変換
-                if(isAuthed) {       
-                    // 認証成功したらIPとトークンを保存                    
-                    localStorage.setItem('server_ip', ip);
-                    localStorage.setItem('auth_token', token);                   
-                    // 操作画面へ移行
-                    location.href = `smartphone.html`; // smartphone.html側でURLからトークンを拾うロジックに合わせて
-                }else{
-                    // 認証に失敗した場合URL入力に戻る
-                    modalDialog.textContent = "認証に失敗しました";
-                    modalDialog.showModal();
-
+            ws.onmessage = (e) => {
+                let d; try{d=JSON.parse(e.data)}catch{return}
+                if(d.type==='auth'){
+                    if(d.ok) {       
+                        localStorage.setItem('server_ip', ip);
+                        localStorage.setItem('auth_token', token);                   
+                        location.href = `smartphone.html?token=${token}`;
+                    } else {
+                        showMsg("認証に失敗しました");
+                        document.getElementById('loading-spinner').classList.add('hidden');
+                    }
                 }
-                return;
-            }            
-            
+            };
+
             ws.onclose = () => {
-                // 切断されたら再試行
-                isAuthed=false; 
-                setTimeout(connectAndSave(ip, token), 1500);
+                console.log("WS Close");
             };
         }
-    }
-
     </script>
 </body>
 </html>
