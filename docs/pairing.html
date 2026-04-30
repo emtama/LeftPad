@@ -105,13 +105,11 @@
             if (serverIp && authToken) {
                 try {
                     authenticateWebSocket(serverIp, authToken);
-                    location.href = "gesture_input.html";
                 } catch(e) {
-                    startQRScan();
+                    console.log(`authentication by saved ip and token failed.: ${e} trying qr scan...`)
                 }
-            } else {
-                startQRScan();
             }
+            startQRScan();
         });
         //=============================================================
         //	URL文字列からIPとトークン文字列を抽出する関数
