@@ -104,7 +104,7 @@
 
             if (serverIp && authToken) {
                 try {
-                    connectWebSocket(serverIp, authToken);
+                    authenticateWebSocket(serverIp, authToken);
                     location.href = "gesture_input.html";
                 } catch(e) {
                     startQRScan();
@@ -149,7 +149,7 @@
                             qr_scanner.stop();
                             scanning = false;
                             console.log("connect ws");
-                            connectWebSocket(ip, token);
+                            authenticateWebSocket(ip, token);
                         }
                     } catch (e) {
                         showMsg("有効でないQRコードです");
@@ -176,19 +176,25 @@
                 const { ip, token } = decodeURLtoIPandToken(inputText);
                 console.log("[QR] parsed:", { ip, token });
                 if (ip && token) {
-                    connectWebSocket(ip, token);
+                    authenticateWebSocket(ip, token);
                 }
 
             } catch(e) { showMsg("URLの形式が正しくありません"); }
         }
-
-        function connectWebSocket(ip, token) {      
+        //=============================================================
+        //	WebSocketを用いて認証を行い、成功したら操作画面に遷移する
+        //=============================================================
+        function authenticateWebSocket(ip, token) {      
+            // 
             document.getElementById('loading-spinner').classList.remove('hidden');
+            //
             const wsUrl = `ws://${ip}:${WS_PORT}`; // 修正: wssからwsへ（ローカル開発想定）
             const ws = new WebSocket(wsUrl);
-            
+            // 
             ws.onopen = () => {
-                ws.send(JSON.stringify({type:'auth', token}));
+                ws.send(JSON.stringify({
+                    type:'auth', token
+                }));
             };
 
             ws.onmessage = (e) => {
@@ -205,7 +211,7 @@
                     }
                 }
             };
-
+            // 
             ws.onclose = () => {
                 console.log("WS Close");
             };
