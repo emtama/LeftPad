@@ -187,6 +187,7 @@
         function authenticateWebSocket(ip, token) {      
             // 
             console.log(`start authentication.`);
+            //
             document.getElementById('loading-spinner').classList.remove('hidden');
             //
             const wsUrl = `wss://${ip}:${WS_PORT}`; // 修正: wssからwsへ（ローカル開発想定）
@@ -198,10 +199,8 @@
                     type:'auth', token
                 }));
             };
-            console.log(`authenticateWebSocket`);
+            console.log(`send authentication message.`);
             // 
-            console.log(`authenticateWebSocket`);
-
             ws.onmessage = (e) => {
                 let d; 
                 try{d=JSON.parse(e.data)}catch{return}
@@ -216,6 +215,7 @@
                     }
                 }
             };
+            console.log(`send authentication message.`);
             // 
             ws.onclose = () => {
                 console.log("WS Close");
