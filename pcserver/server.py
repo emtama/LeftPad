@@ -30,8 +30,9 @@ WS_BROADCAST_QUEUE = queue.Queue()
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 # 証明書ファイルのパス
-SSL_CERT_FILE_PATH = os.path.join(BASE_DIR, "ssl/cert.pem")
-SSL_KEY_FILE_PATH = os.path.join(BASE_DIR, "ssl/key.pem")
+SSL_DIR = os.path.join(BASE_DIR, 'ssl')
+SSL_CERT_FILE_PATH = os.path.join(SSL_DIR, "ssl/cert.pem")
+SSL_KEY_FILE_PATH = os.path.join(SSL_DIR, "ssl/key.pem")
 # ジェスチャー定義系のJSONファイルパス
 GESTURE_LABELS_PATH = os.path.join(BASE_DIR, "../share/gesture_labels.json")
 GESTURE_SHORTCUTS_PATH = os.path.join(BASE_DIR, "../share/gesture_shortcuts.json")
@@ -53,7 +54,6 @@ APP_SETTINGS = {
 # ══════════════════════════════════════════════
 #  SSL/HTTPS 判定ユーティリティ
 # ══════════════════════════════════════════════
-
 
 def ensure_ssl_cert():
     """sslディレクトリに自己署名証明書を生成"""
