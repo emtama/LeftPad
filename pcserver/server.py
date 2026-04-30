@@ -34,10 +34,11 @@ SSL_DIR = os.path.join(BASE_DIR, 'ssl')
 SSL_CERT_FILE_PATH = os.path.join(SSL_DIR, "cert.pem")
 SSL_KEY_FILE_PATH = os.path.join(SSL_DIR, "key.pem")
 # ジェスチャー定義系のJSONファイルパス
-GESTURE_LABELS_PATH = os.path.join(BASE_DIR, "../share/gesture_labels.json")
-GESTURE_SHORTCUTS_PATH = os.path.join(BASE_DIR, "../share/gesture_shortcuts.json")
-GESTURE_TAGS_PATH = os.path.join(BASE_DIR, "../share/gesture_tags.json")
-GESTURE_TAG_LABELS_PATH = os.path.join(BASE_DIR, "../share/gesture_tag_labels.json")
+GESTURE_JSON_DIR = os.path.join(BASE_DIR, "json")
+GESTURE_LABELS_PATH = os.path.join(GESTURE_JSON_DIR, "gesture_labels.json")
+GESTURE_SHORTCUTS_PATH = os.path.join(GESTURE_JSON_DIR, "gesture_shortcuts.json")
+GESTURE_TAGS_PATH = os.path.join(GESTURE_JSON_DIR, "gesture_tags.json")
+GESTURE_TAG_LABELS_PATH = os.path.join(GESTURE_JSON_DIR, "gesture_tag_labels.json")
 
 LOGGER = None
 GESTURE_LABELS = {}
