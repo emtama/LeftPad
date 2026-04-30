@@ -145,6 +145,9 @@ class JSApi:
             
             self.http_url = f"{scheme_http}://{self.ip}:{HTTP_PORT}/{JSApi.PWA_START_HTML_PATH}?ip={self.ip}&token={ACCESS_TOKEN}"
             self.ws_url = f"{scheme_ws}://{self.ip}:{WS_PORT}"
+        else:
+            # すでに自身のIPがわかっているならデータを返す
+            pass
         
         return {
             "http_url": self.http_url,

@@ -83,7 +83,7 @@
             // 認証情報があるなら認証を試みる
             if (serverIp && authToken) {
                 if (connectWebSocket(serverIp, authToken)){
-                    location.href = "smartphone.html";
+                    location.href = "gesture_input.html";
                 }             
             }
             // QR撮影開始のダイアログ
@@ -106,7 +106,7 @@
         //	HTTPSのURLから
         //=============================================================
         function decodeURLtoIPandToken(https_url){
-            // QRの内容が http://192.168.1.5:8080/smartphone.html?ip=192.168.1.5&token=... 形式と想定
+            // QRの内容が http://192.168.1.5:8080/gesture_input.html?ip=192.168.1.5&token=... 形式と想定
             
             const u = new URL(https_url);
             const ip = u.searchParams.get("ip");
@@ -204,7 +204,7 @@
                     localStorage.setItem('server_ip', ip);
                     localStorage.setItem('auth_token', token);                   
                     // 操作画面へ移行
-                    location.href = `smartphone.html`; // smartphone.html側でURLからトークンを拾うロジックに合わせて
+                    location.href = `gesture_input.html`; // gesture_input.html側でURLからトークンを拾うロジックに合わせて
                 }else{
                     // 認証に失敗した場合URL入力に戻る
                     modalDialog.textContent = "認証に失敗しました";

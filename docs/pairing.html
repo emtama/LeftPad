@@ -73,7 +73,9 @@
 
     <script src="https://unpkg.com/html5-qrcode"></script>
     <script>
-        // ロジック部分は変更なし (UI操作のID指定のみ微調整)
+        //=============================================================
+        //	モーダルの表示
+        //=============================================================
         const modal = document.getElementById('modalDialog');
         const modalText = document.getElementById('modal-text');
         
@@ -82,18 +84,34 @@
             modal.showModal();
         }
 
+
+        //=============================================================
+        //	グローバル変数
+        //  - ネットワーク認証関係
+        //=============================================================
+
         let serverIp = localStorage.getItem('server_ip');
         let authToken = localStorage.getItem('auth_token');
         const WS_PORT = 8765;
 
+        //=============================================================
+        //	初期化
+        //  最初にHTML,CSS,JSが読み込まれたときに実行
+        //=============================================================
         window.addEventListener('load', () => {
+            // サーバIPと認証トークンがすでにローカルにあるならそれで接続を試し成功なら操作画面に遷移
+            // そうでないならQRスキャン開始
+
             if (serverIp && authToken) {
-                // ロジック実行
-                if (connectWebSocket(serverIp, authToken)){
-                    location.href = "smartphone.html";
-                }             
+                try {
+                    connectWebSocket(serverIp, authToken);
+                    location.href = "gesture_input.html";
+                } catch(e) {
+                    startQRScan();
+                }
+            } else {
+                startQRScan();
             }
-            startQRScan();
         });
 
         function decodeURLtoIPandToken(https_url){
@@ -106,29 +124,36 @@
         let qr_scanner = null;
         let scanning = false;
         function startQRScan() {
+            // すでに起動中なら何もしない
             if (scanning) return;
+            // UIの切り替え
             document.getElementById('url-container').classList.add('hidden');
             document.getElementById('qr-container').classList.remove('hidden');
-            
-            const height = document.documentElement.clientHeight;
+            // スキャナーインスタンスの作成
             qr_scanner = new Html5Qrcode("qr-reader-window");
 
             qr_scanner.start(
-                { facingMode: "environment" },             
-                { fps: 10, qrbox: { width: 250, height: 250 } }, 
+                { facingMode: "environment" }, // 背面カメラの使用      
+                { fps: 10, qrbox: { width: 500, height: 500 } }, // fpsとQR認識範囲の設定
+                // 読み取り成功時に呼び出す処理
                 (decodedText) => {
                     try {
+                        console.log("[QR] decodedText:", decodedText);
                         const { ip, token } = decodeURLtoIPandToken(decodedText);
+                        console.log("[QR] parsed:", { ip, token });
                         if (ip && token) {
-                            qr_scanner.stop();
+                            await qr_scanner.stop();
                             scanning = false;
-                            connectAndSave(ip, token);
+                            connectWebSocket(ip, token);
                         }
                     } catch (e) {
                         showMsg("有効でないQRコードです");
                     }
                 }
-            ).then(() => { scanning = true; })
+            ).then(() => { 
+                // 立ち上げに成功したら
+                scanning = true; 
+            })
             .catch(err => {
                 scanning = false;
                 showMsg("カメラの起動に失敗しました");
@@ -141,11 +166,11 @@
             const urltext = document.getElementById('manual-url').value;
             try {
                 const { ip, token } = decodeURLtoIPandToken(urltext);
-                if (ip && token) connectAndSave(ip, token);
+                if (ip && token) connectWebSocket(ip, token);
             } catch(e) { showMsg("URLの形式が正しくありません"); }
         }
 
-        function connectAndSave(ip, token) {      
+        function connectWebSocket(ip, token) {      
             document.getElementById('loading-spinner').classList.remove('hidden');
             const wsUrl = `ws://${ip}:${WS_PORT}`; // 修正: wssからwsへ（ローカル開発想定）
             const ws = new WebSocket(wsUrl);
@@ -160,7 +185,7 @@
                     if(d.ok) {       
                         localStorage.setItem('server_ip', ip);
                         localStorage.setItem('auth_token', token);                   
-                        location.href = `smartphone.html?token=${token}`;
+                        location.href = `gesture_input.html?token=${token}`;
                     } else {
                         showMsg("認証に失敗しました");
                         document.getElementById('loading-spinner').classList.add('hidden');

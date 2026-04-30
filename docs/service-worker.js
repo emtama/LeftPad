@@ -17,7 +17,7 @@ const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
   '/pairing.html',
-  '/smartphone.html',
+  '/gesture_input.html',
   '/css/stylesheet.css',
   '/manifest.json'
 ];
