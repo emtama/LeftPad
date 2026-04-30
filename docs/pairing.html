@@ -186,16 +186,23 @@
         //=============================================================
         function authenticateWebSocket(ip, token) {      
             // 
+            console.log(`authenticateWebSocket`)
             document.getElementById('loading-spinner').classList.remove('hidden');
             //
+            console.log(`authenticateWebSocket`)
+
             const wsUrl = `ws://${ip}:${WS_PORT}`; // 修正: wssからwsへ（ローカル開発想定）
             const ws = new WebSocket(wsUrl);
             // 
+            console.log(`authenticateWebSocket`)
+
             ws.onopen = () => {
                 ws.send(JSON.stringify({
                     type:'auth', token
                 }));
             };
+            // 
+            console.log(`authenticateWebSocket`)
 
             ws.onmessage = (e) => {
                 let d; 
