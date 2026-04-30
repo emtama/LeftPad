@@ -20,5 +20,7 @@
   "background_color": "#000000",
   "display": "standalone",
   "scope": "/",
+  "orientation": "any",
+  "dir": "ltr",
   "theme_color": "#000000"
 }
