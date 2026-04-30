@@ -31,8 +31,8 @@ WS_BROADCAST_QUEUE = queue.Queue()
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 # 証明書ファイルのパス
 SSL_DIR = os.path.join(BASE_DIR, 'ssl')
-SSL_CERT_FILE_PATH = os.path.join(SSL_DIR, "ssl/cert.pem")
-SSL_KEY_FILE_PATH = os.path.join(SSL_DIR, "ssl/key.pem")
+SSL_CERT_FILE_PATH = os.path.join(SSL_DIR, "cert.pem")
+SSL_KEY_FILE_PATH = os.path.join(SSL_DIR, "key.pem")
 # ジェスチャー定義系のJSONファイルパス
 GESTURE_LABELS_PATH = os.path.join(BASE_DIR, "../share/gesture_labels.json")
 GESTURE_SHORTCUTS_PATH = os.path.join(BASE_DIR, "../share/gesture_shortcuts.json")

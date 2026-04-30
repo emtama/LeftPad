@@ -192,14 +192,8 @@
             console.log(`authenticateWebSocket`);
 
             const wsUrl = `wss://${ip}:${WS_PORT}`; // 修正: wssからwsへ（ローカル開発想定）
-            const ws = null;
+            const ws = new WebSocket(wsUrl);
             console.log(`wsUrl: ${wsUrl}`);
-            try {
-                ws = new WebSocket(wsUrl);
-            } catch(e) {
-                console.log(`error: ${e}`);
-                return;
-            }
             // 
             console.log(`authenticateWebSocket`);
 
