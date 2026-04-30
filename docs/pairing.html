@@ -113,7 +113,9 @@
                 startQRScan();
             }
         });
-
+        //=============================================================
+        //	URL文字列からIPとトークン文字列を抽出する関数
+        //=============================================================
         function decodeURLtoIPandToken(https_url){
             const u = new URL(https_url);
             const ip = u.searchParams.get("ip");
@@ -137,13 +139,14 @@
                 { fps: 10, qrbox: { width: 500, height: 500 } }, // fpsとQR認識範囲の設定
                 // 読み取り成功時に呼び出す処理
                 (decodedText) => {
+                    console.log("Read: ", decodedText);
                     try {
-                        console.log("[QR] decodedText:", decodedText);
                         const { ip, token } = decodeURLtoIPandToken(decodedText);
-                        console.log("[QR] parsed:", { ip, token });
                         if (ip && token) {
-                            await qr_scanner.stop();
+                            console.log("StopQRScanner");
+                            qr_scanner.stop();
                             scanning = false;
+                            console.log("connect ws");
                             connectWebSocket(ip, token);
                         }
                     } catch (e) {
@@ -161,12 +164,19 @@
                 document.getElementById('qr-container').classList.add('hidden');
             });
         }
-        
+        //=============================================================
+        //	手動でURLを入力して接続する
+        //=============================================================
         function manualConnect() {
-            const urltext = document.getElementById('manual-url').value;
+            const inputText = document.getElementById('manual-url').value;
             try {
-                const { ip, token } = decodeURLtoIPandToken(urltext);
-                if (ip && token) connectWebSocket(ip, token);
+                console.log("[QR] inputText:", inputText);
+                const { ip, token } = decodeURLtoIPandToken(inputText);
+                console.log("[QR] parsed:", { ip, token });
+                if (ip && token) {
+                    connectWebSocket(ip, token);
+                }
+
             } catch(e) { showMsg("URLの形式が正しくありません"); }
         }
 
@@ -180,9 +190,10 @@
             };
 
             ws.onmessage = (e) => {
-                let d; try{d=JSON.parse(e.data)}catch{return}
+                let d; 
+                try{d=JSON.parse(e.data)}catch{return}
                 if(d.type==='auth'){
-                    if(d.ok) {       
+                    if(d.ok) {
                         localStorage.setItem('server_ip', ip);
                         localStorage.setItem('auth_token', token);                   
                         location.href = `gesture_input.html?token=${token}`;
