@@ -10,11 +10,12 @@
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; -webkit-user-select: none; user-select: none; }
         #qr-reader-window { width: 100%; border-radius: 1rem; overflow: hidden; }
-        #qr-reader-window video { border-radius: 1rem; }
+        #qr-reader-window video { border-radius: 1rem; object-fit: cover !important; }
     </style>
 </head>
-<body class="bg-base-100 min-h-screen flex flex-col items-center p-6">
+<body class="bg-base-100 min-h-screen flex flex-col items-center p-6 text-base-content">
 
+    <!-- メッセージ表示用モーダル -->
     <dialog id="modalDialog" class="modal">
       <div class="modal-box border border-primary text-center">
         <h3 id="modal-text" class="font-bold text-lg"></h3>
@@ -27,6 +28,7 @@
     </dialog>
 
     <div class="w-full max-w-md flex flex-col items-center gap-8">
+        <!-- ロゴ・ヘッダー部分 -->
         <div class="flex flex-col items-center gap-2">
             <div class="avatar placeholder">
                 <div class="bg-primary text-primary-content rounded-full w-16">
@@ -37,45 +39,63 @@
             <div class="badge badge-outline opacity-50 uppercase tracking-widest text-[10px]">Pairing Mode</div>
         </div>
 
+        <!-- QRスキャナーコンテナ -->
         <div id="qr-container" class="card bg-base-200 w-full shadow-xl border border-base-300">
             <div class="card-body items-center text-center p-6">
-                <div class="flex items-center gap-2 mb-4 text-primary">
+                <div class="flex items-center gap-2 mb-4 text-primary font-bold">
                     <span class="material-symbols-outlined">qr_code_scanner</span>
-                    <h2 class="card-title text-sm">QRスキャン</h2>
+                    <h2 class="card-title text-sm uppercase">QR Scan</h2>
                 </div>
-                <div id="qr-reader-window" class="bg-black aspect-square mb-4 border-2 border-primary/20"></div>
-                <p class="text-xs opacity-60">PCアプリに表示されたQRコードを<br>枠内に収めてください</p>
+                
+                <div id="qr-reader-window" class="bg-black aspect-square mb-4 border-2 border-primary/20 flex items-center justify-center relative">
+                    <!-- スキャナーが起動していない時のプレースホルダー -->
+                    <span class="material-symbols-outlined text-6xl opacity-10 absolute">photo_camera</span>
+                </div>
+                
+                <p class="text-xs opacity-60 mb-6">PCアプリのQRコードを<br>枠内に収めてください</p>
+
+                <div class="card-actions w-full border-t border-base-300 pt-4">
+                    <button class="btn btn-ghost btn-sm w-full gap-2 opacity-70 hover:opacity-100" onclick="switchToManual()">
+                        <span class="material-symbols-outlined text-sm">keyboard</span>
+                        手動入力に切り替え
+                    </button>
+                </div>
             </div>
         </div>
 
+        <!-- 手動入力コンテナ -->
         <div id="url-container" class="hidden card bg-base-200 w-full shadow-xl border border-base-300">
             <div class="card-body p-6">
-                <h2 class="card-title text-sm mb-4 flex items-center gap-2">
-                    <span class="material-symbols-outlined">link</span> 手動接続
-                </h2>
+                <div class="flex items-center gap-2 mb-4 text-primary font-bold">
+                    <span class="material-symbols-outlined">link</span>
+                    <h2 class="card-title text-sm uppercase">手動接続</h2>
+                </div>
                 <div class="form-control gap-4">
-                    <input type="text" id="manual-url" placeholder="http://192.168..." class="input input-bordered w-full" />
-                    <button class="btn btn-primary w-full" onclick="manualConnect()">
-                        <span class="material-symbols-outlined">bolt</span> 接続
+                    <div class="relative w-full">
+                        <input type="text" id="manual-url" placeholder="http://192.168... (QRのURL)" class="input input-bordered w-full pr-10" />
+                    </div>
+                    <button class="btn btn-primary w-full shadow-lg" onclick="manualConnect()">
+                        <span class="material-symbols-outlined">bolt</span> 接続開始
                     </button>
+                    <div class="divider text-[10px] opacity-30 uppercase">or</div>
                     <button class="btn btn-ghost btn-sm" onclick="startQRScan()">
-                        QRスキャンを再試行
+                        <span class="material-symbols-outlined">qr_code</span> QRスキャンに戻る
                     </button>
                 </div>
             </div>
         </div>
         
+        <!-- ローディング表示 -->
         <div id="loading-spinner" class="hidden flex flex-col items-center gap-2">
             <span class="loading loading-ring loading-lg text-primary"></span>
-            <span class="text-xs opacity-50">接続中...</span>
+            <span class="text-xs opacity-50 font-bold tracking-widest uppercase">Connecting...</span>
         </div>
     </div>
 
+    <!-- スクリプト読み込み -->
     <script src="https://unpkg.com/html5-qrcode"></script>
     <script>
-        //=============================================================
-        //	モーダルの表示
-        //=============================================================
+        // --- モーダル制御 ---
         const modal = document.getElementById('modalDialog');
         const modalText = document.getElementById('modal-text');
         
@@ -84,140 +104,199 @@
             modal.showModal();
         }
 
-
-        //=============================================================
-        //	グローバル変数
-        //  - ネットワーク認証関係
-        //=============================================================
-
+        // --- グローバル状態 ---
         let serverIp = localStorage.getItem('server_ip');
         let authToken = localStorage.getItem('auth_token');
         const WS_PORT = 8765;
-
-        //=============================================================
-        //	初期化
-        //  最初にHTML,CSS,JSが読み込まれたときに実行
-        //=============================================================
-        window.addEventListener('load', () => {
-            // サーバIPと認証トークンがすでにローカルにあるならそれで接続を試し成功なら操作画面に遷移
-            // そうでないならQRスキャン開始
-
-            if (serverIp && authToken) {
-                try {
-                    authenticateWebSocket(serverIp, authToken);
-                } catch(e) {
-                    console.log(`authentication by saved ip and token failed.: ${e} trying qr scan...`)
-                }
-            }
-            startQRScan();
-        });
-        //=============================================================
-        //	URL文字列からIPとトークン文字列を抽出する関数
-        //=============================================================
-        function decodeURLtoIPandToken(https_url){
-            const u = new URL(https_url);
-            const ip = u.searchParams.get("ip");
-            const token = u.searchParams.get("token");
-            return { ip, token };
-        }
-
         let qr_scanner = null;
         let scanning = false;
-        function startQRScan() {
-            // すでに起動中なら何もしない
+
+        // --- 初期化処理 ---
+        window.addEventListener('load', async () => {
+            // 保存済みの情報があれば自動接続を試みる
+            if (serverIp && authToken) {
+                console.log("Found existing credentials, attempting auto-connect...");
+                authenticateWebSocket(serverIp, authToken);
+            } else {
+                startQRScan();
+            }
+        });
+
+        // URL解析
+        function decodeURLtoIPandToken(rawUrl) {
+            try {
+                const u = new URL(rawUrl);
+                const ip = u.searchParams.get("ip");
+                const token = u.searchParams.get("token");
+                return { ip, token };
+            } catch (e) {
+                throw new Error("Invalid URL format");
+            }
+        }
+
+        // --- QRスキャンロジック ---
+        async function startQRScan() {
             if (scanning) return;
-            // UIの切り替え
+
+            // UI切り替え
             document.getElementById('url-container').classList.add('hidden');
             document.getElementById('qr-container').classList.remove('hidden');
-            // スキャナーインスタンスの作成
-            qr_scanner = new Html5Qrcode("qr-reader-window");
+            document.getElementById('loading-spinner').classList.add('hidden');
 
-            qr_scanner.start(
-                { facingMode: "environment" }, // 背面カメラの使用      
-                { fps: 10, qrbox: { width: 500, height: 500 } }, // fpsとQR認識範囲の設定
-                // 読み取り成功時に呼び出す処理
-                (decodedText) => {
-                    console.log("Read: ", decodedText);
-                    try {
-                        const { ip, token } = decodeURLtoIPandToken(decodedText);
-                        console.log(`ip ${ip} token ${token}`);
+            if (!qr_scanner) {
+                qr_scanner = new Html5Qrcode("qr-reader-window");
+            }
 
-                        if (ip && token) {
-                            console.log("StopQRScanner");
-                            qr_scanner.stop();
-                            scanning = false;
-                            console.log("connect ws");
-                            authenticateWebSocket(ip, token);
-                        }
-                    } catch (e) {
-                        showMsg("有効でないQRコードです");
-                    }
-                }
-            ).then(() => { 
-                // 立ち上げに成功したら
-                scanning = true; 
-            })
-            .catch(err => {
-                scanning = false;
-                showMsg("カメラの起動に失敗しました");
-                document.getElementById('url-container').classList.remove('hidden');
-                document.getElementById('qr-container').classList.add('hidden');
-            });
-        }
-        //=============================================================
-        //	手動でURLを入力して接続する
-        //=============================================================
-        function manualConnect() {
-            const inputText = document.getElementById('manual-url').value;
             try {
-                console.log("[QR] inputText:", inputText);
+                await qr_scanner.start(
+                    { facingMode: "environment" },
+                    { fps: 10, qrbox: { width: 250, height: 250 } },
+                    async (decodedText) => {
+                        console.log("Read Success:", decodedText);
+                        try {
+                            const { ip, token } = decodeURLtoIPandToken(decodedText);
+                            if (ip && token) {
+                                // 成功したらスキャンを止めて接続へ
+                                await stopScannerInternal();
+                                authenticateWebSocket(ip, token);
+                            } else {
+                                throw new Error("Missing parameters");
+                            }
+                        } catch (err) {
+                            resetScannerUI("無効なQRコード形式です", err);
+                        }
+                    }
+                );
+                scanning = true;
+                console.log("Scanner started");
+            } catch (err) {
+                resetScannerUI("カメラの起動に失敗しました", err);
+            }
+        }
+
+        // 手動入力画面への切り替え
+        async function switchToManual() {
+            await stopScannerInternal();
+            document.getElementById('qr-container').classList.add('hidden');
+            document.getElementById('url-container').classList.remove('hidden');
+        }
+
+        // 内部的なスキャナー停止処理
+        async function stopScannerInternal() {
+            scanning = false;
+            if (qr_scanner && qr_scanner.isScanning) {
+                try {
+                    await qr_scanner.stop();
+                    console.log("Scanner stopped");
+                } catch (e) {
+                    console.warn("Stop failed (likely already stopping):", e);
+                }
+            }
+        }
+
+        // スキャンエラー時のUIリセット
+        async function resetScannerUI(msg, err) {
+            await stopScannerInternal();
+            showMsg(msg);
+            console.error(msg, err);
+            document.getElementById('qr-container').classList.add('hidden');
+            document.getElementById('url-container').classList.remove('hidden');
+        }
+
+        // --- 手動接続ロジック ---
+        function manualConnect() {
+            const inputText = document.getElementById('manual-url').value.trim();
+            if (!inputText) {
+                showMsg("URLを入力してください");
+                return;
+            }
+
+            try {
                 const { ip, token } = decodeURLtoIPandToken(inputText);
-                console.log("[QR] parsed:", { ip, token });
                 if (ip && token) {
                     authenticateWebSocket(ip, token);
+                } else {
+                    showMsg("IPまたはトークンが見つかりません");
                 }
-
-            } catch(e) { showMsg("URLの形式が正しくありません"); }
+            } catch (e) {
+                showMsg("URLの形式が正しくありません");
+            }
         }
-        //=============================================================
-        //	WebSocketを用いて認証を行い、成功したら操作画面に遷移する
-        //=============================================================
+
+        // --- WebSocket認証 ---
         function authenticateWebSocket(ip, token) {      
-            // 
-            console.log(`start authentication.`);
-            //
-            document.getElementById('loading-spinner').classList.remove('hidden');
-            //
-            const wsUrl = `wss://${ip}:${WS_PORT}`; // 修正: wssからwsへ（ローカル開発想定）
-            const ws = new WebSocket(wsUrl);
-            console.log(`websocket instance made. wsUrl: ${wsUrl}`);
-            // 
+            const spinner = document.getElementById('loading-spinner');
+            spinner.classList.remove('hidden');
+            
+            // 安全のため現在の入力を隠す
+            document.getElementById('qr-container').classList.add('hidden');
+            document.getElementById('url-container').classList.add('hidden');
+
+            // 開発環境に応じて ws:// または wss:// を切り替える
+            // 本来はローカルIP相手なら ws:// が一般的（証明書がないため）
+            const wsProtocol = "ws"; 
+            const wsUrl = `${wsProtocol}://${ip}:${WS_PORT}`;
+            
+            console.log(`Connecting to: ${wsUrl}`);
+            
+            let ws;
+            try {
+                ws = new WebSocket(wsUrl);
+            } catch (e) {
+                handleAuthError("WebSocketの作成に失敗しました");
+                return;
+            }
+
+            // タイムアウト設定 (5秒)
+            const timeout = setTimeout(() => {
+                if (ws.readyState !== WebSocket.OPEN) {
+                    ws.close();
+                    handleAuthError("接続がタイムアウトしました");
+                }
+            }, 5000);
+
             ws.onopen = () => {
-                ws.send(JSON.stringify({
-                    type:'auth', token
-                }));
+                clearTimeout(timeout);
+                console.log("Connected. Sending auth token...");
+                ws.send(JSON.stringify({ type: 'auth', token: token }));
             };
-            console.log(`send authentication message.`);
-            // 
+
             ws.onmessage = (e) => {
-                let d; 
-                try{d=JSON.parse(e.data)}catch{return}
-                if(d.type==='auth'){
-                    if(d.ok) {
-                        localStorage.setItem('server_ip', ip);
-                        localStorage.setItem('auth_token', token);                   
-                        location.href = `gesture_input.html?token=${token}`;
-                    } else {
-                        showMsg("認証に失敗しました");
-                        document.getElementById('loading-spinner').classList.add('hidden');
+                try {
+                    const data = JSON.parse(e.data);
+                    if (data.type === 'auth') {
+                        if (data.ok) {
+                            console.log("Auth Success!");
+                            localStorage.setItem('server_ip', ip);
+                            localStorage.setItem('auth_token', token);
+                            // 実際には gesture_input.html へ遷移
+                            // location.href = `gesture_input.html?token=${token}`;
+                            showMsg("接続に成功しました（デモ：遷移をスキップ）");
+                        } else {
+                            handleAuthError("認証に失敗しました。トークンが無効です。");
+                        }
                     }
+                } catch (err) {
+                    console.error("Data parse error", err);
                 }
             };
-            console.log(`send authentication message.`);
-            // 
-            ws.onclose = () => {
-                console.log("WS Close");
+
+            ws.onerror = (err) => {
+                clearTimeout(timeout);
+                handleAuthError("サーバーに接続できませんでした");
             };
+
+            ws.onclose = () => {
+                console.log("WebSocket Closed");
+                spinner.classList.add('hidden');
+            };
+
+            function handleAuthError(msg) {
+                spinner.classList.add('hidden');
+                showMsg(msg);
+                // 手動入力画面を再表示
+                document.getElementById('url-container').classList.remove('hidden');
+            }
         }
     </script>
 </body>
