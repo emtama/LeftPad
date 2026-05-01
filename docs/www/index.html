@@ -13,29 +13,18 @@ index.htmlはGithubpagesで最初に読み込まれる。
     <!-- UI表示はしない -->
 </body>
     <script>
-        // swの登録
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/service_worker.js')
-                .then(reg => console.log('SW registered!', reg))
-                .catch(err => console.err('SW registration failed:', err));
-            });
-        }
-        // 2. 振り分けロジック
+        // index.html の script 部分
         window.addEventListener('load', () => {
             const params = new URLSearchParams(window.location.search);
             const ip = params.get('ip') || localStorage.getItem('server_ip');
             const token = params.get('token') || localStorage.getItem('auth_token');
 
             if (ip && token) {
-                // QRスキャン経由（URLパラメータ）で来た場合は、次回以降のために保存
                 localStorage.setItem('server_ip', ip);
                 localStorage.setItem('auth_token', token);
                 
-                // 操作画面へ移行
-                location.href = `gesture_input.html?token=${token}`; // gesture_input.html側でURLからトークンを拾うロジックに合わせて
+                location.href = `gesture_input.html`; 
             } else {
-                // 未ペアリングならスキャン画面へ
                 location.href = 'pairing.html';
             }
         });

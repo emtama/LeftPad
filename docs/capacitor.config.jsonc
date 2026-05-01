@@ -1,0 +1,8 @@
+{
+  "appId": "com.LeftPad.app",
+  "appName": "LeftPad",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "http"// これがないとHTTPS->WSの接続になってブロックされる
+  }
+}

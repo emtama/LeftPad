@@ -182,18 +182,29 @@ async def ws_handler(websocket):
     try:
         raw = await asyncio.wait_for(websocket.recv(), timeout=10)
         data = json.loads(raw)
+        LOGGER.info(f"WSサーバ: 受信トークン: {data.get("token")} / 期待トークン: {ACCESS_TOKEN}")
+
         if data.get("type") != "auth" or data.get("token") != ACCESS_TOKEN:
+            # デバッグ用：受け取ったトークンと期待値をログに出す
+            LOGGER.info(f"WSサーバ: 認証不正 WS通信をクローズ")
             await websocket.close(4001, "Unauthorized")
             return
     except:
+        LOGGER.info(f"WSサーバ: 認証不正 WS通信をクローズ")
         await websocket.close(4001, "Unauthorized")
         return
     
     # 認証OKなら返答
+    LOGGER.info(f"WSサーバ: 認証許可通知を送信")
     await websocket.send(json.dumps({"type": "auth", "ok": True}))
+    LOGGER.info(f"WSサーバ: 認証許可通知を送信 終了")
+
     CONNECTED_CLIENTS.add(websocket)
     CONNECTED_CLIENTS_INFOS[websocket] = f"{client_ip}:{client_port}"
-    inform_ui_connection_stats()
+    if 0:
+        inform_ui_connection_stats()
+
+    LOGGER.info(f"WSサーバ: セットアップデータを送信")
 
     await websocket.send(json.dumps({
         "type": "initial_auth_setup", 
@@ -205,6 +216,8 @@ async def ws_handler(websocket):
     }))
 
     # 接続確立後は随時受け取ったメッセージを処理する
+    LOGGER.info(f"WSサーバ: 待機状態に入ります")
+
     try:
         async for message in websocket:
             try:
@@ -219,22 +232,37 @@ async def ws_handler(websocket):
             except Exception as e:
                 LOGGER.error(f"WSメッセージ処理エラー: {e}")
     finally:
+        LOGGER.info(f"WSサーバ: 切断します")
+
         CONNECTED_CLIENTS.discard(websocket)
         CONNECTED_CLIENTS_INFOS.pop(websocket, None)
         inform_ui_connection_stats()
+
 #=============================================================
 #   WS    
 #=============================================================
 def run_ws():
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    async def main():
-        # 起動
-        async with websockets.serve(ws_handler, HOST, WS_PORT):
-            protocol = "WS"
-            LOGGER.info(f"{protocol} サーバー起動: ポート {WS_PORT}")
-            await asyncio.Future()
-    loop.run_until_complete(main())
+    while True:  # アプリが動いている限り無限にリトライする
+        try:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+
+            async def main():
+                # 起動
+                async with websockets.serve(ws_handler, HOST, WS_PORT):
+                    protocol = "WS"
+                    LOGGER.info(f"{protocol} サーバー起動: ポート {WS_PORT}")
+                    await asyncio.Future()  # サーバーを維持
+
+            loop.run_until_complete(main())
+        except Exception as e:
+            # エラー内容をログに出力し、数秒待ってから再試行
+            if LOGGER: 
+                LOGGER.error(f"WSサーバーが停止しました。3秒後に再起動します: {e}")
+            import time
+            time.sleep(3) 
+        finally:
+            loop.close()
 
 # ══════════════════════════════════════════════
 # HTTP/HTTPS サーバー

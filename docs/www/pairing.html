@@ -93,6 +93,7 @@
     </div>
 
     <!-- スクリプト読み込み -->
+    <script src="js/connection.js"></script>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <script>
         // --- モーダル制御 ---
@@ -107,19 +108,13 @@
         // --- グローバル状態 ---
         let serverIp = localStorage.getItem('server_ip');
         let authToken = localStorage.getItem('auth_token');
-        const WS_PORT = 8765;
         let qr_scanner = null;
         let scanning = false;
 
         // --- 初期化処理 ---
         window.addEventListener('load', async () => {
-            // 保存済みの情報があれば自動接続を試みる
-            if (serverIp && authToken) {
-                console.log("Found existing credentials, attempting auto-connect...");
-                authenticateWebSocket(serverIp, authToken);
-            } else {
-                startQRScan();
-            }
+            document.getElementById('loading-spinner').classList.add('hidden');
+            startQRScan();
         });
 
         // URL解析
@@ -133,15 +128,32 @@
                 throw new Error("Invalid URL format");
             }
         }
-
+        /*=============================================================
+             CapacitorのCameraプラグインを使う場合
+        =============================================================*/
+        async function checkPermission() {
+            const status = await Capacitor.Plugins.Camera.requestPermissions();
+            if (status.camera !== 'granted') {
+                const msg = "カメラの許可が必要です";
+                showMsg(msg);
+                console.log(`${msg}`)
+                return false;
+            }
+            return true;
+        }
+        
+        /*=============================================================            
         // --- QRスキャンロジック ---
+        =============================================================*/
         async function startQRScan() {
             if (scanning) return;
+            if (!checkPermission()) {
+                switchToManual();
+                return;
+            }
 
             // UI切り替え
-            document.getElementById('url-container').classList.add('hidden');
-            document.getElementById('qr-container').classList.remove('hidden');
-            document.getElementById('loading-spinner').classList.add('hidden');
+            switchToQR();
 
             if (!qr_scanner) {
                 qr_scanner = new Html5Qrcode("qr-reader-window");
@@ -158,7 +170,9 @@
                             if (ip && token) {
                                 // 成功したらスキャンを止めて接続へ
                                 await stopScannerInternal();
-                                authenticateWebSocket(ip, token);
+                                localStorage.setItem('server_ip', ip);
+                                localStorage.setItem('auth_token', token);
+                                location.href = `gesture_input.html`;
                             } else {
                                 throw new Error("Missing parameters");
                             }
@@ -179,6 +193,12 @@
             await stopScannerInternal();
             document.getElementById('qr-container').classList.add('hidden');
             document.getElementById('url-container').classList.remove('hidden');
+        }
+
+        // QR入力画面への切り替え
+        async function switchToQR() {            
+            document.getElementById('url-container').classList.add('hidden');
+            document.getElementById('qr-container').classList.remove('hidden');
         }
 
         // 内部的なスキャナー停止処理
@@ -214,7 +234,9 @@
             try {
                 const { ip, token } = decodeURLtoIPandToken(inputText);
                 if (ip && token) {
-                    authenticateWebSocket(ip, token);
+                    localStorage.setItem('server_ip', ip);
+                    localStorage.setItem('auth_token', token);
+                    location.href = `gesture_input.html`;
                 } else {
                     showMsg("IPまたはトークンが見つかりません");
                 }
@@ -223,81 +245,6 @@
             }
         }
 
-        // --- WebSocket認証 ---
-        function authenticateWebSocket(ip, token) {      
-            const spinner = document.getElementById('loading-spinner');
-            spinner.classList.remove('hidden');
-            
-            // 安全のため現在の入力を隠す
-            document.getElementById('qr-container').classList.add('hidden');
-            document.getElementById('url-container').classList.add('hidden');
-
-            // 開発環境に応じて ws:// または wss:// を切り替える
-            // 本来はローカルIP相手なら ws:// が一般的（証明書がないため）
-            const wsProtocol = "ws"; 
-            const wsUrl = `${wsProtocol}://${ip}:${WS_PORT}`;
-            
-            console.log(`Connecting to: ${wsUrl}`);
-            
-            let ws;
-            try {
-                ws = new WebSocket(wsUrl);
-            } catch (e) {
-                handleAuthError("WebSocketの作成に失敗しました");
-                return;
-            }
-
-            // タイムアウト設定 (5秒)
-            const timeout = setTimeout(() => {
-                if (ws.readyState !== WebSocket.OPEN) {
-                    ws.close();
-                    handleAuthError("接続がタイムアウトしました");
-                }
-            }, 5000);
-
-            ws.onopen = () => {
-                clearTimeout(timeout);
-                console.log("Connected. Sending auth token...");
-                ws.send(JSON.stringify({ type: 'auth', token: token }));
-            };
-
-            ws.onmessage = (e) => {
-                try {
-                    const data = JSON.parse(e.data);
-                    if (data.type === 'auth') {
-                        if (data.ok) {
-                            console.log("Auth Success!");
-                            localStorage.setItem('server_ip', ip);
-                            localStorage.setItem('auth_token', token);
-                            // 実際には gesture_input.html へ遷移
-                            // location.href = `gesture_input.html?token=${token}`;
-                            showMsg("接続に成功しました（デモ：遷移をスキップ）");
-                        } else {
-                            handleAuthError("認証に失敗しました。トークンが無効です。");
-                        }
-                    }
-                } catch (err) {
-                    console.error("Data parse error", err);
-                }
-            };
-
-            ws.onerror = (err) => {
-                clearTimeout(timeout);
-                handleAuthError("サーバーに接続できませんでした");
-            };
-
-            ws.onclose = () => {
-                console.log("WebSocket Closed");
-                spinner.classList.add('hidden');
-            };
-
-            function handleAuthError(msg) {
-                spinner.classList.add('hidden');
-                showMsg(msg);
-                // 手動入力画面を再表示
-                document.getElementById('url-container').classList.remove('hidden');
-            }
-        }
     </script>
 </body>
 </html>

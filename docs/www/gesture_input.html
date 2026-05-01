@@ -64,6 +64,7 @@
     </section>
   </main>
 
+  <script src="js/connection.js"></script>
   <script>
   // 描画：対角線 (server.htmlのロジックを流用しつつ色は変数化)
   const diagCanvas = document.getElementById("diagonal-canvas");
@@ -86,65 +87,90 @@
   window.addEventListener("resize", resizeDiagonal);
   resizeDiagonal();
 
-  // --- 以降、ロジック部分は変更なし ---
-  // (WebSocket, Gesture判定, 振動処理など)
-  const token = new URLSearchParams(location.search).get('token') || '';
-  const wsHost = location.hostname || location.host.split(':')[0];
-  const wsUrl = `ws://${wsHost}:8765`;
-  let ws = null, isAuthed = false;
+  /*=============================================================
+    グローバル変数
+  =============================================================*/
   let vibrationEnabled = true;
   const stateEl = document.getElementById('state');
   const dotEl = document.getElementById('dot');
   const feedbackEl = document.getElementById('feedback');
 
-  let gesture_labels_jp = {};
+  let gesture_labels = {};
   let gesture_shortcuts = {};
 
-  function initial_connect(){
-    ws = new WebSocket(wsUrl);
-    setConn(false, 'Connecting');
-    ws.onopen = ()=> ws.send(JSON.stringify({type:'auth', token}));
-    ws.onmessage = (e)=>{
-      let d; try{d=JSON.parse(e.data)}catch{return}
-      if(d.type==='auth'){
-        isAuthed=!!d.ok;
-        setConn(isAuthed, isAuthed?'Ready':'Failed');
-        return;
-      }
-      if(d.type==='initial_auth_setup'){ 
-        gesture_shortcuts = d.gesture_shortcuts || {};
-        gesture_labels_jp = d.gesture_labels || {}; 
-        vibrationEnabled = !!d.vibration_enabled; 
-        reportVibrationStatus(true);
-        const root = document.documentElement;
-        for (const [key, value] of Object.entries(d.colors)) {
-            root.style.setProperty(`--${key}`, value);
-        }
-      }
-      if(d.type==='vibration_setting_updated'){ 
-        vibrationEnabled = !!d.data;         
-        reportVibrationStatus(true);
-      }
-      if (d.type==='gesture_updated') {
-        gesture_shortcuts = d.data || {};
-      }
-    };
-    ws.onclose = ()=>{ isAuthed=false; setConn(false,'Disconnected'); setTimeout(initial_connect, 1500); };
-  }
+  // トークンとIPを localStorage から取得するように変更
+  const token = localStorage.getItem('auth_token');
+  const ip = localStorage.getItem('server_ip');
 
+  let connect_failed_count = 0;// 接続失敗数のカウント
+
+  /*=============================================================
+    初期接続 (connection.js の connectWS を使用)
+  =============================================================*/
+  function initial_connect() {
+  
+    if (!ip || !token) {
+      // 認証情報がない場合はペアリング画面へ戻す処理を追加すると親切
+      setConn(false, 'No Credentials');
+      location.href = 'pairing.html';
+      return;
+    }
+
+    if (connect_failed_count > 3) {
+      // あとで強制遷移でなくポップアップで聞く形式に変える
+      connect_failed_count = 0;
+      location.href = 'pairing.html';
+      return;
+    }
+
+    // 共通関数 connectWS を呼び出す
+    connectWS(ip, token, {
+      onAuthSuccess: () => {
+        setConn(true, 'Ready');
+      },
+      onMessage: (d) => {
+        console.log("Received message type:", d.type);
+        // サーバーからの各種メッセージ処理[cite: 7]
+        if (d.type === 'initial_auth_setup') { 
+          gesture_shortcuts = d.gesture_shortcuts || {};
+          gesture_labels = d.gesture_labels || {}; 
+          vibrationEnabled = !!d.vibration_enabled; 
+          reportVibrationStatus(true);
+        }
+        if (d.type === 'vibration_setting_updated') { 
+          vibrationEnabled = !!d.data;         
+          reportVibrationStatus(true);
+        }
+        if (d.type === 'gesture_updated') {
+          gesture_shortcuts = d.data || {};
+        }
+      },
+      onConnChange: (ok, msg) => setConn(ok, msg),
+      onClose: () => {
+        connect_failed_count = connect_failed_count + 1;
+        // 切断時に再接続を試みる[cite: 7]
+        setTimeout(initial_connect, 1000);
+      }
+    });
+  }
+  
+  /*=============================================================
+    
+  =============================================================*/
   function setConn(ok, msg){ 
     stateEl.textContent=msg; 
     dotEl.className = ok ? 'badge badge-xs badge-success animate-pulse' : 'badge badge-xs badge-error'; 
   }
 
-  function send(obj){ if(ws && ws.readyState===1 && isAuthed) ws.send(JSON.stringify(obj)); }
-
+  /*=============================================================
+    コマンドを送る
+  =============================================================*/
   function sendCommand(gesture_name){
     if (gesture_shortcuts[gesture_name]){
-      send({"type": "gesture_detected", "gesture_name": gesture_name});
+      sendMessage({"type": "gesture_detected", "gesture_name": gesture_name});
       vibrateTap();
     }
-    const gestureLabel = gesture_labels_jp[gesture_name] || gesture_name;
+    const gestureLabel = gesture_labels[gesture_name] || gesture_name;
     flash_feedback_text(gestureLabel);
   }
 
@@ -191,7 +217,7 @@
       }
     }
 
-    send({
+    sendMessage({
       type: 'vibration_status',
       supported,
       allowed
