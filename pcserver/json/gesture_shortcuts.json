@@ -43,22 +43,10 @@
   "single_finger_long_press_right": [
     "Shift"
   ],
-  "two_finger_tap_top": [
-    "Ctrl",
-    "0"
-  ],
-  "two_finger_tap_bottom": [
-    "Ctrl",
-    "0"
-  ],
-  "two_finger_tap_left": [
-    "Ctrl",
-    "0"
-  ],
-  "two_finger_tap_right": [
-    "Ctrl",
-    "0"
-  ],
+  "two_finger_tap_top": [],
+  "two_finger_tap_bottom": [],
+  "two_finger_tap_left": [],
+  "two_finger_tap_right": [],
   "two_finger_double_tap_top": [],
   "two_finger_double_tap_bottom": [],
   "two_finger_double_tap_left": [],

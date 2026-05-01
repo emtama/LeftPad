@@ -73,8 +73,10 @@ class WebviewLogHandler(logging.Handler):
     def emit(self, record):
         log_entry = self.format(record)
         safe_log = log_entry.replace("'", "\\'").replace("\n", " ")
-        try: self.window.evaluate_js(f"addLog('{safe_log}')")
-        except: pass
+        try: 
+            self.window.evaluate_js(f"addLog('{safe_log}')")
+        except: 
+            pass
 
 # ══════════════════════════════════════════════
 # ローカル：キーの実行
@@ -171,8 +173,11 @@ class JSApi:
 # スマホ側との WS/WSS 通信
 # ══════════════════════════════════════════════
 def inform_ui_connection_stats():
-    stats = {"count": len(CONNECTED_CLIENTS), "ips": list(CONNECTED_CLIENTS_INFOS.values())}
-    window.evaluate_js(f"connectionStatsUpdate({json.dumps(stats)})")
+    try:
+        stats = {"count": len(CONNECTED_CLIENTS), "ips": list(CONNECTED_CLIENTS_INFOS.values())}
+        window.evaluate_js(f"connectionStatsUpdate({json.dumps(stats)})")
+    except Exception as e:
+        LOGGER.warning(f'exception catched {e}')
 
 async def ws_handler(websocket):
     # 初回通信
@@ -201,8 +206,7 @@ async def ws_handler(websocket):
 
     CONNECTED_CLIENTS.add(websocket)
     CONNECTED_CLIENTS_INFOS[websocket] = f"{client_ip}:{client_port}"
-    if 0:
-        inform_ui_connection_stats()
+    inform_ui_connection_stats()
 
     LOGGER.info(f"WSサーバ: セットアップデータを送信")
 

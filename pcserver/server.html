@@ -299,6 +299,15 @@
     }
   });
 
+  /*=============================================================
+    
+  =============================================================*/
+  function connectionStatsUpdate(text){
+    const client_list = document.getElementById('client-list');
+    const client_count = document.getElementById('client-count');    
+    client_count.textContent = text.count;
+    client_list.textContent = text.ips;
+  }
   // ==============================================
   // タグフィルタリング
   // ==============================================

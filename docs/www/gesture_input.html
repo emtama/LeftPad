@@ -419,13 +419,13 @@
     // --- スワイプ ---
     if (adx > w * SWIPE_THRESHOLD_RATIO){// ある程度移動している
       if (adx > ady) {
-        const dir = dx > 0 ? 'right' : 'left';
+        const dir = dx > 0 ? 'rightward' : 'leftward';
         return `${finger}_swipe_${dir}`;
       }
     }
     if (ady > w * SWIPE_THRESHOLD_RATIO){
       if(ady > adx){
-        const dir = dy > 0 ? 'down' : 'up';
+        const dir = dy > 0 ? 'downward' : 'upward';
         return `${finger}_swipe_${dir}`;
       }      
     }    
