@@ -114,11 +114,9 @@ class JSApi:
     def get_init_data(self, qr_fill_color, qr_back_color):
         if self.ip is None:
             self.ip = get_local_ip()
-            use_ssl = is_ssl_available()
             
-            # SSLの有無でプロトコルを切り替え
-            scheme_http = "https" if use_ssl else "http"
-            scheme_ws = "wss" if use_ssl else "ws"
+            scheme_http = "http"
+            scheme_ws = "ws"
             
             self.http_url = f"{scheme_http}://{self.ip}:{HTTP_PORT}/{JSApi.PWA_START_HTML_PATH}?ip={self.ip}&token={ACCESS_TOKEN}"
             self.ws_url = f"{scheme_ws}://{self.ip}:{WS_PORT}"
